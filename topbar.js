@@ -23,7 +23,7 @@
   padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 8px max(14px, env(safe-area-inset-left));
   background: #000000;
   border-bottom: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  font-family: 'Share Tech Mono', monospace;
 }
 .topbar-water-wrap { display: flex; align-items: stretch; }
 .topbar-water-pill {
@@ -88,7 +88,7 @@
   padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
   background: #0a0a0b;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  font-family: 'Share Tech Mono', monospace;
 }
 .bottombar-tab {
   flex: 1;
