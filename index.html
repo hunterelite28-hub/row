@@ -120,6 +120,51 @@ body::after {
   .dash-title-text { font-size: 20px; }
   .dash-stat-val { font-size: 24px; }
 }
+/* ===== Recent activity card ===== */
+.dash-activity {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 14px 14px 8px;
+  margin-bottom: 18px;
+}
+.dash-activity-header {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 10px;
+}
+.dash-activity-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.dash-act-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.dash-act-icon.run  { background: rgba(249,115,22,0.18); }
+.dash-act-icon.gym  { background: rgba(249,115,22,0.12); }
+.dash-act-icon.muay { background: rgba(167,139,250,0.15); }
+.dash-act-body { flex: 1; min-width: 0; }
+.dash-act-type {
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #FAFAFA;
+}
+.dash-act-detail {
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.dash-act-date {
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+.dash-activity-empty {
+  font-size: 12px; color: rgba(255,255,255,0.3);
+  text-align: center; padding: 10px 0 6px;
+}
 
 /* ===== Component 2: Goal Ticker ===== */
 .ticker-row {
@@ -707,6 +752,11 @@ body::after {
       <span class="dash-stat-val" id="dashStatMuay" style="color:#a78bfa">0</span>
       <span class="dash-stat-label">MUAY THAI</span>
     </div>
+  </div>
+
+  <div class="dash-activity">
+    <div class="dash-activity-header">// Recent Activity</div>
+    <div id="dashActivityList"></div>
   </div>
 
   <div class="section">
@@ -1406,6 +1456,41 @@ body::after {
     el('dashStatRuns', week.filter(s => s.type === 'run').length);
     el('dashStatGym',  week.filter(s => s.type === 'gym').length);
     el('dashStatMuay', week.filter(s => s.type === 'muay').length);
+
+    // Recent activity list
+    const listEl = document.getElementById('dashActivityList');
+    if (!listEl) return;
+    if (!sessions.length) {
+      listEl.innerHTML = '<div class="dash-activity-empty">No sessions logged yet.</div>';
+      return;
+    }
+    function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fmtDate(ds) {
+      const [,m,d] = ds.split('-').map(Number);
+      return d + ' ' + MONS[m-1];
+    }
+    listEl.innerHTML = sessions.slice(0, 5).map(s => {
+      const icon = s.type === 'run' ? '▶▶' : s.type === 'gym' ? '[+]' : '✦';
+      const cls  = s.type === 'run' ? 'run' : s.type === 'gym' ? 'gym' : 'muay';
+      const label = s.type === 'run' ? 'RUN' : s.type === 'gym' ? 'GYM' : 'MUAY THAI';
+      let detail = '';
+      if (s.type === 'run') {
+        detail = (s.km ? s.km + 'km' : '') + (s.km && s.duration ? ' in ' + s.duration + 'min' : s.duration ? s.duration + 'min' : '');
+        if (s.notes) detail += (detail ? ' · ' : '') + s.notes;
+      } else if (s.type === 'gym') {
+        detail = s.split || s.notes || '';
+      } else {
+        detail = (s.duration ? s.duration + 'min' : '') + (s.duration && s.notes ? ' · ' : '') + (s.notes || '');
+      }
+      return '<div class="dash-activity-row">' +
+        '<div class="dash-act-icon ' + cls + '">' + icon + '</div>' +
+        '<div class="dash-act-body">' +
+          '<div class="dash-act-type">' + label + '</div>' +
+          (detail ? '<div class="dash-act-detail">' + escH(detail) + '</div>' : '') +
+        '</div>' +
+        '<div class="dash-act-date">' + fmtDate(s.date) + '</div>' +
+      '</div>';
+    }).join('');
   }
   renderDashStats();
 })();
