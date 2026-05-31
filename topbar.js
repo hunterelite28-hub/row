@@ -248,7 +248,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     if (done >= total) return 'good';
     if (done >= total * 0.5) return 'warn';
     const h = new Date().getHours();
-    if (h >= 18 && done < total * 0.5) return 'miss';
+    if (h >= 23 && done < total * 0.5) return 'miss';
     return 'warn';
   }
   function setPillStatus(pillEl, status) {

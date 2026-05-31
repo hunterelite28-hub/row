@@ -676,7 +676,7 @@ body::after {
       <div class="gm-header">
         <div class="gm-header-left">
           <div class="gm-eyebrow" id="tomorrowLabel">Plan tomorrow —</div>
-          <div class="gm-tomorrow-sub">Write tonight, locked until 6 AM.</div>
+          <div class="gm-tomorrow-sub">Write tonight, locked until 5 AM.</div>
         </div>
         <div class="gm-tomorrow-count" id="gmTomorrowCount">0 planned</div>
       </div>
@@ -700,8 +700,8 @@ body::after {
   // Paste your Anthropic key here to enable ✨ Polish. Empty = falls back to plain add.
   const ANTHROPIC_API_KEY = '';
 
-  const WAKE_HOUR  = 8;
-  const SLEEP_HOUR = 24;
+  const WAKE_HOUR  = 5;
+  const SLEEP_HOUR = 23;
 
   // ---------- storage helpers ----------
   function storeGet(key) {
@@ -728,7 +728,7 @@ body::after {
   function dateToKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function getActiveDateString() {
     const now = new Date();
-    if (now.getHours() < 6) {
+    if (now.getHours() < 5) {
       const d = new Date(now);
       d.setDate(d.getDate() - 1);
       return dateToKey(d);
@@ -738,7 +738,7 @@ body::after {
   function getTomorrowDateString() {
     const now = new Date();
     const d = new Date(now);
-    if (now.getHours() >= 6) d.setDate(d.getDate() + 1);
+    if (now.getHours() >= 5) d.setDate(d.getDate() + 1);
     return dateToKey(d);
   }
   function formatDate(yyyy_mm_dd) {
@@ -1047,7 +1047,7 @@ body::after {
     cb.type = 'checkbox';
     cb.className = 'gm-check';
     cb.checked = !!goal.done;
-    if (readOnly) { cb.disabled = true; cb.title = 'Activates at 6 AM tomorrow'; }
+    if (readOnly) { cb.disabled = true; cb.title = 'Activates at 5 AM tomorrow'; }
     cb.addEventListener('change', () => {
       const list = getGoals(key);
       if (!list[idx]) return;
