@@ -67,19 +67,59 @@ body::after {
   margin: 0 auto;
 }
 
-/* ===== Component 1: page title ===== */
-.dash-title {
-  margin: 0 0 14px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  background: linear-gradient(180deg, #FFFFFF 0%, #C7C4BC 120%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+/* ===== Component 1: page header ===== */
+.dash-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-@media (max-width: 480px) { .dash-title { font-size: 22px; } }
+.dash-title-text {
+  font-size: 24px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: #FAFAFA; line-height: 1.1;
+}
+.dash-title-dot { color: #f97316; }
+.dash-title-sub {
+  font-size: 11px; color: rgba(255,255,255,0.38);
+  margin-top: 5px; letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dash-header-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
+  padding-top: 2px; flex-shrink: 0;
+}
+.dash-wk-label {
+  font-size: 11px; letter-spacing: 0.10em;
+  color: rgba(255,255,255,0.38); text-transform: uppercase;
+}
+.dash-synced-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.10em;
+  color: #000; background: #6ee7b7;
+  border-radius: 999px; padding: 4px 11px;
+}
+/* ===== Dashboard stat bubbles ===== */
+.dash-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin: 14px 0 18px;
+}
+.dash-stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.dash-stat-val {
+  font-size: 28px; font-weight: 700;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.dash-stat-label {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+@media (max-width: 480px) {
+  .dash-title-text { font-size: 20px; }
+  .dash-stat-val { font-size: 24px; }
+}
 
 /* ===== Component 2: Goal Ticker ===== */
 .ticker-row {
@@ -600,7 +640,16 @@ body::after {
 <body>
 <div class="page">
 
-  <h1 class="dash-title">Rame's Dashboard</h1>
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <div class="dash-title-text">RAME'S DASHBOARD<span class="dash-title-dot">.</span></div>
+      <div class="dash-title-sub" id="dashDateSub"></div>
+    </div>
+    <div class="dash-header-right">
+      <div class="dash-wk-label" id="dashWkLabel"></div>
+      <div class="dash-synced-badge" id="dashSyncedBadge">SYNCED</div>
+    </div>
+  </div>
 
   <div class="ticker-row">
     <div class="goal-ticker" id="goalTicker" aria-live="polite" aria-atomic="true">
@@ -638,6 +687,25 @@ body::after {
       <div class="day-ring-status"    id="dayRingStatus">Loading…</div>
       <div class="day-ring-remaining" id="dayRingRemaining">—</div>
       <div class="day-ring-hours">5:00 AM – 11:00 PM</div>
+    </div>
+  </div>
+
+  <div class="dash-stats">
+    <div class="dash-stat-card">
+      <span class="dash-stat-val" id="dashStatKm" style="color:#f97316">0</span>
+      <span class="dash-stat-label">KM RUN</span>
+    </div>
+    <div class="dash-stat-card">
+      <span class="dash-stat-val" id="dashStatRuns" style="color:#f97316">0</span>
+      <span class="dash-stat-label">RUNS</span>
+    </div>
+    <div class="dash-stat-card">
+      <span class="dash-stat-val" id="dashStatGym" style="color:#f97316">0</span>
+      <span class="dash-stat-label">GYM SESS.</span>
+    </div>
+    <div class="dash-stat-card">
+      <span class="dash-stat-val" id="dashStatMuay" style="color:#a78bfa">0</span>
+      <span class="dash-stat-label">MUAY THAI</span>
     </div>
   </div>
 
@@ -1306,7 +1374,40 @@ body::after {
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
     loadToday(); loadTomorrow(); renderStreak();
+    renderDashStats();
   });
+
+  // ---- Header labels ----
+  (function () {
+    const DAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MFULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const now = new Date();
+    const sub = document.getElementById('dashDateSub');
+    if (sub) sub.textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MFULL[now.getMonth()] + ' ' + now.getFullYear();
+    const wkEl = document.getElementById('dashWkLabel');
+    if (wkEl) {
+      const ws = new Date(now); ws.setDate(ws.getDate() - ws.getDay());
+      wkEl.textContent = 'WK OF ' + ws.getDate() + ' ' + MONS[ws.getMonth()];
+    }
+  })();
+
+  // ---- Dashboard fitness stats (reads fitness_sessions) ----
+  function renderDashStats() {
+    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let sessions = [];
+    try { sessions = JSON.parse(localStorage.getItem('fitness_sessions') || '[]'); } catch {}
+    const now = new Date();
+    const ws = new Date(now); ws.setHours(0,0,0,0); ws.setDate(ws.getDate() - ws.getDay());
+    const week = sessions.filter(s => s && new Date(s.date + 'T00:00:00') >= ws);
+    const km = week.filter(s => s.type === 'run').reduce((t, s) => t + (parseFloat(s.km) || 0), 0);
+    const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    el('dashStatKm',   km % 1 === 0 ? km : km.toFixed(1));
+    el('dashStatRuns', week.filter(s => s.type === 'run').length);
+    el('dashStatGym',  week.filter(s => s.type === 'gym').length);
+    el('dashStatMuay', week.filter(s => s.type === 'muay').length);
+  }
+  renderDashStats();
 })();
 </script>
 <script>
