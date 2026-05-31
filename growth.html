@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<title>Growth</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
+<script src="topbar.js" defer></script>
+<style>
+:root {
+  --bg: #000000;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-primary: #FAFAFA;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --accent: #6ee7b7;
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+}
+.shell {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 28px 16px 120px;
+}
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.page-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 28px;
+}
+
+/* Compose area */
+.compose {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 28px;
+}
+.compose-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+.compose-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 96px;
+  -webkit-text-fill-color: var(--text-primary);
+}
+.compose-textarea::placeholder { color: var(--text-tertiary); }
+.compose-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+}
+.char-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.char-count.near { color: #fbbf24; }
+.char-count.over { color: #ff8a8a; }
+.btn-save {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 18px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.10s;
+}
+.btn-save:disabled { opacity: 0.35; cursor: default; }
+.btn-save:not(:disabled):active { transform: scale(0.96); }
+
+/* Section label */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+}
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 48px 0 32px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Note cards */
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.note-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  position: relative;
+}
+.note-card:hover { border-color: var(--border-strong); }
+.note-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.note-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+}
+.note-delete {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, background 0.15s;
+}
+.note-delete:hover { color: #ff8a8a; background: rgba(255, 138, 138, 0.08); }
+.note-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .shell { padding: 20px 14px 110px; }
+  .page-title { font-size: 22px; }
+  .compose-textarea { font-size: 16px; }
+  .note-text { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1 class="page-title">Growth</h1>
+  <p class="page-sub">Reflect. Notice. Grow.</p>
+
+  <div class="compose" id="compose">
+    <div class="compose-date" id="composeDate"></div>
+    <textarea
+      class="compose-textarea"
+      id="composeText"
+      placeholder="What did you notice today? What are you learning? What do you want to remember?"
+      maxlength="1200"
+    ></textarea>
+    <div class="compose-footer">
+      <span class="char-count" id="charCount">0 / 1200</span>
+      <button class="btn-save" id="btnSave" disabled>Save</button>
+    </div>
+  </div>
+
+  <div class="section-label" id="sectionLabel" style="display:none">Past reflections</div>
+  <div class="empty" id="emptyState">No reflections yet.<br>Write your first one above.</div>
+  <div class="notes-list" id="notesList"></div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'growth_notes';
+  const MAX_CHARS = 1200;
+
+  const composeDate = document.getElementById('composeDate');
+  const textarea    = document.getElementById('composeText');
+  const charCount   = document.getElementById('charCount');
+  const btnSave     = document.getElementById('btnSave');
+  const sectionLabel = document.getElementById('sectionLabel');
+  const emptyState  = document.getElementById('emptyState');
+  const notesList   = document.getElementById('notesList');
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let h = d.getHours(), m = d.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return days[d.getDay()] + ', ' + mons[d.getMonth()] + ' ' + d.getDate() + ' · ' + h + ':' + pad2(m) + ' ' + ampm;
+  }
+  function todayLabel() {
+    const d = new Date();
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return days[d.getDay()] + ', ' + mons[d.getMonth()] + ' ' + d.getDate();
+  }
+
+  function loadNotes() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+  }
+  function saveNotes(notes) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  }
+
+  function render() {
+    const notes = loadNotes();
+    notesList.innerHTML = '';
+    if (notes.length === 0) {
+      emptyState.style.display = '';
+      sectionLabel.style.display = 'none';
+    } else {
+      emptyState.style.display = 'none';
+      sectionLabel.style.display = '';
+      notes.forEach(note => {
+        const card = document.createElement('div');
+        card.className = 'note-card';
+        card.innerHTML =
+          '<div class="note-meta">' +
+            '<span class="note-date">' + fmtDate(note.ts) + '</span>' +
+            '<button class="note-delete" data-id="' + note.id + '" aria-label="Delete note">×</button>' +
+          '</div>' +
+          '<div class="note-text">' + escHtml(note.text) + '</div>';
+        notesList.appendChild(card);
+      });
+      notesList.querySelectorAll('.note-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteNote(btn.dataset.id));
+      });
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function deleteNote(id) {
+    const notes = loadNotes().filter(n => n.id !== id);
+    saveNotes(notes);
+    render();
+  }
+
+  function addNote() {
+    const text = textarea.value.trim();
+    if (!text) return;
+    const notes = loadNotes();
+    notes.unshift({ id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8), text, ts: Date.now() });
+    saveNotes(notes);
+    textarea.value = '';
+    updateCharCount();
+    render();
+  }
+
+  function updateCharCount() {
+    const len = textarea.value.length;
+    charCount.textContent = len + ' / ' + MAX_CHARS;
+    charCount.classList.toggle('near', len >= 900 && len < MAX_CHARS);
+    charCount.classList.toggle('over', len >= MAX_CHARS);
+    btnSave.disabled = len === 0 || len > MAX_CHARS;
+  }
+
+  composeDate.textContent = todayLabel();
+  textarea.addEventListener('input', updateCharCount);
+  btnSave.addEventListener('click', addNote);
+  textarea.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addNote(); }
+  });
+
+  render();
+  window.addEventListener('storage', render);
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof initCloudSync !== 'function') return;
+  initCloudSync({
+    appKey: 'growth',
+    syncedKeys: ['growth_notes'],
+    onApplied: function () { window.dispatchEvent(new Event('storage')); }
+  });
+});
+</script>
+</body>
+</html>
