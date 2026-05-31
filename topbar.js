@@ -167,6 +167,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <a href="index.html" class="bottombar-tab" data-page="main">
     <span>Main</span>
   </a>
+  <a href="learning.html" class="bottombar-tab" data-page="learning">
+    <span>Learn</span>
+  </a>
   <a href="health.html" class="bottombar-tab" data-page="health">
     <span>Health</span>
   </a>
@@ -188,6 +191,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   function shouldShowChrome() { return !isFinancePage() && !isEmbedded(); }
   function currentPageKey() {
     const p = (window.location.pathname || '').toLowerCase();
+    if (p.endsWith('learning.html')) return 'learning';
     if (p.endsWith('health.html')) return 'health';
     if (p.endsWith('gym.html')) return 'fitness';
     if (p.endsWith('growth.html')) return 'growth';

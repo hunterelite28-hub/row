@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<title>Learning</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
+<script src="topbar.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000000;
+  --bg-card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-1: #FAFAFA;
+  --text-2: rgba(255,255,255,0.55);
+  --text-3: rgba(255,255,255,0.35);
+  --text-4: rgba(255,255,255,0.2);
+  --accent: #f97316;
+  --font: 'Share Tech Mono', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--text-1);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh; -webkit-text-size-adjust: 100%;
+}
+.shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 110px; }
+
+/* Subject tabs */
+.subject-tabs-wrap {
+  display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; padding-bottom: 2px;
+  margin-bottom: 22px;
+}
+.subject-tabs-wrap::-webkit-scrollbar { display: none; }
+.subject-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px; white-space: nowrap;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--text-2);
+}
+.subject-tab.active {
+  background: rgba(249,115,22,0.14);
+  border-color: rgba(249,115,22,0.45);
+  color: var(--accent);
+}
+.subject-tab-icon { font-size: 14px; }
+.subject-add-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: var(--bg-card); border: 1px dashed var(--border-strong);
+  border-radius: 999px; font-size: 18px; color: var(--text-3);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+.subject-add-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-1); }
+
+/* Subject header */
+.subj-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+.subj-title { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-1); }
+.subj-title-icon { margin-right: 6px; }
+.subj-sub { font-size: 11px; color: var(--text-3); margin-bottom: 16px; letter-spacing: 0.04em; }
+.log-btn {
+  background: var(--accent); color: #000; border: none; border-radius: 10px;
+  padding: 9px 14px; font-family: var(--font); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent; transition: opacity 0.15s, transform 0.10s;
+}
+.log-btn:active { transform: scale(0.96); }
+
+/* Stats */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.stat-val {
+  font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums;
+  line-height: 1; color: #7DD3FC;
+}
+.stat-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+
+/* Session log card */
+.log-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.log-card-header {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-3); margin-bottom: 10px;
+}
+.session-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.05);
+}
+.session-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(125,211,252,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.session-body { flex: 1; min-width: 0; }
+.session-topic {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-1); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.session-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.session-notes { font-size: 11px; color: var(--text-2); margin-top: 3px; white-space: pre-wrap; }
+.session-right { flex-shrink: 0; text-align: right; }
+.session-date { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.session-del {
+  background: rgba(239,68,68,0.12); color: #ff8a8a;
+  border: 1px solid rgba(239,68,68,0.2); border-radius: 6px;
+  font-family: var(--font); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 3px 7px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.log-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 36px 0 24px; gap: 12px;
+}
+.log-empty-icon { font-size: 36px; opacity: 0.2; }
+.log-empty-text { font-size: 11px; color: var(--text-3); letter-spacing: 0.10em; text-transform: uppercase; }
+
+/* No subjects state */
+.no-subjects { text-align: center; padding: 60px 0; color: var(--text-3); font-size: 13px; line-height: 1.8; }
+
+/* ---- Modals ---- */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  width: 100%; max-width: 480px;
+  background: #111113; border: 1px solid var(--border-strong);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 18px calc(28px + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow-y: auto;
+}
+.modal-title {
+  font-size: 14px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-1); margin-bottom: 18px;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 6px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-strong); border-radius: 9px;
+  color: var(--text-1); font-family: var(--font); font-size: 14px;
+  padding: 11px 13px; outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(255,255,255,0.3); }
+.field textarea { resize: none; min-height: 80px; line-height: 1.5; }
+.field select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+.field select option { background: #111113; }
+.icon-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+}
+.icon-opt {
+  height: 42px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 9px; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent; transition: background 0.15s, border-color 0.15s;
+}
+.icon-opt.active { background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.45); }
+.resource-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.resource-row { display: flex; gap: 6px; align-items: center; }
+.resource-row input { flex: 1; }
+.resource-del { background: none; border: none; color: var(--text-3); font-size: 18px; cursor: pointer; padding: 0 4px; }
+.resource-add {
+  background: none; border: 1px dashed var(--border-strong); border-radius: 8px;
+  color: var(--text-3); font-family: var(--font); font-size: 12px;
+  padding: 8px; width: 100%; cursor: pointer; letter-spacing: 0.06em;
+  -webkit-tap-highlight-color: transparent; transition: border-color 0.15s, color 0.15s;
+}
+.resource-add:hover { border-color: rgba(255,255,255,0.3); color: var(--text-1); }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-cancel {
+  flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong);
+  border-radius: 10px; color: var(--text-2); font-family: var(--font); font-size: 13px;
+  font-weight: 700; padding: 12px; cursor: pointer; letter-spacing: 0.06em;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-save {
+  flex: 2; background: var(--accent); border: none; border-radius: 10px;
+  color: #000; font-family: var(--font); font-size: 13px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.10s;
+}
+.btn-save:active { transform: scale(0.97); }
+.btn-danger {
+  flex: 1; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px; color: #ff8a8a; font-family: var(--font); font-size: 12px;
+  font-weight: 700; padding: 12px; cursor: pointer; letter-spacing: 0.06em;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (max-width: 480px) {
+  .stat-val { font-size: 22px; }
+  .shell { padding: 16px 12px 110px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Subject tab row -->
+  <div class="subject-tabs-wrap" id="subjectTabs"></div>
+
+  <!-- Subject content -->
+  <div id="subjectContent"></div>
+
+</div>
+
+<!-- Log Session Modal -->
+<div class="modal-bg" id="logModalBg">
+  <div class="modal">
+    <div class="modal-title">// New Session</div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="logDate">
+    </div>
+    <div class="field">
+      <label>Hours Spent</label>
+      <input type="number" id="logHours" placeholder="e.g. 1.5" step="0.25" min="0" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Topic / Chapter</label>
+      <input type="text" id="logTopic" placeholder="e.g. Lists & Dicts, Functions, OOP..." maxlength="100">
+    </div>
+    <div class="field">
+      <label>Resource</label>
+      <select id="logResource"></select>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="logNotes" placeholder="Key concepts, things to revisit..." maxlength="400"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="logCancel">Cancel</button>
+      <button class="btn-save" id="logSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Subject Modal -->
+<div class="modal-bg" id="addSubjectBg">
+  <div class="modal">
+    <div class="modal-title">// New Subject</div>
+    <div class="field">
+      <label>Subject Name</label>
+      <input type="text" id="subjName" placeholder="e.g. Python, SQL, Spanish..." maxlength="40">
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+    <div class="field">
+      <label>Resources</label>
+      <div class="resource-list" id="resourceList"></div>
+      <button class="resource-add" id="resourceAddBtn">+ Add Resource</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="subjCancel">Cancel</button>
+      <button class="btn-save" id="subjSave">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div class="modal-bg" id="editSubjectBg">
+  <div class="modal">
+    <div class="modal-title">// Edit Subject</div>
+    <div class="field">
+      <label>Subject Name</label>
+      <input type="text" id="editSubjName" maxlength="40">
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div class="icon-grid" id="editIconGrid"></div>
+    </div>
+    <div class="field">
+      <label>Resources</label>
+      <div class="resource-list" id="editResourceList"></div>
+      <button class="resource-add" id="editResourceAddBtn">+ Add Resource</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="editSubjDelete">Delete</button>
+      <button class="btn-cancel" id="editSubjCancel">Cancel</button>
+      <button class="btn-save" id="editSubjSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SUBJ_KEY = 'learning_subjects';
+  const SESS_KEY = 'learning_sessions';
+  const ICONS = ['λ','◎','∑','⊕','△','⬡','⟨⟩','✦','◈','⌘','∞','⚡'];
+
+  const DEFAULT_SUBJECTS = [{
+    id: 'py_default',
+    name: 'Python',
+    icon: 'λ',
+    resources: ['CS50P (Harvard)', 'Python.org Docs', 'Automate the Boring Stuff', 'Real Python']
+  }];
+
+  // ---- Storage ----
+  function loadSubjects() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SUBJ_KEY));
+      return Array.isArray(s) && s.length ? s : JSON.parse(JSON.stringify(DEFAULT_SUBJECTS));
+    } catch { return JSON.parse(JSON.stringify(DEFAULT_SUBJECTS)); }
+  }
+  function saveSubjects(arr) { localStorage.setItem(SUBJ_KEY, JSON.stringify(arr)); }
+  function loadSessions() {
+    try { return JSON.parse(localStorage.getItem(SESS_KEY) || '[]'); } catch { return []; }
+  }
+  function saveSessions(arr) { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); }
+
+  // ---- State ----
+  let subjects = loadSubjects();
+  let activeId = subjects[0]?.id || null;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+  }
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtDate(ds) {
+    const [,m,d] = ds.split('-').map(Number);
+    return d + ' ' + MONS[m-1];
+  }
+  function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function uid() { return 'l' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+  // ---- Render subject tabs ----
+  function renderTabs() {
+    subjects = loadSubjects();
+    const wrap = document.getElementById('subjectTabs');
+    wrap.innerHTML = subjects.map(s =>
+      '<button class="subject-tab' + (s.id === activeId ? ' active' : '') + '" data-id="' + s.id + '">' +
+        '<span class="subject-tab-icon">' + s.icon + '</span>' + escH(s.name) +
+      '</button>'
+    ).join('') +
+    '<button class="subject-add-btn" id="openAddSubject" title="Add subject">+</button>';
+
+    wrap.querySelectorAll('.subject-tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeId = btn.dataset.id; renderAll(); });
+      btn.addEventListener('longpress', () => openEditSubject(btn.dataset.id));
+    });
+    // Long-press via pointerdown timer
+    wrap.querySelectorAll('.subject-tab').forEach(btn => {
+      let t;
+      btn.addEventListener('pointerdown', () => { t = setTimeout(() => openEditSubject(btn.dataset.id), 600); });
+      btn.addEventListener('pointerup', () => clearTimeout(t));
+      btn.addEventListener('pointerleave', () => clearTimeout(t));
+    });
+    document.getElementById('openAddSubject').addEventListener('click', openAddSubject);
+  }
+
+  // ---- Render subject content ----
+  function renderContent() {
+    subjects = loadSubjects();
+    const content = document.getElementById('subjectContent');
+    if (!subjects.length) {
+      content.innerHTML = '<div class="no-subjects">No subjects yet.<br>Tap + to add your first.</div>';
+      return;
+    }
+    const subj = subjects.find(s => s.id === activeId) || subjects[0];
+    if (!subj) return;
+    activeId = subj.id;
+
+    const sessions = loadSessions().filter(s => s.subjectId === subj.id);
+    const totalHrs = sessions.reduce((t, s) => t + (parseFloat(s.hours)||0), 0);
+    const uniqueTopics = new Set(sessions.map(s => s.topic).filter(Boolean)).size;
+
+    const hrsDisplay = totalHrs % 1 === 0 ? totalHrs + '.0H' : totalHrs.toFixed(1) + 'H';
+
+    content.innerHTML =
+      '<div class="subj-header">' +
+        '<div>' +
+          '<div class="subj-title"><span class="subj-title-icon">' + subj.icon + '</span>' + escH(subj.name) + ' Learning</div>' +
+        '</div>' +
+        '<button class="log-btn" id="openLogBtn">+ Log Session</button>' +
+      '</div>' +
+      '<div class="subj-sub">// track topics, hours &amp; resources</div>' +
+
+      '<div class="stats-row">' +
+        '<div class="stat-card"><span class="stat-val" id="statHrs">' + hrsDisplay + '</span><span class="stat-label">Total Hours</span></div>' +
+        '<div class="stat-card"><span class="stat-val">' + sessions.length + '</span><span class="stat-label">Sessions</span></div>' +
+        '<div class="stat-card"><span class="stat-val">' + uniqueTopics + '</span><span class="stat-label">Topics</span></div>' +
+      '</div>' +
+
+      '<div class="log-card">' +
+        '<div class="log-card-header">// Session Log</div>' +
+        '<div id="sessionList">' + renderSessionList(sessions, subj) + '</div>' +
+      '</div>';
+
+    document.getElementById('openLogBtn').addEventListener('click', () => openLogModal(subj));
+    content.querySelectorAll('.session-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const all = loadSessions().filter(s => s.id !== btn.dataset.id);
+        saveSessions(all);
+        renderAll();
+      });
+    });
+  }
+
+  function renderSessionList(sessions, subj) {
+    if (!sessions.length) return (
+      '<div class="log-empty">' +
+        '<div class="log-empty-icon">' + subj.icon + '</div>' +
+        '<div class="log-empty-text">No Sessions Yet</div>' +
+      '</div>'
+    );
+    return sessions.slice(0, 30).map(s =>
+      '<div class="session-row">' +
+        '<div class="session-icon">' + subj.icon + '</div>' +
+        '<div class="session-body">' +
+          '<div class="session-topic">' + escH(s.topic || '—') + '</div>' +
+          '<div class="session-meta">' +
+            (s.hours ? s.hours + 'h' : '') +
+            (s.hours && s.resource ? ' · ' : '') +
+            escH(s.resource || '') +
+          '</div>' +
+          (s.notes ? '<div class="session-notes">' + escH(s.notes) + '</div>' : '') +
+        '</div>' +
+        '<div class="session-right">' +
+          '<div class="session-date">' + fmtDate(s.date) + '</div>' +
+          '<button class="session-del" data-id="' + s.id + '">[DEL]</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  function renderAll() { renderTabs(); renderContent(); }
+
+  // ---- Log Session Modal ----
+  function openLogModal(subj) {
+    document.getElementById('logDate').value = todayStr();
+    document.getElementById('logHours').value = '';
+    document.getElementById('logTopic').value = '';
+    document.getElementById('logNotes').value = '';
+    const sel = document.getElementById('logResource');
+    const resources = Array.isArray(subj.resources) ? subj.resources : [];
+    sel.innerHTML = resources.map(r => '<option value="' + escH(r) + '">' + escH(r) + '</option>').join('') ||
+      '<option value="">No resources added</option>';
+    document.getElementById('logModalBg').classList.add('show');
+    setTimeout(() => document.getElementById('logTopic').focus(), 80);
+  }
+  function closeLogModal() { document.getElementById('logModalBg').classList.remove('show'); }
+
+  document.getElementById('logCancel').addEventListener('click', closeLogModal);
+  document.getElementById('logModalBg').addEventListener('click', e => { if (e.target === document.getElementById('logModalBg')) closeLogModal(); });
+  document.getElementById('logSave').addEventListener('click', () => {
+    const subj = loadSubjects().find(s => s.id === activeId);
+    if (!subj) return;
+    const hours = parseFloat(document.getElementById('logHours').value) || 0;
+    const topic = document.getElementById('logTopic').value.trim();
+    const resource = document.getElementById('logResource').value;
+    const notes = document.getElementById('logNotes').value.trim();
+    const date = document.getElementById('logDate').value || todayStr();
+    if (!topic && !hours) return;
+    const sessions = loadSessions();
+    sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, resource, notes, ts: Date.now() });
+    sessions.sort((a,b) => b.date.localeCompare(a.date));
+    saveSessions(sessions);
+    closeLogModal();
+    renderAll();
+  });
+
+  // ---- Add Subject Modal ----
+  let selectedIcon = ICONS[0];
+  let addResources = [''];
+
+  function buildIconGrid(gridId, currentIcon, onSelect) {
+    const grid = document.getElementById(gridId);
+    grid.innerHTML = ICONS.map(ic =>
+      '<button class="icon-opt' + (ic === currentIcon ? ' active' : '') + '" data-icon="' + ic + '">' + ic + '</button>'
+    ).join('');
+    grid.querySelectorAll('.icon-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        onSelect(btn.dataset.icon);
+        grid.querySelectorAll('.icon-opt').forEach(b => b.classList.toggle('active', b.dataset.icon === btn.dataset.icon));
+      });
+    });
+  }
+
+  function buildResourceList(listId, resources, addBtnId) {
+    const list = document.getElementById(listId);
+    list.innerHTML = resources.map((r, i) =>
+      '<div class="resource-row" data-idx="' + i + '">' +
+        '<input type="text" placeholder="e.g. CS50P (Harvard)" value="' + escH(r) + '" maxlength="60">' +
+        '<button class="resource-del" data-idx="' + i + '">×</button>' +
+      '</div>'
+    ).join('');
+    list.querySelectorAll('.resource-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        resources.splice(parseInt(btn.dataset.idx), 1);
+        buildResourceList(listId, resources, addBtnId);
+      });
+    });
+    list.querySelectorAll('input').forEach((inp, i) => {
+      inp.addEventListener('input', () => { resources[i] = inp.value; });
+    });
+    document.getElementById(addBtnId).onclick = () => {
+      resources.push('');
+      buildResourceList(listId, resources, addBtnId);
+      const inputs = document.getElementById(listId).querySelectorAll('input');
+      inputs[inputs.length-1]?.focus();
+    };
+  }
+
+  function openAddSubject() {
+    selectedIcon = ICONS[0];
+    addResources = [''];
+    document.getElementById('subjName').value = '';
+    buildIconGrid('iconGrid', selectedIcon, ic => { selectedIcon = ic; });
+    buildResourceList('resourceList', addResources, 'resourceAddBtn');
+    document.getElementById('addSubjectBg').classList.add('show');
+    setTimeout(() => document.getElementById('subjName').focus(), 80);
+  }
+  function closeAddSubject() { document.getElementById('addSubjectBg').classList.remove('show'); }
+
+  document.getElementById('subjCancel').addEventListener('click', closeAddSubject);
+  document.getElementById('addSubjectBg').addEventListener('click', e => { if (e.target === document.getElementById('addSubjectBg')) closeAddSubject(); });
+  document.getElementById('subjSave').addEventListener('click', () => {
+    const name = document.getElementById('subjName').value.trim();
+    if (!name) { document.getElementById('subjName').focus(); return; }
+    const resources = addResources.filter(r => r.trim());
+    const subjs = loadSubjects();
+    const newSubj = { id: uid(), name, icon: selectedIcon, resources };
+    subjs.push(newSubj);
+    saveSubjects(subjs);
+    activeId = newSubj.id;
+    closeAddSubject();
+    renderAll();
+  });
+
+  // ---- Edit Subject Modal ----
+  let editId = null;
+  let editIcon = ICONS[0];
+  let editResources = [];
+
+  function openEditSubject(id) {
+    const subj = loadSubjects().find(s => s.id === id);
+    if (!subj) return;
+    editId = id;
+    editIcon = subj.icon;
+    editResources = [...(subj.resources || [])];
+    document.getElementById('editSubjName').value = subj.name;
+    buildIconGrid('editIconGrid', editIcon, ic => { editIcon = ic; });
+    buildResourceList('editResourceList', editResources, 'editResourceAddBtn');
+    document.getElementById('editSubjectBg').classList.add('show');
+  }
+  function closeEditSubject() { document.getElementById('editSubjectBg').classList.remove('show'); editId = null; }
+
+  document.getElementById('editSubjCancel').addEventListener('click', closeEditSubject);
+  document.getElementById('editSubjectBg').addEventListener('click', e => { if (e.target === document.getElementById('editSubjectBg')) closeEditSubject(); });
+  document.getElementById('editSubjSave').addEventListener('click', () => {
+    const name = document.getElementById('editSubjName').value.trim();
+    if (!name || !editId) return;
+    const resources = editResources.filter(r => r.trim());
+    const subjs = loadSubjects().map(s => s.id === editId ? { ...s, name, icon: editIcon, resources } : s);
+    saveSubjects(subjs);
+    closeEditSubject();
+    renderAll();
+  });
+  document.getElementById('editSubjDelete').addEventListener('click', () => {
+    if (!editId) return;
+    if (!confirm('Delete this subject and all its sessions?')) return;
+    const subjs = loadSubjects().filter(s => s.id !== editId);
+    const sess = loadSessions().filter(s => s.subjectId !== editId);
+    saveSubjects(subjs);
+    saveSessions(sess);
+    activeId = subjs[0]?.id || null;
+    closeEditSubject();
+    renderAll();
+  });
+
+  // ---- Init ----
+  renderAll();
+  window.addEventListener('storage', e => {
+    if (e.key === SUBJ_KEY || e.key === SESS_KEY || !e.key) renderAll();
+  });
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof initCloudSync !== 'function') return;
+  initCloudSync({
+    appKey: 'learning',
+    syncedKeys: ['learning_subjects', 'learning_sessions'],
+    onApplied: function () { window.dispatchEvent(new Event('storage')); }
+  });
+});
+</script>
+</body>
+</html>
