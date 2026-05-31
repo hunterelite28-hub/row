@@ -1506,6 +1506,32 @@ document.addEventListener('DOMContentLoaded', function () {
       window.dispatchEvent(new Event('storage'));
     }
   });
+
+  // Pull fitness_sessions from gym's Supabase key (read-only — never writes back)
+  if (!window.supabase) return;
+  const supa = window.supabase.createClient(
+    'https://pdropxqcdyppbjkaxgpo.supabase.co',
+    'sb_publishable_7y8hvL8HV-X2YLHora2EKw_jhdTI7UH'
+  );
+  function applyFitnessSessions(data) {
+    if (!data || !Array.isArray(data.fitness_sessions)) return;
+    try {
+      const incoming = JSON.stringify(data.fitness_sessions);
+      if (localStorage.getItem('fitness_sessions') === incoming) return;
+      localStorage.setItem('fitness_sessions', incoming);
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+  }
+  supa.from('app_state').select('data').eq('key', 'po-coach').maybeSingle()
+    .then(function(res) { if (!res.error && res.data) applyFitnessSessions(res.data.data); })
+    .catch(function() {});
+  supa.channel('dash_fitness_sync')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'app_state', filter: 'key=eq.po-coach'
+    }, function(payload) {
+      if (payload.new && payload.new.data) applyFitnessSessions(payload.new.data);
+    })
+    .subscribe();
 });
 </script>
 </body>

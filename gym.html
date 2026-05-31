@@ -3641,6 +3641,7 @@ img, video, canvas, svg { max-width: 100%; }
     try { renderAll(); } catch {}
     try { wtRender(); } catch {}
     try { photosRender(); } catch {}
+    try { if (typeof window._ftRender === 'function') window._ftRender(); } catch {}
   }
 
   function pcApplyRemoteState(remote) {
@@ -3934,6 +3935,7 @@ img, video, canvas, svg { max-width: 100%; }
     render();
   });
 
+  window._ftRender = render;
   render();
   window.addEventListener('storage', e => { if (e.key === KEY || !e.key) render(); });
 })();
