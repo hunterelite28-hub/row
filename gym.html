@@ -864,6 +864,183 @@ img, video, canvas, svg { max-width: 100%; }
 }
 
 /* ============================================================
+   FITNESS SESSION TRACKER — scoped under .ft-*
+   ============================================================ */
+.ft-section { margin-bottom: 28px; }
+.ft-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.ft-title {
+  font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.ft-sub {
+  font-size: 12px; color: var(--text-3); margin-bottom: 14px;
+  font-family: var(--font-mono); letter-spacing: 0.04em;
+}
+.ft-log-btn {
+  background: #f97316; color: #000;
+  border: none; border-radius: 10px;
+  padding: 9px 14px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.10s;
+}
+.ft-log-btn:active { transform: scale(0.96); opacity: 0.85; }
+.ft-week-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 10px;
+}
+.ft-stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 20px;
+}
+.ft-stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 16px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.ft-stat-val {
+  font-family: var(--font-mono); font-size: 28px; font-weight: 700;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.ft-stat-val.run  { color: #f97316; }
+.ft-stat-val.gym  { color: #f97316; }
+.ft-stat-val.muay { color: #a78bfa; }
+.ft-stat-val.km   { color: #f97316; }
+.ft-stat-label {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3);
+}
+.ft-log-section { }
+.ft-log-header {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3);
+  margin-bottom: 10px;
+}
+.ft-log-list { display: flex; flex-direction: column; gap: 8px; }
+.ft-log-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 10px 12px;
+}
+.ft-log-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.ft-log-icon.run   { background: rgba(249,115,22,0.18); }
+.ft-log-icon.gym   { background: rgba(249,115,22,0.12); }
+.ft-log-icon.muay  { background: rgba(167,139,250,0.15); }
+.ft-log-body { flex: 1; min-width: 0; }
+.ft-log-type {
+  font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-1);
+}
+.ft-log-detail {
+  font-size: 12px; color: var(--text-3); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
+}
+.ft-log-right { flex-shrink: 0; text-align: right; }
+.ft-log-date {
+  font-size: 11px; color: var(--text-3); font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+.ft-del-btn {
+  background: rgba(239,68,68,0.14); color: #ff8a8a;
+  border: 1px solid rgba(239,68,68,0.22); border-radius: 6px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; padding: 3px 7px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.ft-del-btn:hover { background: rgba(239,68,68,0.26); }
+.ft-empty {
+  text-align: center; padding: 28px 0; color: var(--text-3); font-size: 13px;
+}
+/* Modal */
+.ft-modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  align-items: flex-end; justify-content: center;
+  padding: 0 0 calc(env(safe-area-inset-bottom));
+}
+.ft-modal-bg.show { display: flex; }
+.ft-modal {
+  width: 100%; max-width: 480px;
+  background: #111113; border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 18px calc(24px + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow-y: auto;
+}
+.ft-modal-title {
+  font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--text-1); margin-bottom: 16px;
+}
+.ft-type-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: 16px;
+}
+.ft-type-btn {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 10px; padding: 10px 8px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ft-type-btn.active {
+  background: rgba(249,115,22,0.18); border-color: rgba(249,115,22,0.5);
+  color: #f97316;
+}
+.ft-type-btn.active.muay {
+  background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.4);
+  color: #a78bfa;
+}
+.ft-field { margin-bottom: 12px; }
+.ft-field label {
+  display: block; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 5px;
+}
+.ft-input {
+  width: 100%; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 9px;
+  color: var(--text-1); font-family: var(--font); font-size: 15px;
+  padding: 10px 12px; outline: none;
+  transition: border-color 0.15s;
+}
+.ft-input:focus { border-color: rgba(255,255,255,0.28); }
+.ft-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ft-modal-actions {
+  display: flex; gap: 10px; margin-top: 18px;
+}
+.ft-cancel-btn {
+  flex: 1; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10); border-radius: 10px;
+  color: var(--text-2); font-family: var(--font); font-size: 14px; font-weight: 600;
+  padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.ft-save-btn {
+  flex: 2; background: #f97316; border: none; border-radius: 10px;
+  color: #000; font-family: var(--font); font-size: 14px; font-weight: 700;
+  padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.10s;
+}
+.ft-save-btn:active { transform: scale(0.97); }
+@media (max-width: 480px) {
+  .ft-stat-val { font-size: 24px; }
+}
+
+/* ============================================================
    WEIGHT TRACKER + PROGRESS PHOTOS — scoped under .wt-* so the
    styles can't leak into the rest of the app.
    ============================================================ */
@@ -1268,6 +1445,97 @@ img, video, canvas, svg { max-width: 100%; }
 <body>
 
 <div class="po-shell">
+
+  <!-- FITNESS SESSION TRACKER -->
+  <section class="ft-section" id="ftSection">
+    <div class="ft-header">
+      <div>
+        <div class="ft-title">Fitness</div>
+        <div class="ft-sub">// running, gym &amp; muay thai</div>
+      </div>
+      <button class="ft-log-btn" id="ftLogBtn">+ Log Session</button>
+    </div>
+    <div class="ft-week-label" id="ftWeekLabel"></div>
+    <div class="ft-stats-grid">
+      <div class="ft-stat-card">
+        <span class="ft-stat-val km" id="ftStatKm">0</span>
+        <span class="ft-stat-label">Total KM</span>
+      </div>
+      <div class="ft-stat-card">
+        <span class="ft-stat-val run" id="ftStatRuns">0</span>
+        <span class="ft-stat-label">Runs</span>
+      </div>
+      <div class="ft-stat-card">
+        <span class="ft-stat-val gym" id="ftStatGym">0</span>
+        <span class="ft-stat-label">Gym Sess.</span>
+      </div>
+      <div class="ft-stat-card">
+        <span class="ft-stat-val muay" id="ftStatMuay">0</span>
+        <span class="ft-stat-label">Muay Thai</span>
+      </div>
+    </div>
+    <div class="ft-log-section">
+      <div class="ft-log-header">// Session Log</div>
+      <div class="ft-log-list" id="ftLogList"></div>
+    </div>
+  </section>
+
+  <!-- LOG SESSION MODAL -->
+  <div class="ft-modal-bg" id="ftModalBg">
+    <div class="ft-modal">
+      <div class="ft-modal-title">Log Session</div>
+      <div class="ft-type-row">
+        <button class="ft-type-btn active" data-type="run" id="ftTypeRun">▶▶ Run</button>
+        <button class="ft-type-btn" data-type="gym" id="ftTypeGym">[+] Gym</button>
+        <button class="ft-type-btn muay" data-type="muay" id="ftTypeMuay">✦ Muay Thai</button>
+      </div>
+      <div id="ftFieldsRun">
+        <div class="ft-input-row ft-field">
+          <div>
+            <label>Distance (km)</label>
+            <input class="ft-input" type="number" id="ftKm" placeholder="5.0" step="0.1" min="0" inputmode="decimal">
+          </div>
+          <div>
+            <label>Duration (min)</label>
+            <input class="ft-input" type="number" id="ftRunDuration" placeholder="30" min="0" inputmode="numeric">
+          </div>
+        </div>
+        <div class="ft-field">
+          <label>Notes (route, pace…)</label>
+          <input class="ft-input" type="text" id="ftRunNotes" placeholder="e.g. Punggol coastal loop" maxlength="120">
+        </div>
+      </div>
+      <div id="ftFieldsGym" style="display:none">
+        <div class="ft-field">
+          <label>Split / Focus</label>
+          <input class="ft-input" type="text" id="ftGymSplit" placeholder="e.g. Push – Chest / Shoulders / Tris" maxlength="120">
+        </div>
+        <div class="ft-field">
+          <label>Notes</label>
+          <input class="ft-input" type="text" id="ftGymNotes" placeholder="Optional" maxlength="120">
+        </div>
+      </div>
+      <div id="ftFieldsMuay" style="display:none">
+        <div class="ft-field">
+          <label>Duration (min)</label>
+          <input class="ft-input" type="number" id="ftMuayDuration" placeholder="60" min="0" inputmode="numeric">
+        </div>
+        <div class="ft-field">
+          <label>Notes</label>
+          <input class="ft-input" type="text" id="ftMuayNotes" placeholder="Optional" maxlength="120">
+        </div>
+      </div>
+      <div class="ft-field">
+        <label>Date</label>
+        <input class="ft-input" type="date" id="ftDate">
+      </div>
+      <div class="ft-modal-actions">
+        <button class="ft-cancel-btn" id="ftCancelBtn">Cancel</button>
+        <button class="ft-save-btn" id="ftSaveBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
   <button class="po-day-pill" type="button" id="dayPill" title="Tap to switch the day filter to today's split">
     <span class="po-day-date" id="dayPillDate">—</span>
     <span class="po-day-sep">·</span>
@@ -3305,7 +3573,7 @@ img, video, canvas, svg { max-width: 100%; }
   const SUPABASE_URL = 'https://pdropxqcdyppbjkaxgpo.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_7y8hvL8HV-X2YLHora2EKw_jhdTI7UH';
   const APP_KEY = 'po-coach';
-  const PC_SYNCED_KEYS = ['po_coach_v1', 'po_coach_workout_done', 'po_coach_weights', 'po_coach_photos'];
+  const PC_SYNCED_KEYS = ['po_coach_v1', 'po_coach_workout_done', 'po_coach_weights', 'po_coach_photos', 'fitness_sessions'];
 
   let pcSupa = null;
   let pcPushTimer = null;
@@ -3507,6 +3775,166 @@ img, video, canvas, svg { max-width: 100%; }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pcFlushPushOnUnload();
   });
+})();
+</script>
+
+<script>
+// ============================================================
+// FITNESS SESSION TRACKER
+// ============================================================
+(function () {
+  const KEY = 'fitness_sessions';
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  }
+  function save(sessions) { localStorage.setItem(KEY, JSON.stringify(sessions)); }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+  }
+  function weekStart(d) {
+    const dt = new Date(d); dt.setHours(0,0,0,0);
+    dt.setDate(dt.getDate() - dt.getDay());
+    return dt;
+  }
+  function fmtDate(dateStr) {
+    const [y,m,d] = dateStr.split('-').map(Number);
+    return d + ' ' + MONS[m-1];
+  }
+  function weekLabel() {
+    const ws = weekStart(new Date());
+    return 'WK OF ' + ws.getDate() + ' ' + MONS[ws.getMonth()];
+  }
+
+  function weekSessions() {
+    const ws = weekStart(new Date()), sessions = load();
+    return sessions.filter(s => {
+      const d = new Date(s.date + 'T00:00:00');
+      return d >= ws;
+    });
+  }
+
+  function render() {
+    const ws = weekSessions();
+    document.getElementById('ftWeekLabel').textContent = weekLabel();
+    const km = ws.filter(s => s.type === 'run').reduce((t, s) => t + (parseFloat(s.km) || 0), 0);
+    document.getElementById('ftStatKm').textContent = km % 1 === 0 ? km : km.toFixed(1);
+    document.getElementById('ftStatRuns').textContent = ws.filter(s => s.type === 'run').length;
+    document.getElementById('ftStatGym').textContent = ws.filter(s => s.type === 'gym').length;
+    document.getElementById('ftStatMuay').textContent = ws.filter(s => s.type === 'muay').length;
+
+    const all = load();
+    const list = document.getElementById('ftLogList');
+    if (!all.length) {
+      list.innerHTML = '<div class="ft-empty">No sessions yet. Tap Log Session to start.</div>';
+      return;
+    }
+    list.innerHTML = all.slice(0, 20).map(s => {
+      const icon = s.type === 'run' ? '▶▶' : s.type === 'gym' ? '[+]' : '✦';
+      const iconCls = s.type === 'run' ? 'run' : s.type === 'gym' ? 'gym' : 'muay';
+      const label = s.type === 'run' ? 'RUN' : s.type === 'gym' ? 'GYM' : 'MUAY THAI';
+      let detail = '';
+      if (s.type === 'run') {
+        detail = (s.km ? s.km + 'km' : '') + (s.km && s.duration ? ' in ' : '') + (s.duration ? s.duration + 'min' : '');
+        if (s.notes) detail += (detail ? ' · ' : '') + s.notes;
+      } else if (s.type === 'gym') {
+        detail = s.split || s.notes || '';
+        if (s.split && s.notes) detail = s.split + ' · ' + s.notes;
+      } else {
+        detail = (s.duration ? s.duration + 'min' : '') + (s.duration && s.notes ? ' · ' : '') + (s.notes || '');
+      }
+      return '<div class="ft-log-row">' +
+        '<div class="ft-log-icon ' + iconCls + '">' + icon + '</div>' +
+        '<div class="ft-log-body">' +
+          '<div class="ft-log-type">' + label + '</div>' +
+          (detail ? '<div class="ft-log-detail">' + escHtml(detail) + '</div>' : '') +
+        '</div>' +
+        '<div class="ft-log-right">' +
+          '<div class="ft-log-date">' + fmtDate(s.date) + '</div>' +
+          '<button class="ft-del-btn" data-id="' + s.id + '">[DEL]</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    list.querySelectorAll('.ft-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        save(load().filter(s => s.id !== btn.dataset.id));
+        render();
+      });
+    });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Modal
+  let activeType = 'run';
+  const modalBg    = document.getElementById('ftModalBg');
+  const typeButtons = document.querySelectorAll('.ft-type-btn');
+  const fieldsRun  = document.getElementById('ftFieldsRun');
+  const fieldsGym  = document.getElementById('ftFieldsGym');
+  const fieldsMuay = document.getElementById('ftFieldsMuay');
+
+  function setType(t) {
+    activeType = t;
+    typeButtons.forEach(b => {
+      b.classList.toggle('active', b.dataset.type === t);
+    });
+    fieldsRun.style.display  = t === 'run'  ? '' : 'none';
+    fieldsGym.style.display  = t === 'gym'  ? '' : 'none';
+    fieldsMuay.style.display = t === 'muay' ? '' : 'none';
+  }
+
+  typeButtons.forEach(b => b.addEventListener('click', () => setType(b.dataset.type)));
+
+  document.getElementById('ftLogBtn').addEventListener('click', () => {
+    document.getElementById('ftDate').value = todayStr();
+    setType('run');
+    document.getElementById('ftKm').value = '';
+    document.getElementById('ftRunDuration').value = '';
+    document.getElementById('ftRunNotes').value = '';
+    document.getElementById('ftGymSplit').value = '';
+    document.getElementById('ftGymNotes').value = '';
+    document.getElementById('ftMuayDuration').value = '';
+    document.getElementById('ftMuayNotes').value = '';
+    modalBg.classList.add('show');
+  });
+
+  function closeModal() { modalBg.classList.remove('show'); }
+  document.getElementById('ftCancelBtn').addEventListener('click', closeModal);
+  modalBg.addEventListener('click', e => { if (e.target === modalBg) closeModal(); });
+
+  document.getElementById('ftSaveBtn').addEventListener('click', () => {
+    const date = document.getElementById('ftDate').value || todayStr();
+    const session = { id: 'ft' + Date.now(), type: activeType, date };
+    if (activeType === 'run') {
+      const km = parseFloat(document.getElementById('ftKm').value);
+      const dur = parseInt(document.getElementById('ftRunDuration').value);
+      if (!isNaN(km) && km > 0) session.km = km;
+      if (!isNaN(dur) && dur > 0) session.duration = dur;
+      session.notes = document.getElementById('ftRunNotes').value.trim();
+    } else if (activeType === 'gym') {
+      session.split = document.getElementById('ftGymSplit').value.trim();
+      session.notes = document.getElementById('ftGymNotes').value.trim();
+    } else {
+      const dur = parseInt(document.getElementById('ftMuayDuration').value);
+      if (!isNaN(dur) && dur > 0) session.duration = dur;
+      session.notes = document.getElementById('ftMuayNotes').value.trim();
+    }
+    const sessions = load();
+    sessions.unshift(session);
+    sessions.sort((a, b) => b.date.localeCompare(a.date));
+    save(sessions);
+    closeModal();
+    render();
+  });
+
+  render();
+  window.addEventListener('storage', e => { if (e.key === KEY || !e.key) render(); });
 })();
 </script>
 
