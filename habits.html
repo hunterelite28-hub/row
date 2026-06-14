@@ -235,6 +235,27 @@ html, body {
 }
 .btn-danger:active { background: rgba(239,68,68,0.2); }
 
+/* Mark as done button */
+.mark-done-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; border: none; border-radius: var(--radius);
+  padding: 16px; margin-top: 4px;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s, transform 0.1s, background 0.2s;
+}
+.mark-done-btn:active { transform: scale(0.97); }
+.mark-done-btn.undone {
+  background: var(--habit-color, #F97316);
+  color: #000;
+}
+.mark-done-btn.done {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--habit-color, #F97316);
+  color: var(--habit-color, #F97316);
+}
+
 @media (max-width: 480px) {
   .modal { padding: 22px 16px 40px; }
 }
@@ -303,6 +324,9 @@ html, body {
       <div class="chart-svg-wrap" id="chartSvgWrap"></div>
       <div class="chart-month-row" id="chartMonthRow"></div>
     </div>
+
+    <!-- Mark as done -->
+    <button class="mark-done-btn undone" id="markDoneBtn"></button>
   </div>
 </div>
 
@@ -491,6 +515,18 @@ html, body {
     renderYearGrid(habit, log);
     renderStats(habit, log);
     renderChart(habit, log);
+    renderMarkDoneBtn(habit, log);
+  }
+
+  function renderMarkDoneBtn(habit, log) {
+    const btn = document.getElementById('markDoneBtn');
+    if (!btn) return;
+    const t = now();
+    const k = dkey(t.getFullYear(), t.getMonth(), t.getDate());
+    const isDone = (log[k] || []).includes(habit.id);
+    btn.style.setProperty('--habit-color', habit.color);
+    btn.className = 'mark-done-btn ' + (isDone ? 'done' : 'undone');
+    btn.textContent = isDone ? '✓  DONE TODAY' : 'MARK AS DONE';
   }
 
   function renderYearGrid(habit, log) {
@@ -700,6 +736,13 @@ html, body {
   function init() {
     viewYear = now().getFullYear();
     render();
+
+    document.getElementById('markDoneBtn').addEventListener('click', () => {
+      const habits = loadHabits();
+      const habit = habits.find(h => h.id === selectedHabitId);
+      if (!habit) return;
+      toggleCell(habit.id, now());
+    });
 
     document.getElementById('prevYearBtn').addEventListener('click', () => { viewYear--; renderDetail(); });
     document.getElementById('nextYearBtn').addEventListener('click', () => { viewYear++; renderDetail(); });
