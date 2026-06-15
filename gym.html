@@ -1440,6 +1440,21 @@ img, video, canvas, svg { max-width: 100%; }
 }
 
 .hidden { display: none !important; }
+
+/* ============================================================
+   REFINED POLISH — added on the visual-polish branch.
+   Remove this whole block to revert. Purely additive styling.
+   ============================================================ */
+.ft-stat-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 24px rgba(0,0,0,0.4);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.ft-stat-card:hover { transform: translateY(-2px); }
+.ft-stat-val { text-shadow: 0 0 13px currentColor; }
+.ft-log-btn { box-shadow: 0 4px 16px -4px rgba(249,115,22,0.55); }
+.po-rx-card { box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.42); }
+.ft-title { text-shadow: 0 0 16px rgba(249,115,22,0.18); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
