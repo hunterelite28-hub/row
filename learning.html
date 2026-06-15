@@ -257,6 +257,10 @@ html, body {
     <div class="field">
       <label>Resource</label>
       <select id="logResource"></select>
+      <div class="resource-row" id="newResourceRow" style="display:none; margin-top:8px;">
+        <input type="text" id="newResourceInput" placeholder="New resource name…" maxlength="60">
+        <button class="btn-save" id="newResourceAdd" style="flex:0 0 auto; padding:11px 14px;">Add</button>
+      </div>
     </div>
     <div class="field">
       <label>Notes</label>
@@ -475,6 +479,10 @@ html, body {
       '<option value="' + ADD_RESOURCE_VALUE + '">+ Add new resource…</option>';
   }
   let lastResource = '';
+  function hideNewResourceRow() {
+    document.getElementById('newResourceRow').style.display = 'none';
+    document.getElementById('newResourceInput').value = '';
+  }
   function openLogModal(subj) {
     document.getElementById('logDate').value = todayStr();
     document.getElementById('logHours').value = '';
@@ -482,15 +490,24 @@ html, body {
     document.getElementById('logNotes').value = '';
     lastResource = (Array.isArray(subj.resources) && subj.resources[0]) || '';
     populateResourceSelect(subj, lastResource);
+    hideNewResourceRow();
     document.getElementById('logModalBg').classList.add('show');
     setTimeout(() => document.getElementById('logTopic').focus(), 80);
   }
   document.getElementById('logResource').addEventListener('change', function () {
-    if (this.value !== ADD_RESOURCE_VALUE) { lastResource = this.value; return; }
+    if (this.value !== ADD_RESOURCE_VALUE) { lastResource = this.value; hideNewResourceRow(); return; }
+    document.getElementById('newResourceRow').style.display = 'flex';
+    setTimeout(() => document.getElementById('newResourceInput').focus(), 50);
+  });
+  function commitNewResource() {
     const subj = loadSubjects().find(s => s.id === activeId);
     if (!subj) return;
-    const name = (prompt('New resource name:') || '').trim();
-    if (!name) { populateResourceSelect(subj, lastResource); return; }
+    const name = document.getElementById('newResourceInput').value.trim();
+    if (!name) {
+      populateResourceSelect(subj, lastResource);
+      hideNewResourceRow();
+      return;
+    }
     if (!Array.isArray(subj.resources)) subj.resources = [];
     if (!subj.resources.includes(name)) {
       subj.resources.push(name);
@@ -499,6 +516,11 @@ html, body {
     }
     lastResource = name;
     populateResourceSelect(subj, name);
+    hideNewResourceRow();
+  }
+  document.getElementById('newResourceAdd').addEventListener('click', commitNewResource);
+  document.getElementById('newResourceInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commitNewResource(); }
   });
   function closeLogModal() { document.getElementById('logModalBg').classList.remove('show'); }
 
