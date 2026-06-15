@@ -126,6 +126,14 @@ html, body {
 .session-notes { font-size: 11px; color: var(--text-2); margin-top: 3px; white-space: pre-wrap; }
 .session-right { flex-shrink: 0; text-align: right; }
 .session-date { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.session-edit {
+  background: rgba(125,211,252,0.12); color: #7DD3FC;
+  border: 1px solid rgba(125,211,252,0.22); border-radius: 6px;
+  font-family: var(--font); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 3px 7px; cursor: pointer;
+  margin-right: 5px;
+  -webkit-tap-highlight-color: transparent;
+}
 .session-del {
   background: rgba(239,68,68,0.12); color: #ff8a8a;
   border: 1px solid rgba(239,68,68,0.2); border-radius: 6px;
@@ -431,6 +439,12 @@ html, body {
       '</div>';
 
     document.getElementById('openLogBtn').addEventListener('click', () => openLogModal(subj));
+    content.querySelectorAll('.session-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sess = loadSessions().find(s => s.id === btn.dataset.id);
+        if (sess) openLogModal(subj, sess);
+      });
+    });
     content.querySelectorAll('.session-del').forEach(btn => {
       btn.addEventListener('click', () => {
         const all = loadSessions().filter(s => s.id !== btn.dataset.id);
@@ -461,6 +475,7 @@ html, body {
         '</div>' +
         '<div class="session-right">' +
           '<div class="session-date">' + fmtDate(s.date) + '</div>' +
+          '<button class="session-edit" data-id="' + s.id + '">[EDIT]</button>' +
           '<button class="session-del" data-id="' + s.id + '">[DEL]</button>' +
         '</div>' +
       '</div>'
@@ -473,7 +488,8 @@ html, body {
   const ADD_RESOURCE_VALUE = '__add_resource__';
   function populateResourceSelect(subj, selected) {
     const sel = document.getElementById('logResource');
-    const resources = Array.isArray(subj.resources) ? subj.resources : [];
+    const resources = (Array.isArray(subj.resources) ? subj.resources : []).slice();
+    if (selected && !resources.includes(selected)) resources.unshift(selected);
     sel.innerHTML =
       resources.map(r => '<option value="' + escH(r) + '"' + (r === selected ? ' selected' : '') + '>' + escH(r) + '</option>').join('') +
       '<option value="' + ADD_RESOURCE_VALUE + '">+ Add new resource…</option>';
@@ -483,12 +499,16 @@ html, body {
     document.getElementById('newResourceRow').style.display = 'none';
     document.getElementById('newResourceInput').value = '';
   }
-  function openLogModal(subj) {
-    document.getElementById('logDate').value = todayStr();
-    document.getElementById('logHours').value = '';
-    document.getElementById('logTopic').value = '';
-    document.getElementById('logNotes').value = '';
-    lastResource = (Array.isArray(subj.resources) && subj.resources[0]) || '';
+  let editingSessionId = null;
+  function openLogModal(subj, session) {
+    editingSessionId = session ? session.id : null;
+    document.querySelector('#logModalBg .modal-title').textContent = session ? '// Edit Session' : '// New Session';
+    document.getElementById('logSave').textContent = session ? 'Update' : 'Save';
+    document.getElementById('logDate').value = session ? session.date : todayStr();
+    document.getElementById('logHours').value = session && session.hours ? session.hours : '';
+    document.getElementById('logTopic').value = session ? (session.topic || '') : '';
+    document.getElementById('logNotes').value = session ? (session.notes || '') : '';
+    lastResource = session ? (session.resource || '') : ((Array.isArray(subj.resources) && subj.resources[0]) || '');
     populateResourceSelect(subj, lastResource);
     hideNewResourceRow();
     document.getElementById('logModalBg').classList.add('show');
@@ -522,7 +542,7 @@ html, body {
   document.getElementById('newResourceInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); commitNewResource(); }
   });
-  function closeLogModal() { document.getElementById('logModalBg').classList.remove('show'); }
+  function closeLogModal() { editingSessionId = null; document.getElementById('logModalBg').classList.remove('show'); }
 
   document.getElementById('logCancel').addEventListener('click', closeLogModal);
   document.getElementById('logModalBg').addEventListener('click', e => { if (e.target === document.getElementById('logModalBg')) closeLogModal(); });
@@ -536,10 +556,17 @@ html, body {
     const notes = document.getElementById('logNotes').value.trim();
     const date = document.getElementById('logDate').value || todayStr();
     if (!topic && !hours) return;
-    const sessions = loadSessions();
-    sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, resource, notes, ts: Date.now() });
+    let sessions = loadSessions();
+    if (editingSessionId) {
+      sessions = sessions.map(s => s.id === editingSessionId
+        ? { ...s, date, hours, topic, resource, notes }
+        : s);
+    } else {
+      sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, resource, notes, ts: Date.now() });
+    }
     sessions.sort((a,b) => b.date.localeCompare(a.date));
     saveSessions(sessions);
+    editingSessionId = null;
     closeLogModal();
     renderAll();
   });
