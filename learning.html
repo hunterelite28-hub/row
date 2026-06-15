@@ -263,6 +263,10 @@ html, body {
       <input type="text" id="logTopic" placeholder="e.g. Lists & Dicts, Functions, OOP..." maxlength="100">
     </div>
     <div class="field">
+      <label>Topics / Chapters Learnt</label>
+      <input type="number" id="logTopicsCount" placeholder="e.g. 3" step="1" min="0" inputmode="numeric">
+    </div>
+    <div class="field">
       <label>Resource</label>
       <select id="logResource"></select>
       <div class="resource-row" id="newResourceRow" style="display:none; margin-top:8px;">
@@ -414,7 +418,8 @@ html, body {
 
     const sessions = loadSessions().filter(s => s.subjectId === subj.id);
     const totalHrs = sessions.reduce((t, s) => t + (parseFloat(s.hours)||0), 0);
-    const uniqueTopics = new Set(sessions.map(s => s.topic).filter(Boolean)).size;
+    const uniqueTopics = sessions.reduce((t, s) =>
+      t + (s.topicsCount != null ? (parseInt(s.topicsCount) || 0) : (s.topic ? 1 : 0)), 0);
 
     const hrsDisplay = totalHrs % 1 === 0 ? totalHrs + '.0H' : totalHrs.toFixed(1) + 'H';
 
@@ -467,9 +472,11 @@ html, body {
         '<div class="session-body">' +
           '<div class="session-topic">' + escH(s.topic || '—') + '</div>' +
           '<div class="session-meta">' +
-            (s.hours ? s.hours + 'h' : '') +
-            (s.hours && s.resource ? ' · ' : '') +
-            escH(s.resource || '') +
+            [
+              s.hours ? s.hours + 'h' : '',
+              (s.topicsCount != null && s.topicsCount !== '') ? s.topicsCount + (parseInt(s.topicsCount) === 1 ? ' topic' : ' topics') : '',
+              escH(s.resource || '')
+            ].filter(Boolean).join(' · ') +
           '</div>' +
           (s.notes ? '<div class="session-notes">' + escH(s.notes) + '</div>' : '') +
         '</div>' +
@@ -507,6 +514,7 @@ html, body {
     document.getElementById('logDate').value = session ? session.date : todayStr();
     document.getElementById('logHours').value = session && session.hours ? session.hours : '';
     document.getElementById('logTopic').value = session ? (session.topic || '') : '';
+    document.getElementById('logTopicsCount').value = session && session.topicsCount != null ? session.topicsCount : '';
     document.getElementById('logNotes').value = session ? (session.notes || '') : '';
     lastResource = session ? (session.resource || '') : ((Array.isArray(subj.resources) && subj.resources[0]) || '');
     populateResourceSelect(subj, lastResource);
@@ -551,6 +559,8 @@ html, body {
     if (!subj) return;
     const hours = parseFloat(document.getElementById('logHours').value) || 0;
     const topic = document.getElementById('logTopic').value.trim();
+    const topicsCountRaw = document.getElementById('logTopicsCount').value;
+    const topicsCount = topicsCountRaw === '' ? null : (parseInt(topicsCountRaw) || 0);
     let resource = document.getElementById('logResource').value;
     if (resource === ADD_RESOURCE_VALUE) resource = '';
     const notes = document.getElementById('logNotes').value.trim();
@@ -559,10 +569,10 @@ html, body {
     let sessions = loadSessions();
     if (editingSessionId) {
       sessions = sessions.map(s => s.id === editingSessionId
-        ? { ...s, date, hours, topic, resource, notes }
+        ? { ...s, date, hours, topic, topicsCount, resource, notes }
         : s);
     } else {
-      sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, resource, notes, ts: Date.now() });
+      sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, topicsCount, resource, notes, ts: Date.now() });
     }
     sessions.sort((a,b) => b.date.localeCompare(a.date));
     saveSessions(sessions);
