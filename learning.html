@@ -466,18 +466,40 @@ html, body {
   function renderAll() { renderTabs(); renderContent(); }
 
   // ---- Log Session Modal ----
+  const ADD_RESOURCE_VALUE = '__add_resource__';
+  function populateResourceSelect(subj, selected) {
+    const sel = document.getElementById('logResource');
+    const resources = Array.isArray(subj.resources) ? subj.resources : [];
+    sel.innerHTML =
+      resources.map(r => '<option value="' + escH(r) + '"' + (r === selected ? ' selected' : '') + '>' + escH(r) + '</option>').join('') +
+      '<option value="' + ADD_RESOURCE_VALUE + '">+ Add new resource…</option>';
+  }
+  let lastResource = '';
   function openLogModal(subj) {
     document.getElementById('logDate').value = todayStr();
     document.getElementById('logHours').value = '';
     document.getElementById('logTopic').value = '';
     document.getElementById('logNotes').value = '';
-    const sel = document.getElementById('logResource');
-    const resources = Array.isArray(subj.resources) ? subj.resources : [];
-    sel.innerHTML = resources.map(r => '<option value="' + escH(r) + '">' + escH(r) + '</option>').join('') ||
-      '<option value="">No resources added</option>';
+    lastResource = (Array.isArray(subj.resources) && subj.resources[0]) || '';
+    populateResourceSelect(subj, lastResource);
     document.getElementById('logModalBg').classList.add('show');
     setTimeout(() => document.getElementById('logTopic').focus(), 80);
   }
+  document.getElementById('logResource').addEventListener('change', function () {
+    if (this.value !== ADD_RESOURCE_VALUE) { lastResource = this.value; return; }
+    const subj = loadSubjects().find(s => s.id === activeId);
+    if (!subj) return;
+    const name = (prompt('New resource name:') || '').trim();
+    if (!name) { populateResourceSelect(subj, lastResource); return; }
+    if (!Array.isArray(subj.resources)) subj.resources = [];
+    if (!subj.resources.includes(name)) {
+      subj.resources.push(name);
+      const subjs = loadSubjects().map(s => s.id === subj.id ? subj : s);
+      saveSubjects(subjs);
+    }
+    lastResource = name;
+    populateResourceSelect(subj, name);
+  });
   function closeLogModal() { document.getElementById('logModalBg').classList.remove('show'); }
 
   document.getElementById('logCancel').addEventListener('click', closeLogModal);
@@ -487,7 +509,8 @@ html, body {
     if (!subj) return;
     const hours = parseFloat(document.getElementById('logHours').value) || 0;
     const topic = document.getElementById('logTopic').value.trim();
-    const resource = document.getElementById('logResource').value;
+    let resource = document.getElementById('logResource').value;
+    if (resource === ADD_RESOURCE_VALUE) resource = '';
     const notes = document.getElementById('logNotes').value.trim();
     const date = document.getElementById('logDate').value || todayStr();
     if (!topic && !hours) return;
