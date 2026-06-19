@@ -25,6 +25,12 @@
   border-bottom: none;
   font-family: 'Share Tech Mono', monospace;
 }
+.topbar-logo {
+  display: inline-flex; align-items: center;
+  margin-right: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.topbar-logo img { height: 26px; width: auto; display: block; }
 .topbar-water-wrap { display: flex; align-items: stretch; }
 .topbar-water-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -150,6 +156,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
 
   const topbarHtml = `
 <header class="topbar" id="topbar" role="navigation" aria-label="Quick actions">
+  <a href="index.html" class="topbar-logo" aria-label="Home">
+    <img src="logo-mark.svg" alt="R" width="19" height="26">
+  </a>
   <div class="topbar-water-wrap">
     <a href="health.html#water" class="topbar-water-pill" id="topbarWater" aria-label="Water progress">
       <span class="topbar-pill-dot"></span>
