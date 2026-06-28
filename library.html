@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<title>Library</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
+<script src="topbar.js" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000000;
+  --bg-card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-1: #FAFAFA;
+  --text-2: rgba(255,255,255,0.55);
+  --text-3: rgba(255,255,255,0.35);
+  --text-4: rgba(255,255,255,0.2);
+  --accent: #FBBF24;
+  --font: 'Share Tech Mono', monospace;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--text-1);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh; -webkit-text-size-adjust: 100%;
+}
+.shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 120px; }
+
+/* Header */
+.page-header { margin-bottom: 18px; }
+.page-title { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; text-shadow: 0 0 20px rgba(251,191,36,0.22); }
+.page-title-dot { color: var(--accent); }
+.page-sub { font-size: 10px; color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+/* Filter + add row */
+.toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 13px; color: var(--text-2);
+  font-family: var(--font); font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.filter-chip.active { background: rgba(251,191,36,0.16); border-color: rgba(251,191,36,0.45); color: var(--accent); }
+.add-book-btn {
+  flex-shrink: 0; background: var(--accent); color: #000; border: none; border-radius: 10px;
+  padding: 9px 14px; font-family: var(--font); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 16px -4px rgba(251,191,36,0.6); transition: filter 0.15s, transform 0.1s;
+}
+.add-book-btn:active { transform: scale(0.96); }
+
+/* Book cards */
+.book-list { display: flex; flex-direction: column; gap: 14px; }
+.book-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.028));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 26px rgba(0,0,0,0.42);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.book-card:active { transform: scale(0.99); }
+.book-card:hover { border-color: var(--border-strong); }
+.book-cover-wrap {
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+}
+.book-cover {
+  max-height: 180px; max-width: 60%; border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55); display: block;
+}
+.book-cover-ph {
+  width: 120px; height: 172px; border-radius: 6px;
+  background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
+  border: 1px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; opacity: 0.7;
+}
+.book-body { padding: 14px 16px 16px; }
+.book-title { font-size: 16px; font-weight: 700; letter-spacing: 0.03em; display: flex; align-items: center; gap: 8px; }
+.book-title .ico { font-size: 16px; }
+.book-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0; }
+.book-tag {
+  font-size: 10px; letter-spacing: 0.05em; color: var(--text-2);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 9px;
+}
+.book-author { font-size: 12px; color: var(--text-2); margin-top: 6px; letter-spacing: 0.03em; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 999px; padding: 5px 11px;
+}
+.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+.status-pill.reading  { background: rgba(251,191,36,0.14); color: #FBBF24; }
+.status-pill.reading .dot { background: #FBBF24; }
+.status-pill.finished { background: rgba(110,231,183,0.14); color: #6EE7B7; }
+.status-pill.finished .dot { background: #6EE7B7; }
+.status-pill.toread   { background: rgba(255,255,255,0.07); color: var(--text-2); }
+.status-pill.toread .dot { background: var(--text-3); }
+.progress-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.progress-pct { font-size: 13px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; min-width: 40px; }
+.progress-track { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #FBBF24, #f59e0b); border-radius: 4px; transition: width 0.35s ease; }
+
+/* Empty state */
+.empty { text-align: center; padding: 56px 0; color: var(--text-3); font-size: 12px; letter-spacing: 0.08em; line-height: 1.9; }
+.empty .ico { font-size: 38px; opacity: 0.25; display: block; margin-bottom: 12px; }
+
+/* ---- Detail view ---- */
+.detail-back {
+  display: inline-flex; align-items: center; gap: 7px; background: none; border: none;
+  color: var(--text-2); font-family: var(--font); font-size: 12px; letter-spacing: 0.06em;
+  cursor: pointer; padding: 4px 0; margin-bottom: 16px; -webkit-tap-highlight-color: transparent;
+}
+.detail-back:hover { color: var(--text-1); }
+.detail-top { display: flex; gap: 16px; margin-bottom: 18px; }
+.detail-cover {
+  width: 110px; flex-shrink: 0; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55); align-self: flex-start;
+}
+.detail-cover-ph {
+  width: 110px; height: 158px; flex-shrink: 0; border-radius: 8px;
+  background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
+  border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 32px; opacity: 0.7;
+}
+.detail-info { flex: 1; min-width: 0; }
+.detail-title { font-size: 19px; font-weight: 700; letter-spacing: 0.03em; line-height: 1.2; }
+.detail-author { font-size: 13px; color: var(--text-2); margin-top: 5px; }
+.detail-stars { margin-top: 10px; font-size: 18px; letter-spacing: 2px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.detail-star { color: var(--text-4); }
+.detail-star.on { color: var(--accent); }
+.detail-edit {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-2); font-family: var(--font); font-size: 11px; letter-spacing: 0.06em;
+  padding: 6px 12px; cursor: pointer; margin-top: 12px; -webkit-tap-highlight-color: transparent;
+}
+.detail-edit:hover { color: var(--text-1); }
+.detail-progress { margin-bottom: 22px; }
+.page-update { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--text-2); }
+.page-update input {
+  width: 70px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-1); font-family: var(--font); font-size: 13px; padding: 7px 9px; outline: none;
+  -webkit-text-fill-color: var(--text-1);
+}
+.page-update input:focus { border-color: rgba(251,191,36,0.5); }
+
+.notes-head { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 12px; }
+.note-compose {
+  background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 16px;
+}
+.note-compose textarea {
+  width: 100%; background: transparent; border: none; outline: none; resize: none;
+  color: var(--text-1); font-family: var(--font); font-size: 14px; line-height: 1.6; min-height: 64px;
+  -webkit-text-fill-color: var(--text-1);
+}
+.note-compose textarea::placeholder { color: var(--text-3); }
+.note-compose-footer { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.note-page-input {
+  width: 80px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-1); font-family: var(--font); font-size: 12px; padding: 8px 10px; outline: none;
+  -webkit-text-fill-color: var(--text-1);
+}
+.note-page-input:focus { border-color: rgba(251,191,36,0.5); }
+.note-add-btn {
+  margin-left: auto; background: var(--accent); color: #000; border: none; border-radius: 8px;
+  padding: 8px 16px; font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.note-add-btn:disabled { opacity: 0.35; cursor: default; }
+.note-list { display: flex; flex-direction: column; gap: 10px; }
+.note-item {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  position: relative;
+}
+.note-item-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.note-item-page { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.85; }
+.note-item-date { font-size: 10px; color: var(--text-3); letter-spacing: 0.06em; }
+.note-item-actions { display: flex; gap: 6px; }
+.note-del, .note-edit {
+  background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 6px;
+  font-family: var(--font); font-size: 11px; -webkit-tap-highlight-color: transparent;
+}
+.note-edit { color: var(--text-3); }
+.note-edit:hover { color: var(--text-1); }
+.note-del { color: var(--text-3); }
+.note-del:hover { color: #ff8a8a; }
+.note-item-text { font-size: 14px; line-height: 1.6; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+.note-empty { text-align: center; padding: 30px 0; color: var(--text-3); font-size: 11px; letter-spacing: 0.08em; }
+
+/* ---- Modal ---- */
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  align-items: flex-end; justify-content: center;
+}
+.modal-bg.show { display: flex; }
+.modal {
+  width: 100%; max-width: 480px; background: #111113; border: 1px solid var(--border-strong);
+  border-radius: 20px 20px 0 0; padding: 22px 18px calc(28px + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
+}
+.modal-title { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong);
+  border-radius: 9px; color: var(--text-1); font-family: var(--font); font-size: 14px;
+  padding: 11px 13px; outline: none; transition: border-color 0.15s; -webkit-text-fill-color: var(--text-1);
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(251,191,36,0.5); }
+.field select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+.field select option { background: #111113; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cover-pick {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 150px; border: 1px dashed var(--border-strong); border-radius: 10px;
+  cursor: pointer; color: var(--text-3); font-size: 12px; letter-spacing: 0.06em;
+  background: rgba(255,255,255,0.02); overflow: hidden; -webkit-tap-highlight-color: transparent;
+}
+.cover-pick img { height: 100%; border-radius: 6px; }
+.cover-pick:hover { border-color: rgba(251,191,36,0.5); color: var(--text-1); }
+.cover-clear {
+  display: none; margin-top: 8px; background: none; border: none; color: var(--text-3);
+  font-family: var(--font); font-size: 11px; cursor: pointer; text-decoration: underline;
+  -webkit-tap-highlight-color: transparent;
+}
+.modal-stars { font-size: 24px; letter-spacing: 4px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.modal-star { color: var(--text-4); }
+.modal-star.on { color: var(--accent); }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-cancel {
+  flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong);
+  border-radius: 10px; color: var(--text-2); font-family: var(--font); font-size: 13px;
+  font-weight: 700; padding: 12px; cursor: pointer; letter-spacing: 0.06em; -webkit-tap-highlight-color: transparent;
+}
+.btn-save {
+  flex: 2; background: var(--accent); border: none; border-radius: 10px; color: #000;
+  font-family: var(--font); font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.btn-save:active { transform: scale(0.98); }
+.btn-danger {
+  width: 100%; margin-top: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px; color: #ff8a8a; font-family: var(--font); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 480px) { .shell { padding: 16px 12px 110px; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- LIST VIEW -->
+  <div id="listView">
+    <div class="page-header">
+      <div class="page-title">LIBRARY<span class="page-title-dot">.</span></div>
+      <div class="page-sub">// books &amp; reading notes</div>
+    </div>
+    <div class="toolbar">
+      <div class="filter-row" id="filterRow"></div>
+      <button class="add-book-btn" id="addBookBtn">+ Add</button>
+    </div>
+    <div class="empty" id="emptyState" style="display:none">
+      <span class="ico">📚</span>NO BOOKS YET<br>
+      <span style="font-size:10px;color:rgba(255,255,255,0.18)">TAP + ADD TO START YOUR SHELF</span>
+    </div>
+    <div class="book-list" id="bookList"></div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detailView" style="display:none"></div>
+</div>
+
+<!-- Add / Edit Book Modal -->
+<div class="modal-bg" id="bookModalBg">
+  <div class="modal">
+    <div class="modal-title" id="bookModalTitle">// New Book</div>
+    <div class="field">
+      <label>Cover (title page)</label>
+      <div class="cover-pick" id="coverPick"><span id="coverPickLabel">📷 Tap to add cover</span></div>
+      <button class="cover-clear" id="coverClear">Remove cover</button>
+      <input type="file" id="coverFile" accept="image/*" style="display:none">
+    </div>
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="bookTitle" placeholder="e.g. Atomic Habits" maxlength="120">
+    </div>
+    <div class="field">
+      <label>Author</label>
+      <input type="text" id="bookAuthor" placeholder="e.g. James Clear" maxlength="80">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="bookStatus">
+        <option value="reading">Reading</option>
+        <option value="finished">Finished</option>
+        <option value="toread">To Read</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Current Page</label>
+        <input type="number" id="bookCurrent" placeholder="0" min="0" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Total Pages</label>
+        <input type="number" id="bookTotal" placeholder="0" min="0" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label>Tags (comma separated, optional)</label>
+      <input type="text" id="bookTags" placeholder="e.g. habits, psychology" maxlength="80">
+    </div>
+    <div class="field">
+      <label>Rating</label>
+      <div class="modal-stars" id="modalStars"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="bookCancel">Cancel</button>
+      <button class="btn-save" id="bookSave">Save</button>
+    </div>
+    <button class="btn-danger" id="bookDelete" style="display:none">Delete Book</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const BOOK_KEY = 'library_books';
+  const NOTE_KEY = 'library_notes';
+  const STATUS = { reading: 'Reading', finished: 'Finished', toread: 'To Read' };
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let activeBookId = null;
+  let filter = 'all';
+  let editingId = null;
+  let draftCover = '';
+  let draftRating = 0;
+
+  // ---- Storage ----
+  function loadBooks() { try { return JSON.parse(localStorage.getItem(BOOK_KEY) || '[]'); } catch { return []; } }
+  function saveBooks(a) { localStorage.setItem(BOOK_KEY, JSON.stringify(a)); }
+  function loadNotes() { try { return JSON.parse(localStorage.getItem(NOTE_KEY) || '[]'); } catch { return []; } }
+  function saveNotes(a) { localStorage.setItem(NOTE_KEY, JSON.stringify(a)); }
+
+  function uid() { return 'b' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmtDate(ts) { const d = new Date(ts); return d.getDate() + ' ' + MONS[d.getMonth()] + ' ' + d.getFullYear(); }
+
+  function pct(book) {
+    if (book.status === 'finished') return 100;
+    const t = parseInt(book.totalPages) || 0, c = parseInt(book.currentPage) || 0;
+    if (t > 0) return Math.max(0, Math.min(100, Math.round(c / t * 100)));
+    return null;
+  }
+  function showProgress(book) { return book.status !== 'toread' && pct(book) !== null; }
+
+  // ---- Cover downscale ----
+  function processCover(file, cb) {
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 380;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  }
+
+  // ---- Render ----
+  function render() {
+    if (activeBookId && loadBooks().some(b => b.id === activeBookId)) renderDetail();
+    else { activeBookId = null; renderList(); }
+  }
+
+  function renderList() {
+    document.getElementById('listView').style.display = '';
+    document.getElementById('detailView').style.display = 'none';
+
+    const books = loadBooks();
+    const counts = { all: books.length, reading: 0, finished: 0, toread: 0 };
+    books.forEach(b => { counts[b.status] = (counts[b.status]||0) + 1; });
+    const filters = [['all','All'],['reading','Reading'],['finished','Finished'],['toread','To Read']];
+    document.getElementById('filterRow').innerHTML = filters.map(([k,label]) =>
+      '<button class="filter-chip' + (filter===k?' active':'') + '" data-f="' + k + '">' + label + ' ' + (counts[k]||0) + '</button>'
+    ).join('');
+    document.querySelectorAll('.filter-chip').forEach(c =>
+      c.addEventListener('click', () => { filter = c.dataset.f; renderList(); })
+    );
+
+    const shown = filter === 'all' ? books : books.filter(b => b.status === filter);
+    const listEl = document.getElementById('bookList');
+    const emptyEl = document.getElementById('emptyState');
+    if (!books.length) { emptyEl.style.display = ''; listEl.innerHTML = ''; return; }
+    emptyEl.style.display = 'none';
+    if (!shown.length) { listEl.innerHTML = '<div class="note-empty">No books in this shelf.</div>'; return; }
+
+    listEl.innerHTML = shown.map(b => {
+      const noteN = loadNotes().filter(n => n.bookId === b.id).length;
+      const cover = b.cover
+        ? '<img class="book-cover" src="' + b.cover + '" alt="cover">'
+        : '<div class="book-cover-ph">📖</div>';
+      const tags = (b.tags && b.tags.length)
+        ? '<div class="book-tags">' + b.tags.map(t => '<span class="book-tag">' + esc(t) + '</span>').join('') + '</div>' : '';
+      let prog = '';
+      if (showProgress(b)) {
+        const p = pct(b);
+        prog = '<div class="progress-row"><span class="progress-pct">' + p + '%</span>' +
+               '<div class="progress-track"><div class="progress-fill" style="width:' + p + '%"></div></div></div>';
+      }
+      const noteHint = noteN ? '<span class="book-tag">📝 ' + noteN + (noteN===1?' note':' notes') + '</span>' : '';
+      return '<div class="book-card" data-id="' + b.id + '">' +
+        '<div class="book-cover-wrap">' + cover + '</div>' +
+        '<div class="book-body">' +
+          '<div class="book-title"><span class="ico">📖</span>' + esc(b.title) + '</div>' +
+          (tags || noteHint ? '<div class="book-tags">' +
+              (b.tags||[]).map(t => '<span class="book-tag">' + esc(t) + '</span>').join('') + noteHint +
+            '</div>' : '') +
+          (b.author ? '<div class="book-author">' + esc(b.author) + '</div>' : '') +
+          '<div><span class="status-pill ' + b.status + '"><span class="dot"></span>' + STATUS[b.status] + '</span></div>' +
+          prog +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    listEl.querySelectorAll('.book-card').forEach(card =>
+      card.addEventListener('click', () => { activeBookId = card.dataset.id; render(); })
+    );
+  }
+
+  function renderDetail() {
+    document.getElementById('listView').style.display = 'none';
+    const view = document.getElementById('detailView');
+    view.style.display = '';
+    const book = loadBooks().find(b => b.id === activeBookId);
+    if (!book) { activeBookId = null; renderList(); return; }
+    const notes = loadNotes().filter(n => n.bookId === book.id).sort((a,b) => b.ts - a.ts);
+
+    const cover = book.cover
+      ? '<img class="detail-cover" src="' + book.cover + '" alt="cover">'
+      : '<div class="detail-cover-ph">📖</div>';
+    const stars = [1,2,3,4,5].map(i =>
+      '<span class="detail-star ' + (i <= (book.rating||0) ? 'on' : '') + '" data-r="' + i + '">★</span>'
+    ).join('');
+
+    let progBlock = '';
+    if (book.status !== 'toread') {
+      const p = pct(book);
+      const bar = (p !== null)
+        ? '<div class="progress-row"><span class="progress-pct">' + p + '%</span>' +
+          '<div class="progress-track"><div class="progress-fill" style="width:' + p + '%"></div></div></div>' : '';
+      const total = parseInt(book.totalPages) || 0;
+      const pageEditor = total > 0
+        ? '<div class="page-update">Page <input type="number" id="curPageInput" value="' + (parseInt(book.currentPage)||0) + '" min="0" max="' + total + '" inputmode="numeric"> of ' + total + '</div>'
+        : '';
+      progBlock = '<div class="detail-progress">' + bar + pageEditor + '</div>';
+    }
+
+    const noteCompose =
+      '<div class="note-compose">' +
+        '<textarea id="noteText" placeholder="Add a note, quote, or thought…"></textarea>' +
+        '<div class="note-compose-footer">' +
+          '<input class="note-page-input" id="notePage" type="number" placeholder="p. (opt)" min="0" inputmode="numeric">' +
+          '<button class="note-add-btn" id="noteAdd" disabled>+ Note</button>' +
+        '</div>' +
+      '</div>';
+
+    const noteList = notes.length
+      ? notes.map(n =>
+          '<div class="note-item" data-id="' + n.id + '">' +
+            '<div class="note-item-meta">' +
+              '<span class="note-item-page">' + (n.page ? 'p. ' + esc(n.page) : 'NOTE') + '</span>' +
+              '<span style="display:flex;align-items:center;gap:8px">' +
+                '<span class="note-item-date">' + fmtDate(n.ts) + '</span>' +
+                '<span class="note-item-actions">' +
+                  '<button class="note-edit" data-id="' + n.id + '">[edit]</button>' +
+                  '<button class="note-del" data-id="' + n.id + '">[del]</button>' +
+                '</span>' +
+              '</span>' +
+            '</div>' +
+            '<div class="note-item-text">' + esc(n.text) + '</div>' +
+          '</div>'
+        ).join('')
+      : '<div class="note-empty">No notes yet — add your first above.</div>';
+
+    view.innerHTML =
+      '<button class="detail-back" id="detailBack">← Library</button>' +
+      '<div class="detail-top">' +
+        cover +
+        '<div class="detail-info">' +
+          '<div class="detail-title">' + esc(book.title) + '</div>' +
+          (book.author ? '<div class="detail-author">' + esc(book.author) + '</div>' : '') +
+          '<div><span class="status-pill ' + book.status + '" style="margin-top:10px"><span class="dot"></span>' + STATUS[book.status] + '</span></div>' +
+          '<div class="detail-stars" id="detailStars">' + stars + '</div>' +
+          '<button class="detail-edit" id="detailEdit">⚙ Edit book</button>' +
+        '</div>' +
+      '</div>' +
+      progBlock +
+      '<div class="notes-head">// Notes</div>' +
+      noteCompose +
+      '<div class="note-list">' + noteList + '</div>';
+
+    // wire detail
+    view.querySelector('#detailBack').addEventListener('click', () => { activeBookId = null; render(); });
+    view.querySelector('#detailEdit').addEventListener('click', () => openEditBook(book));
+
+    view.querySelectorAll('#detailStars .detail-star').forEach(st =>
+      st.addEventListener('click', () => {
+        let r = parseInt(st.dataset.r);
+        if (r === book.rating) r = 0; // tap same star to clear
+        const books = loadBooks().map(b => b.id === book.id ? { ...b, rating: r } : b);
+        saveBooks(books); renderDetail();
+      })
+    );
+
+    const curInput = view.querySelector('#curPageInput');
+    if (curInput) {
+      const commit = () => {
+        let v = parseInt(curInput.value) || 0;
+        const total = parseInt(book.totalPages) || 0;
+        v = Math.max(0, Math.min(total, v));
+        const books = loadBooks().map(b => b.id === book.id ? { ...b, currentPage: v } : b);
+        saveBooks(books); renderDetail();
+      };
+      curInput.addEventListener('change', commit);
+    }
+
+    const noteText = view.querySelector('#noteText');
+    const noteAdd = view.querySelector('#noteAdd');
+    const notePage = view.querySelector('#notePage');
+    noteText.addEventListener('input', () => { noteAdd.disabled = !noteText.value.trim(); });
+    function addNote() {
+      const text = noteText.value.trim();
+      if (!text) return;
+      const all = loadNotes();
+      const page = notePage.value.trim() ? (parseInt(notePage.value) || null) : null;
+      all.unshift({ id: uid(), bookId: book.id, text, page, ts: Date.now() });
+      saveNotes(all);
+      renderDetail();
+    }
+    noteAdd.addEventListener('click', addNote);
+    noteText.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addNote(); } });
+
+    view.querySelectorAll('.note-del').forEach(btn =>
+      btn.addEventListener('click', () => {
+        saveNotes(loadNotes().filter(n => n.id !== btn.dataset.id));
+        renderDetail();
+      })
+    );
+    view.querySelectorAll('.note-edit').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const item = view.querySelector('.note-item[data-id="' + btn.dataset.id + '"]');
+        const textEl = item.querySelector('.note-item-text');
+        const current = loadNotes().find(n => n.id === btn.dataset.id);
+        if (!current) return;
+        const ta = document.createElement('textarea');
+        ta.value = current.text;
+        ta.style.cssText = 'width:100%;background:rgba(0,0,0,0.4);border:1px solid var(--border-strong);border-radius:8px;color:var(--text-1);font-family:var(--font);font-size:14px;line-height:1.6;padding:8px 10px;outline:none;min-height:60px;-webkit-text-fill-color:var(--text-1)';
+        textEl.replaceWith(ta);
+        ta.focus();
+        const save = () => {
+          const v = ta.value.trim();
+          const all = loadNotes().map(n => n.id === btn.dataset.id ? { ...n, text: v || n.text } : n);
+          saveNotes(all); renderDetail();
+        };
+        ta.addEventListener('blur', save, { once: true });
+        ta.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); ta.blur(); } });
+      })
+    );
+  }
+
+  // ---- Book modal ----
+  function renderModalStars() {
+    document.getElementById('modalStars').innerHTML = [1,2,3,4,5].map(i =>
+      '<span class="modal-star ' + (i <= draftRating ? 'on' : '') + '" data-r="' + i + '">★</span>'
+    ).join('');
+    document.querySelectorAll('#modalStars .modal-star').forEach(st =>
+      st.addEventListener('click', () => {
+        const r = parseInt(st.dataset.r);
+        draftRating = (r === draftRating) ? 0 : r;
+        renderModalStars();
+      })
+    );
+  }
+  function setCoverPreview() {
+    const label = document.getElementById('coverPickLabel');
+    const pick = document.getElementById('coverPick');
+    const clear = document.getElementById('coverClear');
+    if (draftCover) {
+      pick.innerHTML = '<img src="' + draftCover + '" alt="cover preview">';
+      clear.style.display = '';
+    } else {
+      pick.innerHTML = '<span id="coverPickLabel">📷 Tap to add cover</span>';
+      clear.style.display = 'none';
+    }
+  }
+  function openAddBook() {
+    editingId = null; draftCover = ''; draftRating = 0;
+    document.getElementById('bookModalTitle').textContent = '// New Book';
+    document.getElementById('bookTitle').value = '';
+    document.getElementById('bookAuthor').value = '';
+    document.getElementById('bookStatus').value = 'reading';
+    document.getElementById('bookCurrent').value = '';
+    document.getElementById('bookTotal').value = '';
+    document.getElementById('bookTags').value = '';
+    document.getElementById('bookDelete').style.display = 'none';
+    setCoverPreview(); renderModalStars();
+    openModal();
+    setTimeout(() => document.getElementById('bookTitle').focus(), 80);
+  }
+  function openEditBook(book) {
+    editingId = book.id; draftCover = book.cover || ''; draftRating = book.rating || 0;
+    document.getElementById('bookModalTitle').textContent = '// Edit Book';
+    document.getElementById('bookTitle').value = book.title || '';
+    document.getElementById('bookAuthor').value = book.author || '';
+    document.getElementById('bookStatus').value = book.status || 'reading';
+    document.getElementById('bookCurrent').value = book.currentPage || '';
+    document.getElementById('bookTotal').value = book.totalPages || '';
+    document.getElementById('bookTags').value = (book.tags || []).join(', ');
+    document.getElementById('bookDelete').style.display = '';
+    setCoverPreview(); renderModalStars();
+    openModal();
+  }
+  function openModal() {
+    document.getElementById('bookModalBg').classList.add('show');
+    document.body.classList.add('topbar-modal-open');
+  }
+  function closeModal() {
+    document.getElementById('bookModalBg').classList.remove('show');
+    document.body.classList.remove('topbar-modal-open');
+  }
+
+  document.getElementById('addBookBtn').addEventListener('click', openAddBook);
+  document.getElementById('bookCancel').addEventListener('click', closeModal);
+  document.getElementById('bookModalBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('bookModalBg')) closeModal();
+  });
+  document.getElementById('coverPick').addEventListener('click', () => document.getElementById('coverFile').click());
+  document.getElementById('coverFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) processCover(f, dataUrl => { draftCover = dataUrl; setCoverPreview(); });
+    e.target.value = '';
+  });
+  document.getElementById('coverClear').addEventListener('click', () => { draftCover = ''; setCoverPreview(); });
+
+  document.getElementById('bookSave').addEventListener('click', () => {
+    const title = document.getElementById('bookTitle').value.trim();
+    if (!title) { document.getElementById('bookTitle').focus(); return; }
+    const tags = document.getElementById('bookTags').value.split(',').map(t => t.trim()).filter(Boolean);
+    const data = {
+      title,
+      author: document.getElementById('bookAuthor').value.trim(),
+      status: document.getElementById('bookStatus').value,
+      currentPage: parseInt(document.getElementById('bookCurrent').value) || 0,
+      totalPages: parseInt(document.getElementById('bookTotal').value) || 0,
+      tags, rating: draftRating, cover: draftCover
+    };
+    const books = loadBooks();
+    if (editingId) {
+      const i = books.findIndex(b => b.id === editingId);
+      if (i >= 0) books[i] = { ...books[i], ...data };
+    } else {
+      books.unshift({ id: uid(), ...data, ts: Date.now() });
+    }
+    saveBooks(books);
+    closeModal();
+    render();
+  });
+  document.getElementById('bookDelete').addEventListener('click', () => {
+    if (!editingId) return;
+    if (!confirm('Delete this book and all its notes?')) return;
+    saveBooks(loadBooks().filter(b => b.id !== editingId));
+    saveNotes(loadNotes().filter(n => n.bookId !== editingId));
+    if (activeBookId === editingId) activeBookId = null;
+    closeModal();
+    render();
+  });
+
+  // ---- Init ----
+  render();
+  window.addEventListener('storage', e => {
+    if (!e.key || e.key === BOOK_KEY || e.key === NOTE_KEY) render();
+  });
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof initCloudSync !== 'function') return;
+  initCloudSync({
+    appKey: 'library',
+    syncedKeys: ['library_books', 'library_notes'],
+    onApplied: function () { window.dispatchEvent(new Event('storage')); }
+  });
+});
+</script>
+</body>
+</html>

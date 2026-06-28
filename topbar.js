@@ -182,6 +182,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <a href="learning.html" class="bottombar-tab" data-page="learning">
     <span>Learn</span>
   </a>
+  <a href="library.html" class="bottombar-tab" data-page="library">
+    <span>Library</span>
+  </a>
   <a href="health.html" class="bottombar-tab" data-page="health">
     <span>Health</span>
   </a>
@@ -205,6 +208,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     const p = (window.location.pathname || '').toLowerCase();
     if (p.endsWith('habits.html')) return 'habits';
     if (p.endsWith('learning.html')) return 'learning';
+    if (p.endsWith('library.html')) return 'library';
     if (p.endsWith('health.html')) return 'health';
     if (p.endsWith('gym.html')) return 'fitness';
     if (p.endsWith('growth.html')) return 'growth';
