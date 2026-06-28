@@ -63,7 +63,7 @@ html, body {
 .add-book-btn:active { transform: scale(0.96); }
 
 /* Book cards */
-.book-list { display: flex; flex-direction: column; gap: 14px; }
+.book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px 12px; }
 .book-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.028));
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -74,31 +74,32 @@ html, body {
 .book-card:active { transform: scale(0.99); }
 .book-card:hover { border-color: var(--border-strong); }
 .book-cover-wrap {
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px; background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid var(--border);
+  aspect-ratio: 2 / 3; width: 100%;
+  background: rgba(255,255,255,0.03);
 }
 .book-cover {
-  max-height: 180px; max-width: 60%; border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.55); display: block;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .book-cover-ph {
-  width: 120px; height: 172px; border-radius: 6px;
+  width: 100%; height: 100%;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
-  border: 1px solid var(--border-strong);
   display: flex; align-items: center; justify-content: center;
-  font-size: 36px; opacity: 0.7;
+  font-size: 34px; opacity: 0.7;
 }
-.book-body { padding: 14px 16px 16px; }
-.book-title { font-size: 16px; font-weight: 700; letter-spacing: 0.03em; display: flex; align-items: center; gap: 8px; }
-.book-title .ico { font-size: 16px; }
+.book-body { padding: 10px 11px 12px; }
+.book-title {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .book-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0; }
 .book-tag {
   font-size: 10px; letter-spacing: 0.05em; color: var(--text-2);
   background: rgba(255,255,255,0.05); border: 1px solid var(--border);
   border-radius: 999px; padding: 3px 9px;
 }
-.book-author { font-size: 12px; color: var(--text-2); margin-top: 6px; letter-spacing: 0.03em; }
+.book-author { font-size: 10px; color: var(--text-2); margin-top: 4px; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-pill {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
@@ -115,6 +116,13 @@ html, body {
 .progress-pct { font-size: 13px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; min-width: 40px; }
 .progress-track { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #FBBF24, #f59e0b); border-radius: 4px; transition: width 0.35s ease; }
+/* compact tile overrides */
+.book-card .status-pill { font-size: 9px; padding: 3px 8px; margin-top: 8px; gap: 5px; }
+.book-card .status-pill .dot { width: 6px; height: 6px; }
+.book-card .progress-row { gap: 7px; margin-top: 8px; }
+.book-card .progress-pct { font-size: 10px; min-width: 30px; }
+.book-card .progress-track { height: 4px; }
+.book-note-count { font-size: 9px; color: var(--text-3); letter-spacing: 0.06em; margin-top: 6px; }
 
 /* Empty state */
 .empty { text-align: center; padding: 56px 0; color: var(--text-3); font-size: 12px; letter-spacing: 0.08em; line-height: 1.9; }
@@ -418,30 +426,26 @@ html, body {
     emptyEl.style.display = 'none';
     if (!shown.length) { listEl.innerHTML = '<div class="note-empty">No books in this shelf.</div>'; return; }
 
+    const notesAll = loadNotes();
     listEl.innerHTML = shown.map(b => {
-      const noteN = loadNotes().filter(n => n.bookId === b.id).length;
       const cover = b.cover
         ? '<img class="book-cover" src="' + b.cover + '" alt="cover">'
         : '<div class="book-cover-ph">📖</div>';
-      const tags = (b.tags && b.tags.length)
-        ? '<div class="book-tags">' + b.tags.map(t => '<span class="book-tag">' + esc(t) + '</span>').join('') + '</div>' : '';
       let prog = '';
       if (showProgress(b)) {
         const p = pct(b);
         prog = '<div class="progress-row"><span class="progress-pct">' + p + '%</span>' +
                '<div class="progress-track"><div class="progress-fill" style="width:' + p + '%"></div></div></div>';
       }
-      const noteHint = noteN ? '<span class="book-tag">📝 ' + noteN + (noteN===1?' note':' notes') + '</span>' : '';
+      const noteN = notesAll.filter(n => n.bookId === b.id).length;
+      const noteLine = noteN ? '<div class="book-note-count">📝 ' + noteN + (noteN===1?' note':' notes') + '</div>' : '';
       return '<div class="book-card" data-id="' + b.id + '">' +
         '<div class="book-cover-wrap">' + cover + '</div>' +
         '<div class="book-body">' +
-          '<div class="book-title"><span class="ico">📖</span>' + esc(b.title) + '</div>' +
-          (tags || noteHint ? '<div class="book-tags">' +
-              (b.tags||[]).map(t => '<span class="book-tag">' + esc(t) + '</span>').join('') + noteHint +
-            '</div>' : '') +
+          '<div class="book-title">' + esc(b.title) + '</div>' +
           (b.author ? '<div class="book-author">' + esc(b.author) + '</div>' : '') +
           '<div><span class="status-pill ' + b.status + '"><span class="dot"></span>' + STATUS[b.status] + '</span></div>' +
-          prog +
+          prog + noteLine +
         '</div>' +
       '</div>';
     }).join('');
