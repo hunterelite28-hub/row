@@ -227,14 +227,18 @@ html, body {
   user-select: none; -webkit-user-select: none; pointer-events: none;
 }
 .note-card.locked .note-delete { display: none; }
+/* keep the date/time row visible & crisp above the frosted overlay */
+.note-card.locked { min-height: 112px; }
+.note-card.locked .note-meta { position: relative; z-index: 2; margin-bottom: 0; }
 .note-lock-overlay {
   position: absolute; inset: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; padding: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 10px; padding: 14px 14px 16px;
   background: rgba(8,8,10,0.42);
   backdrop-filter: blur(8px) saturate(1.1);
   -webkit-backdrop-filter: blur(8px) saturate(1.1);
   border-radius: var(--radius);
+  z-index: 1;
 }
 .note-lock-ico { font-size: 19px; opacity: 0.85; }
 .note-lock-row { display: flex; gap: 8px; width: 100%; max-width: 280px; }
