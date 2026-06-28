@@ -63,7 +63,7 @@ html, body {
 .add-book-btn:active { transform: scale(0.96); }
 
 /* Book cards */
-.book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px 12px; }
+.book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); align-items: start; gap: 16px 12px; }
 .book-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.028));
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -73,16 +73,13 @@ html, body {
 }
 .book-card:active { transform: scale(0.99); }
 .book-card:hover { border-color: var(--border-strong); }
-.book-cover-wrap {
-  aspect-ratio: 2 / 3; width: 100%;
-  background: rgba(255,255,255,0.03);
-}
+.book-cover-wrap { width: 100%; line-height: 0; }
 .book-cover {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+  width: 100%; height: auto; display: block;
   border-radius: var(--radius) var(--radius) 0 0;
 }
 .book-cover-ph {
-  width: 100%; height: 100%;
+  width: 100%; aspect-ratio: 2 / 3;
   border-radius: var(--radius) var(--radius) 0 0;
   background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
   display: flex; align-items: center; justify-content: center;
