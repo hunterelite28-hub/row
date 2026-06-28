@@ -205,6 +205,23 @@ html, body {
 .note-del { color: var(--text-3); }
 .note-del:hover { color: #ff8a8a; }
 .note-item-text { font-size: 14px; line-height: 1.6; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+.note-item-text strong { font-weight: 700; color: #fff; }
+.note-item-text em { font-style: italic; }
+.note-item-text code { background: rgba(255,255,255,0.09); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+.note-item-text del { opacity: 0.55; }
+
+/* formatting toolbar */
+.note-fmt-bar { display: flex; gap: 6px; margin-bottom: 10px; }
+.fmt-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text-2); font-family: var(--font); font-size: 12px; font-weight: 700;
+  min-width: 30px; height: 28px; padding: 0 7px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.fmt-btn:hover { color: var(--text-1); border-color: var(--border-strong); }
+.fmt-btn:active { background: rgba(255,255,255,0.12); }
+.fmt-btn.i { font-style: italic; }
+.fmt-btn.c { font-size: 11px; }
 .note-empty { text-align: center; padding: 30px 0; color: var(--text-3); font-size: 11px; letter-spacing: 0.08em; }
 
 /* ---- Modal ---- */
@@ -367,6 +384,53 @@ html, body {
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function fmtDate(ts) { const d = new Date(ts); return d.getDate() + ' ' + MONS[d.getMonth()] + ' ' + d.getFullYear(); }
 
+  // ---- Markdown-lite (notes formatting) ----
+  function mdInline(s) {
+    return s
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      .replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
+      .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+  }
+  function renderMd(text) { return mdInline(esc(text)); }
+
+  // ---- Textarea formatting helpers ----
+  function surround(ta, pre, post) {
+    const s = ta.selectionStart, e = ta.selectionEnd, val = ta.value;
+    const sel = val.slice(s, e);
+    ta.value = val.slice(0, s) + pre + sel + post + val.slice(e);
+    ta.focus();
+    if (sel) { ta.selectionStart = s + pre.length; ta.selectionEnd = e + pre.length; }
+    else { ta.selectionStart = ta.selectionEnd = s + pre.length; }
+    ta.dispatchEvent(new Event('input'));
+  }
+  function linePrefix(ta, prefix) {
+    const s = ta.selectionStart, e = ta.selectionEnd, val = ta.value;
+    const ls = val.lastIndexOf('\n', s - 1) + 1;
+    const block = val.slice(ls, e);
+    const newBlock = block ? block.split('\n').map(l => (l ? prefix + l : l)).join('\n') : prefix;
+    ta.value = val.slice(0, ls) + newBlock + val.slice(e);
+    ta.focus();
+    ta.selectionStart = ls; ta.selectionEnd = ls + newBlock.length;
+    ta.dispatchEvent(new Event('input'));
+  }
+  function applyFmt(ta, fmt) {
+    if (fmt === 'bold') surround(ta, '**', '**');
+    else if (fmt === 'italic') surround(ta, '*', '*');
+    else if (fmt === 'code') surround(ta, '`', '`');
+    else if (fmt === 'bullet') linePrefix(ta, '- ');
+  }
+  function bindFmtKeys(ta, onSubmit) {
+    ta.addEventListener('keydown', e => {
+      if (e.metaKey || e.ctrlKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'b') { e.preventDefault(); applyFmt(ta, 'bold'); }
+        else if (k === 'i') { e.preventDefault(); applyFmt(ta, 'italic'); }
+        else if (k === 'enter' && onSubmit) { e.preventDefault(); onSubmit(); }
+      }
+    });
+  }
+
   function pct(book) {
     if (book.status === 'finished') return 100;
     const t = parseInt(book.totalPages) || 0, c = parseInt(book.currentPage) || 0;
@@ -482,7 +546,13 @@ html, body {
 
     const noteCompose =
       '<div class="note-compose">' +
-        '<textarea id="noteText" placeholder="Add a note, quote, or thought…"></textarea>' +
+        '<div class="note-fmt-bar">' +
+          '<button class="fmt-btn b" data-fmt="bold" title="Bold (⌘/Ctrl+B)">B</button>' +
+          '<button class="fmt-btn i" data-fmt="italic" title="Italic (⌘/Ctrl+I)">I</button>' +
+          '<button class="fmt-btn c" data-fmt="code" title="Code">&lt;/&gt;</button>' +
+          '<button class="fmt-btn" data-fmt="bullet" title="Bullet">•</button>' +
+        '</div>' +
+        '<textarea id="noteText" placeholder="Add a note…  **bold**  *italic*  `code`"></textarea>' +
         '<div class="note-compose-footer">' +
           '<input class="note-page-input" id="notePage" type="number" placeholder="p. (opt)" min="0" inputmode="numeric">' +
           '<button class="note-add-btn" id="noteAdd" disabled>+ Note</button>' +
@@ -502,7 +572,7 @@ html, body {
                 '</span>' +
               '</span>' +
             '</div>' +
-            '<div class="note-item-text">' + esc(n.text) + '</div>' +
+            '<div class="note-item-text">' + renderMd(n.text) + '</div>' +
           '</div>'
         ).join('')
       : '<div class="note-empty">No notes yet — add your first above.</div>';
@@ -553,6 +623,8 @@ html, body {
     const noteAdd = view.querySelector('#noteAdd');
     const notePage = view.querySelector('#notePage');
     noteText.addEventListener('input', () => { noteAdd.disabled = !noteText.value.trim(); });
+    view.querySelectorAll('.note-fmt-bar .fmt-btn').forEach(btn =>
+      btn.addEventListener('click', () => applyFmt(noteText, btn.dataset.fmt)));
     function addNote() {
       const text = noteText.value.trim();
       if (!text) return;
@@ -563,7 +635,7 @@ html, body {
       renderDetail();
     }
     noteAdd.addEventListener('click', addNote);
-    noteText.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addNote(); } });
+    bindFmtKeys(noteText, addNote);
 
     view.querySelectorAll('.note-del').forEach(btn =>
       btn.addEventListener('click', () => {
@@ -588,7 +660,7 @@ html, body {
           saveNotes(all); renderDetail();
         };
         ta.addEventListener('blur', save, { once: true });
-        ta.addEventListener('keydown', e => { if ((e.metaKey||e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); ta.blur(); } });
+        bindFmtKeys(ta, () => ta.blur());
       })
     );
   }
