@@ -206,12 +206,93 @@ html, body {
 .note-card { transition: transform 0.18s ease, border-color 0.18s ease; }
 .note-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.16); }
 .btn-save { box-shadow: 0 4px 16px -4px rgba(110,231,183,0.6); }
+
+/* ============================================================
+   PRIVACY LOCK — visual blur overlay, per-note, shared passcode.
+   ============================================================ */
+.lock-bar { display: flex; align-items: center; gap: 8px; margin: -16px 0 24px; flex-wrap: wrap; }
+.lock-bar-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg-card); border: 1px solid var(--border-strong);
+  border-radius: 999px; padding: 7px 13px;
+  color: var(--text-secondary); font-family: var(--font); font-size: 11px;
+  letter-spacing: 0.06em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.lock-bar-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.28); }
+.lock-bar-btn .ico { font-size: 13px; }
+
+.note-card.locked .note-text {
+  filter: blur(7px); opacity: 0.55;
+  user-select: none; -webkit-user-select: none; pointer-events: none;
+}
+.note-card.locked .note-delete { display: none; }
+.note-lock-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 14px;
+  background: rgba(8,8,10,0.42);
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  border-radius: var(--radius);
+}
+.note-lock-ico { font-size: 19px; opacity: 0.85; }
+.note-lock-row { display: flex; gap: 8px; width: 100%; max-width: 280px; }
+.note-lock-input {
+  flex: 1; min-width: 0; background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border-strong); border-radius: 9px;
+  color: var(--text-primary); font-family: var(--font); font-size: 13px;
+  padding: 9px 12px; outline: none; -webkit-text-fill-color: var(--text-primary);
+}
+.note-lock-input:focus { border-color: rgba(110,231,183,0.5); }
+.note-lock-btn {
+  background: var(--accent); color: #000; border: none; border-radius: 9px;
+  padding: 9px 14px; font-family: var(--font); font-size: 12px; font-weight: 700;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.note-lock-overlay.err .note-lock-input { border-color: #ff8a8a; animation: lock-shake 0.3s; }
+@keyframes lock-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+.pc-modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.pc-modal-bg.show { display: flex; }
+.pc-modal {
+  width: 100%; max-width: 360px; background: #111113;
+  border: 1px solid var(--border-strong); border-radius: 16px; padding: 22px 20px;
+}
+.pc-modal h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+.pc-modal input {
+  width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-strong);
+  border-radius: 9px; color: var(--text-primary); font-family: var(--font); font-size: 14px;
+  padding: 11px 13px; outline: none; margin-bottom: 10px; -webkit-text-fill-color: var(--text-primary);
+}
+.pc-modal input:focus { border-color: rgba(110,231,183,0.5); }
+.pc-err { color: #ff8a8a; font-size: 11px; min-height: 14px; margin-bottom: 8px; }
+.pc-actions { display: flex; gap: 10px; }
+.pc-actions button {
+  flex: 1; border-radius: 9px; padding: 11px; font-family: var(--font);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pc-cancel { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-secondary); }
+.pc-save { background: var(--accent); border: none; color: #000; }
+.pc-disable {
+  width: 100%; margin-top: 12px; background: none; border: none;
+  color: var(--text-tertiary); font-family: var(--font); font-size: 11px;
+  cursor: pointer; text-decoration: underline; -webkit-tap-highlight-color: transparent;
+}
+.pc-disable:hover { color: #ff8a8a; }
 </style>
 </head>
 <body>
 <div class="shell">
   <h1 class="page-title">Growth</h1>
   <p class="page-sub">Reflect. Notice. Grow.</p>
+
+  <div class="lock-bar" id="lockBar"></div>
 
   <div class="compose" id="compose">
     <div class="compose-date" id="composeDate"></div>
@@ -232,6 +313,20 @@ html, body {
   <div class="notes-list" id="notesList"></div>
 </div>
 
+<div class="pc-modal-bg" id="pcModalBg">
+  <div class="pc-modal">
+    <h3 id="pcTitle">Set passcode</h3>
+    <input type="password" id="pcInput1" placeholder="Passcode" autocomplete="new-password">
+    <input type="password" id="pcInput2" placeholder="Confirm passcode" autocomplete="new-password">
+    <div class="pc-err" id="pcErr"></div>
+    <div class="pc-actions">
+      <button class="pc-cancel" id="pcCancel">Cancel</button>
+      <button class="pc-save" id="pcSave">Save</button>
+    </div>
+    <button class="pc-disable" id="pcDisable" style="display:none">Remove lock from all entries</button>
+  </div>
+</div>
+
 <script>
 (function () {
   const STORAGE_KEY = 'growth_notes';
@@ -244,6 +339,82 @@ html, body {
   const sectionLabel = document.getElementById('sectionLabel');
   const emptyState  = document.getElementById('emptyState');
   const notesList   = document.getElementById('notesList');
+
+  // ---- Privacy lock ----
+  const LOCK_KEY = 'growth_lock_hash';
+  const unlocked = new Set();           // note ids revealed this session
+  const lockBar  = document.getElementById('lockBar');
+  const pcModalBg = document.getElementById('pcModalBg');
+  const pcTitle   = document.getElementById('pcTitle');
+  const pcInput1  = document.getElementById('pcInput1');
+  const pcInput2  = document.getElementById('pcInput2');
+  const pcErr     = document.getElementById('pcErr');
+  const pcDisable = document.getElementById('pcDisable');
+  const pcSave    = document.getElementById('pcSave');
+
+  function hasLock() { return !!localStorage.getItem(LOCK_KEY); }
+  async function hashPass(pw) {
+    try {
+      if (window.crypto && crypto.subtle) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('growth::' + pw));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (e) {}
+    let h = 5381; const s = 'growth::' + pw;       // fallback if subtle crypto unavailable
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return 'f' + h.toString(16);
+  }
+  async function checkPass(pw) {
+    if (!pw) return false;
+    return (await hashPass(pw)) === localStorage.getItem(LOCK_KEY);
+  }
+
+  function renderLockBar() {
+    if (!hasLock()) {
+      lockBar.innerHTML = '<button class="lock-bar-btn" id="lbEnable"><span class="ico">🔒</span> Enable entry lock</button>';
+      document.getElementById('lbEnable').addEventListener('click', () => openPcModal('set'));
+    } else {
+      lockBar.innerHTML =
+        '<button class="lock-bar-btn" id="lbLockAll"><span class="ico">🔓</span> Lock all</button>' +
+        '<button class="lock-bar-btn" id="lbChange"><span class="ico">⚙</span> Passcode</button>';
+      document.getElementById('lbLockAll').addEventListener('click', () => { unlocked.clear(); render(); });
+      document.getElementById('lbChange').addEventListener('click', () => openPcModal('change'));
+    }
+  }
+
+  function openPcModal(mode) {
+    pcInput1.value = ''; pcInput2.value = ''; pcErr.textContent = '';
+    pcTitle.textContent = mode === 'change' ? 'Change passcode' : 'Set passcode';
+    pcDisable.style.display = mode === 'change' ? '' : 'none';
+    pcModalBg.classList.add('show');
+    document.body.classList.add('topbar-modal-open');
+    setTimeout(() => pcInput1.focus(), 60);
+  }
+  function closePcModal() {
+    pcModalBg.classList.remove('show');
+    document.body.classList.remove('topbar-modal-open');
+  }
+  document.getElementById('pcCancel').addEventListener('click', closePcModal);
+  pcModalBg.addEventListener('click', e => { if (e.target === pcModalBg) closePcModal(); });
+  pcSave.addEventListener('click', async () => {
+    const a = pcInput1.value, b = pcInput2.value;
+    if (!a) { pcErr.textContent = 'Enter a passcode.'; return; }
+    if (a !== b) { pcErr.textContent = 'Passcodes don’t match.'; return; }
+    localStorage.setItem(LOCK_KEY, await hashPass(a));
+    unlocked.clear();
+    closePcModal();
+    render();
+  });
+  pcDisable.addEventListener('click', () => {
+    if (!confirm('Remove the lock from all entries? They will no longer be hidden.')) return;
+    localStorage.removeItem(LOCK_KEY);
+    unlocked.clear();
+    closePcModal();
+    render();
+  });
+  [pcInput1, pcInput2].forEach(inp => inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); pcSave.click(); }
+  }));
 
   function pad2(n) { return String(n).padStart(2, '0'); }
   function fmtDate(ts) {
@@ -272,27 +443,55 @@ html, body {
   function render() {
     const notes = loadNotes();
     notesList.innerHTML = '';
+    renderLockBar();
     if (notes.length === 0) {
       emptyState.style.display = '';
       sectionLabel.style.display = 'none';
-    } else {
-      emptyState.style.display = 'none';
-      sectionLabel.style.display = '';
-      notes.forEach(note => {
-        const card = document.createElement('div');
-        card.className = 'note-card';
-        card.innerHTML =
-          '<div class="note-meta">' +
-            '<span class="note-date">' + fmtDate(note.ts) + '</span>' +
-            '<button class="note-delete" data-id="' + note.id + '" aria-label="Delete note">×</button>' +
-          '</div>' +
-          '<div class="note-text">' + escHtml(note.text) + '</div>';
-        notesList.appendChild(card);
-      });
-      notesList.querySelectorAll('.note-delete').forEach(btn => {
-        btn.addEventListener('click', () => deleteNote(btn.dataset.id));
-      });
+      return;
     }
+    emptyState.style.display = 'none';
+    sectionLabel.style.display = '';
+    const locked = hasLock();
+    notes.forEach(note => {
+      const isLocked = locked && !unlocked.has(note.id);
+      const card = document.createElement('div');
+      card.className = 'note-card' + (isLocked ? ' locked' : '');
+      let html =
+        '<div class="note-meta">' +
+          '<span class="note-date">' + fmtDate(note.ts) + '</span>' +
+          '<button class="note-delete" data-id="' + note.id + '" aria-label="Delete note">×</button>' +
+        '</div>' +
+        '<div class="note-text">' + escHtml(note.text) + '</div>';
+      if (isLocked) {
+        html +=
+          '<div class="note-lock-overlay" data-id="' + note.id + '">' +
+            '<div class="note-lock-ico">🔒</div>' +
+            '<div class="note-lock-row">' +
+              '<input type="password" class="note-lock-input" placeholder="Passcode" autocomplete="off">' +
+              '<button class="note-lock-btn">Unlock</button>' +
+            '</div>' +
+          '</div>';
+      }
+      card.innerHTML = html;
+      notesList.appendChild(card);
+    });
+    notesList.querySelectorAll('.note-delete').forEach(btn => {
+      btn.addEventListener('click', () => deleteNote(btn.dataset.id));
+    });
+    notesList.querySelectorAll('.note-lock-overlay').forEach(ov => {
+      const id = ov.dataset.id;
+      const input = ov.querySelector('.note-lock-input');
+      const btn = ov.querySelector('.note-lock-btn');
+      const tryUnlock = async () => {
+        if (await checkPass(input.value)) { unlocked.add(id); render(); }
+        else {
+          ov.classList.add('err'); input.select();
+          setTimeout(() => ov.classList.remove('err'), 400);
+        }
+      };
+      btn.addEventListener('click', tryUnlock);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+    });
   }
 
   function escHtml(s) {
@@ -341,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'growth',
-    syncedKeys: ['growth_notes'],
+    syncedKeys: ['growth_notes', 'growth_lock_hash'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
 });
