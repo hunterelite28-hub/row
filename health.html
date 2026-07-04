@@ -658,13 +658,19 @@ main {
   function getItems() {
     const storedVersion = storeGet('stack:version');
     const stored = storeGet('stack:items');
-    if (!stored || !Array.isArray(stored) || !stored.length || storedVersion !== TEMPLATE_VERSION) {
-      const fresh = JSON.parse(JSON.stringify(STACK_DEFAULTS));
-      storeSet('stack:items', fresh);
-      storeSet('stack:version', TEMPLATE_VERSION);
-      return fresh;
-    }
-    return stored;
+    // Any non-empty stored list is user data — never overwrite it,
+    // even if the template version has moved on.
+    if (Array.isArray(stored) && stored.length) return stored;
+    // A version marker without items means a stack existed here before
+    // (emptied on purpose, or dropped by a sync hiccup). Don't re-seed
+    // and don't write: a healthy copy on another device can still
+    // restore it via sync, and seeding would clobber that copy too.
+    if (storedVersion != null) return Array.isArray(stored) ? stored : [];
+    // True first run on this device: seed the starter template.
+    const fresh = JSON.parse(JSON.stringify(STACK_DEFAULTS));
+    storeSet('stack:items', fresh);
+    storeSet('stack:version', TEMPLATE_VERSION);
+    return fresh;
   }
   function setItems(items) { storeSet('stack:items', items); }
   function getTaken() { return storeGet(todayKey) || {}; }

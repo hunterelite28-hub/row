@@ -392,8 +392,12 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     if (TOPBAR_SUPABASE_URL.indexOf('PASTE-') === 0) return;
     try {
       const supa = window.supabase.createClient(TOPBAR_SUPABASE_URL, TOPBAR_SUPABASE_KEY);
-      const { data } = await supa
+      const { data, error } = await supa
         .from('app_state').select('data').eq('key', 'health').maybeSingle();
+      // A failed read means we can't merge safely — writing now would
+      // replace the whole health row (supplement stack included) with
+      // water-only data. Skip; health.html pushes the full state later.
+      if (error) return;
       const current = (data && data.data) || {};
       const merged = Object.assign({}, current, { po_water_v1: localWater });
       await supa.from('app_state').upsert(
