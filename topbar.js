@@ -17,12 +17,17 @@
   // -------- CSS --------
   const css = `
 .topbar {
-  position: sticky; top: 0; z-index: 40;
+  position: sticky; top: max(10px, env(safe-area-inset-top)); z-index: 40;
   display: flex; justify-content: flex-start; align-items: center;
   gap: 7px;
-  padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 8px max(14px, env(safe-area-inset-left));
-  background: #000000;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin: 10px max(14px, env(safe-area-inset-right)) 6px max(14px, env(safe-area-inset-left));
+  padding: 8px 14px;
+  background: linear-gradient(160deg, rgba(28,28,34,0.6), rgba(8,8,12,0.45) 45%, rgba(16,16,22,0.52));
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 30px rgba(0,0,0,0.45);
   font-family: 'Share Tech Mono', monospace;
 }
 .topbar-os {
@@ -31,7 +36,7 @@
   font-size: 11px; letter-spacing: 0.12em;
   -webkit-tap-highlight-color: transparent;
 }
-.topbar-os-name { color: #F97316; text-shadow: 0 0 10px rgba(249,115,22,0.35); }
+.topbar-os-name { color: #6EE7B7; text-shadow: 0 0 10px rgba(110,231,183,0.35); }
 .topbar-os-sep { color: rgba(255,255,255,0.25); }
 .topbar-os-page { color: rgba(255,255,255,0.55); }
 .topbar-clock {
@@ -110,17 +115,39 @@
   filter: grayscale(100%) brightness(1.4); opacity: 0.85;
 }
 .bottombar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
-  display: flex; justify-content: space-around; align-items: stretch;
-  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-  background: #0a0a0b;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: fixed; z-index: 40;
+  left: 14px; right: 14px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  margin: 0 auto; max-width: 480px;
+  display: flex; align-items: stretch;
+  padding: 5px;
+  background: linear-gradient(160deg, rgba(28,28,34,0.6), rgba(8,8,12,0.45) 45%, rgba(16,16,22,0.52));
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 30px rgba(0,0,0,0.5);
   font-family: 'Share Tech Mono', monospace;
 }
+.bottombar-lens {
+  position: absolute; top: 5px; bottom: 5px; left: 5px;
+  border-radius: 999px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.20), rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.10));
+  backdrop-filter: blur(30px) saturate(1.9);
+  -webkit-backdrop-filter: blur(30px) saturate(1.9);
+  border: 1px solid rgba(255,255,255,0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.38),
+    inset 0 -1px 0 rgba(255,255,255,0.08),
+    0 4px 14px rgba(0,0,0,0.45);
+  transition: transform 0.3s cubic-bezier(0.3, 1.3, 0.4, 1);
+  pointer-events: none;
+}
 .bottombar-tab {
+  position: relative; z-index: 1;
   flex: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; padding: 6px 0 4px; text-decoration: none;
+  gap: 3px; padding: 10px 0; text-decoration: none;
   color: rgba(255, 255, 255, 0.45);
   font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
   -webkit-tap-highlight-color: transparent; transition: color 0.15s;
@@ -200,6 +227,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
 
   const bottombarHtml = `
 <nav class="bottombar" id="bottombar" role="navigation" aria-label="Main tabs">
+  <span class="bottombar-lens" id="bottombarLens"></span>
   <a href="index.html" class="bottombar-tab" data-page="main">
     <span>Main</span>
   </a>
@@ -254,7 +282,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
       const v = getComputedStyle(document.documentElement).getPropertyValue('--os-accent').trim();
       if (v) return v;
     } catch (e) {}
-    return '#F97316';
+    return '#6EE7B7';
   }
 
   // ---- Live clock ----
@@ -309,10 +337,32 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     document.body.appendChild(bottomWrap.firstChild);
     const active = currentPageKey();
     const accent = pageAccent();
-    document.querySelectorAll('.bottombar-tab').forEach((t) => {
+    const tabs = Array.prototype.slice.call(document.querySelectorAll('.bottombar-tab'));
+    const lens = document.getElementById('bottombarLens');
+    let activeIdx = 0;
+    tabs.forEach((t, i) => {
       const isActive = t.getAttribute('data-page') === active;
       t.classList.toggle('active', isActive);
-      if (isActive) t.style.color = accent;
+      if (isActive) { t.style.color = accent; activeIdx = i; }
+    });
+    if (lens && tabs.length) {
+      lens.style.width = 'calc((100% - 10px) / ' + tabs.length + ')';
+      // position instantly on load, animate only on tab change
+      lens.style.transition = 'none';
+      lens.style.transform = 'translateX(' + (activeIdx * 100) + '%)';
+      requestAnimationFrame(() => { lens.style.transition = ''; });
+    }
+    // Slide the lens to the tapped tab, then navigate
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', (e) => {
+        if (!lens || t.classList.contains('active')) return;
+        e.preventDefault();
+        lens.style.transform = 'translateX(' + (i * 100) + '%)';
+        tabs.forEach((x) => { x.style.color = ''; });
+        t.style.color = accent;
+        const href = t.getAttribute('href');
+        setTimeout(() => { window.location.href = href; }, 240);
+      });
     });
     document.body.classList.add('has-bottombar');
     const osPage = document.getElementById('topbarOsPage');
