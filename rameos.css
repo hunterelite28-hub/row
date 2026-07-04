@@ -1,0 +1,26 @@
+/* =============================================================
+   RAME_OS — shared design language.
+   Tokens + the // SECTION.LABEL divider used across all pages.
+   Pages override --os-accent in their own :root when they have
+   a different phosphor (health/growth green, library amber).
+   ============================================================= */
+:root {
+  --os-accent: #F97316;
+  --os-ink: #FAFAFA;
+  --os-dim: rgba(255, 255, 255, 0.5);
+  --os-faint: rgba(255, 255, 255, 0.28);
+  --os-line: rgba(255, 255, 255, 0.14);
+}
+
+.os-sect {
+  display: flex; align-items: center; gap: 10px;
+  margin: 22px 0 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--os-faint);
+}
+.os-sect::before { content: '//'; color: var(--os-accent); letter-spacing: 0; }
+.os-sect::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--os-line), transparent);
+}

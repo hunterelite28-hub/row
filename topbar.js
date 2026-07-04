@@ -18,19 +18,40 @@
   const css = `
 .topbar {
   position: sticky; top: 0; z-index: 40;
-  display: flex; justify-content: flex-end; align-items: center;
-  gap: 8px;
+  display: flex; justify-content: flex-start; align-items: center;
+  gap: 7px;
   padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 8px max(14px, env(safe-area-inset-left));
   background: #000000;
-  border-bottom: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   font-family: 'Share Tech Mono', monospace;
 }
-.topbar-logo {
-  display: inline-flex; align-items: center;
-  margin-right: auto;
+.topbar-os {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  margin-right: auto; text-decoration: none;
+  font-size: 11px; letter-spacing: 0.12em;
   -webkit-tap-highlight-color: transparent;
 }
-.topbar-logo img { height: 26px; width: auto; display: block; }
+.topbar-os-name { color: #F97316; text-shadow: 0 0 10px rgba(249,115,22,0.35); }
+.topbar-os-sep { color: rgba(255,255,255,0.25); }
+.topbar-os-page { color: rgba(255,255,255,0.55); }
+.topbar-clock {
+  font-size: 11px; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.45);
+  font-variant-numeric: tabular-nums;
+}
+.topbar-sync { display: inline-flex; align-items: center; padding: 4px 2px; }
+.topbar-sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #6EE7B7; box-shadow: 0 0 8px rgba(110,231,183,0.8);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.topbar-sync-dot.idle { background: rgba(255,255,255,0.3); box-shadow: none; }
+.topbar-sync-dot.off { background: #ff8a8a; box-shadow: 0 0 8px rgba(255,138,138,0.7); }
+@keyframes os-boot {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (max-width: 359px) { .topbar-clock { display: none; } }
 .topbar-water-wrap { display: flex; align-items: stretch; }
 .topbar-water-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -155,10 +176,13 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
 `;
 
   const topbarHtml = `
-<header class="topbar" id="topbar" role="navigation" aria-label="Quick actions">
-  <a href="index.html" class="topbar-logo" aria-label="Home">
-    <img src="logo-mark.svg" alt="R" width="19" height="26">
+<header class="topbar" id="topbar" role="navigation" aria-label="System bar">
+  <a href="index.html" class="topbar-os" aria-label="Home">
+    <span class="topbar-os-name" id="topbarOsName">RAME_OS</span>
+    <span class="topbar-os-sep">·</span>
+    <span class="topbar-os-page" id="topbarOsPage">MAIN</span>
   </a>
+  <span class="topbar-clock" id="topbarClock"></span>
   <div class="topbar-water-wrap">
     <a href="health.html#water" class="topbar-water-pill" id="topbarWater" aria-label="Water progress">
       <span class="topbar-pill-dot"></span>
@@ -169,6 +193,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <a href="finance.html" class="topbar-finance-btn" id="topbarFinance" aria-label="Finance">
     <span class="topbar-finance-icon">📊</span>
   </a>
+  <span class="topbar-sync" id="topbarSync" title="Sync status">
+    <span class="topbar-sync-dot" id="topbarSyncDot"></span>
+  </span>
 </header>`;
 
   const bottombarHtml = `
@@ -215,6 +242,58 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     return 'main';
   }
 
+  function pageDisplayName() {
+    const map = {
+      main: 'MAIN', habits: 'HABITS', learning: 'LEARN', library: 'LIBRARY',
+      health: 'HEALTH', fitness: 'FITNESS', growth: 'GROWTH'
+    };
+    return map[currentPageKey()] || 'MAIN';
+  }
+  function pageAccent() {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--os-accent').trim();
+      if (v) return v;
+    } catch (e) {}
+    return '#F97316';
+  }
+
+  // ---- Live clock ----
+  function renderClock() {
+    const el = document.getElementById('topbarClock');
+    if (!el) return;
+    const d = new Date();
+    el.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
+  // ---- Sync status (heartbeat written by sync.js / gym.html on success) ----
+  function renderSyncDot() {
+    const dot = document.getElementById('topbarSyncDot');
+    if (!dot) return;
+    let cls = 'idle';
+    if (!navigator.onLine) cls = 'off';
+    else {
+      let t = 0;
+      try { t = parseInt(localStorage.getItem('os_last_sync') || '0', 10) || 0; } catch (e) {}
+      if (Date.now() - t < 10 * 60 * 1000) cls = '';
+    }
+    dot.className = 'topbar-sync-dot' + (cls ? ' ' + cls : '');
+    const wrap = document.getElementById('topbarSync');
+    if (wrap) wrap.title = cls === 'off' ? 'Offline' : (cls === 'idle' ? 'No recent sync' : 'Synced');
+  }
+
+  // ---- Boot sequence: stagger-fade the page's top-level blocks ----
+  function bootSequence() {
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const root = document.querySelector('.page, .shell, .po-shell, main');
+      if (!root) return;
+      Array.prototype.slice.call(root.children, 0, 14).forEach((el, i) => {
+        el.style.animation = 'os-boot 0.38s ease both';
+        el.style.animationDelay = (i * 45) + 'ms';
+      });
+    } catch (e) {}
+  }
+
   function injectStyleAndHTML() {
     if (document.getElementById('topbar') || document.getElementById('bottombar')) return;
     if (!shouldShowChrome()) return;
@@ -229,10 +308,20 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     bottomWrap.innerHTML = bottombarHtml.trim();
     document.body.appendChild(bottomWrap.firstChild);
     const active = currentPageKey();
+    const accent = pageAccent();
     document.querySelectorAll('.bottombar-tab').forEach((t) => {
-      t.classList.toggle('active', t.getAttribute('data-page') === active);
+      const isActive = t.getAttribute('data-page') === active;
+      t.classList.toggle('active', isActive);
+      if (isActive) t.style.color = accent;
     });
     document.body.classList.add('has-bottombar');
+    const osPage = document.getElementById('topbarOsPage');
+    if (osPage) osPage.textContent = pageDisplayName();
+    const osName = document.getElementById('topbarOsName');
+    if (osName) {
+      osName.style.color = accent;
+      osName.style.textShadow = '0 0 10px ' + accent + '59';
+    }
   }
 
   function calendarDateKey() {
@@ -361,12 +450,21 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     const btn = document.getElementById('topbarWaterAdd');
     if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); addWater(); });
     render();
+    renderClock();
+    renderSyncDot();
+    bootSequence();
     lockGestures();
     startModalLock();
     window.addEventListener('storage', render);
     window.addEventListener('focus', render);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+    window.addEventListener('online', renderSyncDot);
+    window.addEventListener('offline', renderSyncDot);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { render(); renderClock(); renderSyncDot(); }
+    });
     setInterval(render, 30 * 1000);
+    setInterval(renderClock, 5 * 1000);
+    setInterval(renderSyncDot, 10 * 1000);
   }
 
   if (document.readyState === 'loading') {

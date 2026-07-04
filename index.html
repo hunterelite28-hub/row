@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="rameos.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Rame's Dashboard</title>
@@ -149,6 +150,8 @@ body::after {
 .dash-act-icon.run  { background: rgba(249,115,22,0.18); }
 .dash-act-icon.gym  { background: rgba(249,115,22,0.12); }
 .dash-act-icon.muay { background: rgba(167,139,250,0.15); }
+.dash-act-pr { color: #f97316; font-weight: 700; width: 14px; flex-shrink: 0; }
+.dash-activity-row:first-child { border-top: 0; }
 .dash-act-body { flex: 1; min-width: 0; }
 .dash-act-type {
   font-size: 12px; font-weight: 700;
@@ -722,7 +725,6 @@ body::after {
     </div>
     <div class="dash-header-right">
       <div class="dash-wk-label" id="dashWkLabel"></div>
-      <div class="dash-synced-badge" id="dashSyncedBadge">SYNCED</div>
     </div>
   </div>
 
@@ -740,6 +742,7 @@ body::after {
     </div>
   </div>
 
+  <div class="os-sect">SYS.STATUS</div>
   <div class="day-ring-wrap">
     <div class="day-ring">
       <svg viewBox="0 0 120 120">
@@ -765,6 +768,7 @@ body::after {
     </div>
   </div>
 
+  <div class="os-sect">FITNESS.TOTALS</div>
   <div class="dash-stats">
     <div class="dash-stat-card">
       <span class="dash-stat-val" id="dashStatKm" style="color:#f97316">0</span>
@@ -784,13 +788,13 @@ body::after {
     </div>
   </div>
 
+  <div class="os-sect">ACTIVITY.LOG</div>
   <div class="dash-activity">
-    <div class="dash-activity-header">// Recent Activity</div>
     <div id="dashActivityList"></div>
   </div>
 
   <div class="section">
-    <div class="section-title">To Do List</div>
+    <div class="os-sect">TODO.TODAY</div>
 
     <!-- TODAY -->
     <div class="gm-card" id="gmCardToday">
@@ -1510,7 +1514,7 @@ body::after {
         detail = (s.duration ? s.duration + 'min' : '') + (s.duration && s.notes ? ' · ' : '') + (s.notes || '');
       }
       return '<div class="dash-activity-row">' +
-        '<div class="dash-act-icon ' + cls + '">' + icon + '</div>' +
+        '<span class="dash-act-pr">&gt;</span>' +
         '<div class="dash-act-body">' +
           '<div class="dash-act-type">' + label + '</div>' +
           (detail ? '<div class="dash-act-detail">' + escH(detail) + '</div>' : '') +

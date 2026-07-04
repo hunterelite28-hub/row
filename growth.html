@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="rameos.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
@@ -23,6 +24,7 @@
   --text-secondary: rgba(255, 255, 255, 0.55);
   --text-tertiary: rgba(255, 255, 255, 0.35);
   --accent: #6ee7b7;
+  --os-accent: #6ee7b7;
   --font: 'Share Tech Mono', monospace;
   --font-mono: 'Share Tech Mono', monospace;
   --radius: 14px;
@@ -42,14 +44,18 @@ html, body {
   padding: 28px 16px 120px;
 }
 .page-title {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-primary);
   margin-bottom: 6px;
 }
+.page-title-dot { color: var(--accent); text-shadow: 0 0 12px rgba(110,231,183,0.7); }
 .page-sub {
-  font-size: 13px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--text-tertiary);
   margin-bottom: 28px;
 }
@@ -293,8 +299,8 @@ html, body {
 </head>
 <body>
 <div class="shell">
-  <h1 class="page-title">Growth</h1>
-  <p class="page-sub">Reflect. Notice. Grow.</p>
+  <h1 class="page-title">GROWTH<span class="page-title-dot">.</span></h1>
+  <p class="page-sub">// reflect. notice. grow.</p>
 
   <div class="lock-bar" id="lockBar"></div>
 
@@ -312,7 +318,7 @@ html, body {
     </div>
   </div>
 
-  <div class="section-label" id="sectionLabel" style="display:none">Past reflections</div>
+  <div class="os-sect" id="sectionLabel" style="display:none">REFLECTION.LOG</div>
   <div class="empty" id="emptyState">No reflections yet.<br>Write your first one above.</div>
   <div class="notes-list" id="notesList"></div>
 </div>

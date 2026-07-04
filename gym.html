@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="rameos.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Progressive Overload Coach</title>
@@ -3720,7 +3721,10 @@ img, video, canvas, svg { max-width: 100%; }
           { key: APP_KEY, data: state, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
-      if (!error) pcLastSyncedJson = json;
+      if (!error) {
+        pcLastSyncedJson = json;
+        try { _pcOrigSet('os_last_sync', String(Date.now())); } catch (_) {}
+      }
     } catch (_) {}
   }
 
@@ -3766,6 +3770,7 @@ img, video, canvas, svg { max-width: 100%; }
       if (!error && data && data.data && Object.keys(data.data).length > 0) {
         pcLastSyncedJson = JSON.stringify(data.data);
         pcMaybeApplyRemote(data.data);
+        try { _pcOrigSet('os_last_sync', String(Date.now())); } catch (_) {}
       } else if (Object.keys(pcCollectState()).length > 0) {
         pcSchedulePush();
       }

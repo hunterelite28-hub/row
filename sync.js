@@ -46,6 +46,8 @@
     }
     const origSet = localStorage.setItem.bind(localStorage);
     const origRemove = localStorage.removeItem.bind(localStorage);
+    // Heartbeat read by topbar.js to show real sync status.
+    function beat() { try { origSet('os_last_sync', String(Date.now())); } catch (e) {} }
     localStorage.setItem = function (k, v) {
       origSet(k, v);
       try { if (!suppressSync && matches(k)) schedulePush(); } catch (e) {}
@@ -82,7 +84,7 @@
           { key: appKey, data: state, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
-        if (!error) lastSyncedJson = json;
+        if (!error) { lastSyncedJson = json; beat(); }
       } catch (e) {}
     }
     function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 250); }
@@ -112,6 +114,7 @@
         if (!error && data && data.data && Object.keys(data.data).length > 0) {
           lastSyncedJson = JSON.stringify(data.data);
           applyRemote(data.data);
+          beat();
         } else if (Object.keys(collect()).length > 0) {
           schedulePush();
         }
@@ -125,6 +128,7 @@
           if (incoming === lastSyncedJson) return;
           lastSyncedJson = incoming;
           applyRemote(payload.new.data);
+          beat();
         })
         .subscribe();
     })();
