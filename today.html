@@ -174,7 +174,7 @@
       const pct = G.total ? Math.round(G.done / G.total * 100) : 0;
       let html = '';
       const first = G.pending[0];
-      html += '<a class="focus-top" href="index.html">' +
+      html += '<a class="focus-top" href="goals.html">' +
         '<span class="ring" style="background:conic-gradient(var(--leaf) 0 ' + pct + '%, rgba(244,241,234,0.1) ' + pct + '% 100%)"><i class="num">' +
         (G.total ? G.done + '/' + G.total : '—') + '</i></span>' +
         '<span><span class="what">' + (first ? S.esc(first.text) : (G.total ? 'All goals done — solid day.' : 'No goals set yet')) + '</span>' +

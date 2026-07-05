@@ -52,13 +52,6 @@
 }
 .topbar-sync-dot.idle { background: rgba(255,255,255,0.3); box-shadow: none; }
 .topbar-sync-dot.off { background: #ff8a8a; box-shadow: 0 0 8px rgba(255,138,138,0.7); }
-.topbar-sunpath {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%;
-  color: #F2A65A; text-decoration: none; font-size: 14px;
-  border: 1px solid rgba(242,166,90,0.3);
-  -webkit-tap-highlight-color: transparent;
-}
 @keyframes os-boot {
   from { opacity: 0; transform: translateY(7px); }
   to   { opacity: 1; transform: none; }
@@ -211,7 +204,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
 
   const topbarHtml = `
 <header class="topbar" id="topbar" role="navigation" aria-label="System bar">
-  <a href="index.html" class="topbar-os" aria-label="Home">
+  <a href="today.html" class="topbar-os" aria-label="Home">
     <span class="topbar-os-name" id="topbarOsName">RAME_OS</span>
     <span class="topbar-os-sep">·</span>
     <span class="topbar-os-page" id="topbarOsPage">MAIN</span>
@@ -230,32 +223,22 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <span class="topbar-sync" id="topbarSync" title="Sync status">
     <span class="topbar-sync-dot" id="topbarSyncDot"></span>
   </span>
-  <a href="today.html" class="topbar-sunpath" title="Sunpath">☀</a>
 </header>`;
 
   const bottombarHtml = `
-<nav class="bottombar" id="bottombar" role="navigation" aria-label="Main tabs">
+<nav class="bottombar" id="bottombar" role="navigation" aria-label="Sunpath areas">
   <span class="bottombar-lens" id="bottombarLens"></span>
-  <a href="index.html" class="bottombar-tab" data-page="main">
-    <span>Main</span>
+  <a href="today.html" class="bottombar-tab" data-page="today">
+    <span>Today</span>
   </a>
-  <a href="habits.html" class="bottombar-tab" data-page="habits">
-    <span>Habits</span>
+  <a href="body.html" class="bottombar-tab" data-page="body">
+    <span>Body</span>
   </a>
-  <a href="learning.html" class="bottombar-tab" data-page="learning">
-    <span>Learn</span>
+  <a href="mind.html" class="bottombar-tab" data-page="mind">
+    <span>Mind</span>
   </a>
-  <a href="library.html" class="bottombar-tab" data-page="library">
-    <span>Library</span>
-  </a>
-  <a href="health.html" class="bottombar-tab" data-page="health">
-    <span>Health</span>
-  </a>
-  <a href="gym.html" class="bottombar-tab" data-page="fitness">
-    <span>Fitness</span>
-  </a>
-  <a href="growth.html" class="bottombar-tab" data-page="growth">
-    <span>Growth</span>
+  <a href="money.html" class="bottombar-tab" data-page="money">
+    <span>Money</span>
   </a>
 </nav>`;
 
@@ -275,15 +258,25 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     if (p.endsWith('health.html')) return 'health';
     if (p.endsWith('gym.html')) return 'fitness';
     if (p.endsWith('growth.html')) return 'growth';
-    return 'main';
+    if (p.endsWith('goals.html')) return 'goals';
+    return 'goals';
+  }
+  // Which Sunpath hub owns each classic page (for the dock lens)
+  function currentHub() {
+    const map = {
+      goals: 'today', habits: 'today',
+      health: 'body', fitness: 'body',
+      learning: 'mind', library: 'mind', growth: 'mind'
+    };
+    return map[currentPageKey()] || 'today';
   }
 
   function pageDisplayName() {
     const map = {
-      main: 'MAIN', habits: 'HABITS', learning: 'LEARN', library: 'LIBRARY',
+      goals: 'GOALS', habits: 'HABITS', learning: 'LEARN', library: 'LIBRARY',
       health: 'HEALTH', fitness: 'FITNESS', growth: 'GROWTH'
     };
-    return map[currentPageKey()] || 'MAIN';
+    return map[currentPageKey()] || 'GOALS';
   }
   function pageAccent() {
     try {
@@ -349,7 +342,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     const bottomWrap = document.createElement('div');
     bottomWrap.innerHTML = bottombarHtml.trim();
     document.body.appendChild(bottomWrap.firstChild);
-    const active = currentPageKey();
+    const active = currentHub();
     const accent = pageAccent();
     const tabs = Array.prototype.slice.call(document.querySelectorAll('.bottombar-tab'));
     const lens = document.getElementById('bottombarLens');
