@@ -1,39 +1,40 @@
 /* =============================================================
-   RAME_OS · LIQUID GLASS THEME
-   Linked at the END of <head> on every page so it wins the
-   cascade over each page's inline styles. Remove the link to
-   revert a page to the flat RAME_OS look.
-
-   Spec: grey→black page gradient, neutral ambient light,
-   smoked-black glass cards with a specular top streak,
-   mint (#6EE7B7) chrome accent everywhere; page data keeps
-   its own colors.
+   SUNPATH SKIN for the classic pages.
+   Linked at the END of <head> on goals/habits/learning/library/
+   health/gym/growth so it wins the cascade over their inline
+   styles. Makes the whole site read as ONE dashboard: same
+   backdrop, typography, glass and amber chrome as the hub pages.
    ============================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap');
 
 :root {
-  --os-accent: #6EE7B7;
-  --glass-fill: linear-gradient(160deg, rgba(28,28,34,0.55), rgba(8,8,12,0.40) 45%, rgba(16,16,22,0.48));
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --os-accent: #F2A65A;
+  /* Re-point every page's font tokens at the Sunpath faces */
+  --font: 'Bricolage Grotesque', sans-serif;
+  --font-mono: 'Spline Sans Mono', monospace;
+  --glass-fill: linear-gradient(160deg, rgba(26,28,34,0.55), rgba(6,7,10,0.42) 45%, rgba(14,15,20,0.5));
+  --glass-border: rgba(255,255,255,0.12);
 }
 
-/* ---- Page backdrop: graphite → black, neutral ambient light ---- */
+/* ---- Sunpath backdrop: graphite → black + warm ambient light ---- */
 body {
-  background: linear-gradient(180deg, #33363B 0%, #202226 16%, #101113 42%, #000000 72%) !important;
+  background: linear-gradient(180deg, #202228 0%, #101114 30%, #000 68%) !important;
+  font-family: var(--font) !important;
 }
 body::before {
   content: '' !important;
   position: fixed !important;
   inset: -10% !important;
   background:
-    radial-gradient(circle at 78% 6%,  rgba(255,255,255,0.07), transparent 40%),
-    radial-gradient(circle at 15% 45%, rgba(255,255,255,0.04), transparent 38%) !important;
+    radial-gradient(circle at 75% 8%,  rgba(242,166,90,0.08), transparent 42%),
+    radial-gradient(circle at 15% 50%, rgba(255,255,255,0.04), transparent 38%) !important;
   filter: blur(46px) !important;
   animation: none !important;
   pointer-events: none !important;
   z-index: -1 !important;
 }
 
-/* ---- Smoked glass card material ---- */
+/* ---- Smoked glass card material (Sunpath tint) ---- */
 .goal-ticker, .day-ring-wrap, .dash-stat-card, .dash-activity, .gm-card,
 .year-card, .habit-card, .stat-card, .chart-card,
 .log-card,
@@ -46,13 +47,15 @@ body::before {
   backdrop-filter: blur(18px) saturate(1.5);
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   border: 1px solid var(--glass-border) !important;
+  border-radius: 18px;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.13),
     inset 0 -1px 0 rgba(255,255,255,0.04),
-    0 18px 44px rgba(0,0,0,0.55) !important;
+    0 16px 40px rgba(0,0,0,0.55) !important;
 }
+.book-card { border-radius: 14px; } /* keep cover corner fit */
 
-/* Specular streak along the top edge — the "glass pane" signature */
+/* Specular streak along the top edge */
 .day-ring-wrap::before, .dash-stat-card::before, .dash-activity::before, .gm-card::before,
 .year-card::before, .stat-card::before, .chart-card::before,
 .log-card::before,
@@ -61,8 +64,35 @@ body::before {
 .stack-card::before,
 .ft-stat-card::before, .po-rx-card::before {
   content: '';
-  position: absolute; top: 0; left: 18%; right: 40%;
+  position: absolute; top: 0; left: 18%; right: 42%;
   height: 1px; border-radius: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
   pointer-events: none;
+}
+
+/* ---- Amber chrome (was mint) ---- */
+.os-sect { font-family: var(--font-mono); }
+.dash-title-dot, .page-title-dot { color: var(--os-accent) !important; text-shadow: 0 0 12px rgba(242,166,90,0.6) !important; }
+.dash-title-text { text-shadow: 0 0 20px rgba(242,166,90,0.18) !important; }
+.dash-act-pr { color: var(--os-accent) !important; }
+.dash-stat-val { color: var(--os-accent) !important; text-shadow: 0 0 14px rgba(242,166,90,0.4) !important; }
+.ft-stat-val.run, .ft-stat-val.gym, .ft-stat-val.muay, .ft-stat-val.km {
+  color: var(--os-accent) !important; text-shadow: 0 0 13px rgba(242,166,90,0.4) !important;
+}
+.stat-val { text-shadow: 0 0 13px rgba(242,166,90,0.35) !important; }
+.shell .stat-val, .stats-row .stat-val { color: var(--os-accent) !important; }
+.ft-title, .subj-title, .page-title { text-shadow: 0 0 16px rgba(242,166,90,0.16) !important; }
+.ft-log-btn, .log-btn { box-shadow: 0 4px 16px -4px rgba(242,166,90,0.55) !important; }
+
+/* Headline faces: display type is Bricolage, not uppercase-terminal */
+.dash-title-text, .page-title, .ft-title, .subj-title, .detail-name, .detail-title, .book-title {
+  font-family: var(--font) !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Numbers stay tabular mono */
+.dash-stat-val, .stat-val, .ft-stat-val, .day-ring-percent, .gm-progress-num,
+.habit-streak-val, .progress-pct, .bpct {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
 }

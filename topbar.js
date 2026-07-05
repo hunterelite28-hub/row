@@ -28,7 +28,7 @@
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 999px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 30px rgba(0,0,0,0.45);
-  font-family: 'Share Tech Mono', monospace;
+  font-family: 'Spline Sans Mono', 'Share Tech Mono', monospace;
 }
 .topbar-os {
   display: inline-flex; align-items: baseline; gap: 6px;
@@ -36,7 +36,7 @@
   font-size: 11px; letter-spacing: 0.12em;
   -webkit-tap-highlight-color: transparent;
 }
-.topbar-os-name { color: #6EE7B7; text-shadow: 0 0 10px rgba(110,231,183,0.35); }
+.topbar-os-name { color: #F2A65A; text-shadow: 0 0 10px rgba(242,166,90,0.35); }
 .topbar-os-sep { color: rgba(255,255,255,0.25); }
 .topbar-os-page { color: rgba(255,255,255,0.55); }
 .topbar-clock {
@@ -127,7 +127,7 @@
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 999px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 30px rgba(0,0,0,0.5);
-  font-family: 'Share Tech Mono', monospace;
+  font-family: 'Bricolage Grotesque', sans-serif;
 }
 .bottombar-lens {
   position: absolute; top: 5px; bottom: 5px; left: 5px;
@@ -148,8 +148,8 @@
   flex: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 3px; padding: 10px 0; text-decoration: none;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px; font-weight: 550; letter-spacing: 0;
   -webkit-tap-highlight-color: transparent; transition: color 0.15s;
 }
 .bottombar-tab-icon {
@@ -205,7 +205,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   const topbarHtml = `
 <header class="topbar" id="topbar" role="navigation" aria-label="System bar">
   <a href="today.html" class="topbar-os" aria-label="Home">
-    <span class="topbar-os-name" id="topbarOsName">RAME_OS</span>
+    <span class="topbar-os-name" id="topbarOsName">SUNPATH</span>
     <span class="topbar-os-sep">·</span>
     <span class="topbar-os-page" id="topbarOsPage">MAIN</span>
   </a>
@@ -283,7 +283,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
       const v = getComputedStyle(document.documentElement).getPropertyValue('--os-accent').trim();
       if (v) return v;
     } catch (e) {}
-    return '#6EE7B7';
+    return '#F2A65A';
   }
 
   // ---- Live clock ----
