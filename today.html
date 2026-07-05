@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0B0E">
+<meta name="color-scheme" content="dark">
+<title>Today — Sunpath</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sunpath.css">
+<script src="sunpath.js" defer></script>
+</head>
+<body>
+<div class="shellwrap">
+  <div class="daterow" id="spDaterow"></div>
+
+  <div class="hero">
+    <h1 id="spGreeting">Hello,<br>Rame.</h1>
+    <div class="sub" id="spDaySub"></div>
+    <div class="skywrap">
+      <div id="spSky"></div>
+      <div class="sky-caps"><span>05:00</span><span>23:00</span></div>
+    </div>
+    <div class="logged" id="spLogged"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Up next<span class="more num" id="spNextMore"></span></div>
+    <div class="glassy card" id="spFocus"></div>
+  </div>
+
+  <div class="section">
+    <div class="grid2" id="spGrid"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function boot() {
+    const S = window.Sunpath;
+    if (!S) return;
+
+    // ---------- sun arc ----------
+    const CX = 195, CY = 182, R = 175;
+    function pos(p) {
+      const th = Math.PI * (1 - p);
+      return { x: CX + R * Math.cos(th), y: CY - R * Math.sin(th) };
+    }
+    function skyStops() {
+      const hr = new Date().getHours();
+      if (hr < 5 || hr >= 23) return ['#0B0F1E', '#12141F', '#241D22'];
+      if (hr < 9)  return ['#233054', '#4A3E62', '#D08A4C'];
+      if (hr < 17) return ['#1C2C50', '#39456A', '#B57C4A'];
+      return ['#161D36', '#33293E', '#A15A32'];
+    }
+
+    function todaysEvents() {
+      const ev = [];
+      const tk = S.todayKey();
+      const F = S.fitness();
+      F.sessions.forEach(s => {
+        if (!s || s.date !== tk) return;
+        const ts = S.sessionTime(s);
+        if (!ts) return;
+        const icon = s.type === 'run' ? '🏃' : s.type === 'gym' ? '🏋️' : '🥊';
+        const label = s.type === 'run' ? 'Run' : s.type === 'gym' ? 'Gym' : 'Muay';
+        const detail = s.type === 'run'
+          ? ((s.km ? s.km + ' km' : '') || (s.duration ? s.duration + ' min' : ''))
+          : (s.split || (s.duration ? s.duration + ' min' : '') || '');
+        ev.push({ ts, icon, label, detail });
+      });
+      const st = S.stackToday();
+      if (st.lastTs && st.taken > 0) {
+        ev.push({ ts: st.lastTs, icon: '💊', label: 'Stack', detail: st.taken + '/' + st.total + ' taken' });
+      }
+      const L = S.learning();
+      L.sessions.forEach(s => {
+        if (!s || s.date !== tk || !s.ts) return;
+        ev.push({ ts: s.ts, icon: 'λ', label: S.subjectName(L, s.subjectId) || 'Study', detail: (s.hours ? s.hours + ' h' : (s.topic || '')) });
+      });
+      S.goalsToday().doneWithTs.forEach(g => {
+        const t = String(g.text || '');
+        ev.push({ ts: g.doneAt, icon: '✓', label: 'Done', detail: t.length > 22 ? t.slice(0, 22) + '…' : t });
+      });
+      return ev.sort((a, b) => a.ts - b.ts);
+    }
+
+    function renderSky() {
+      const now = new Date();
+      const hr = now.getHours() + now.getMinutes() / 60;
+      const night = hr < 5 || hr >= 23;
+      const p = Math.max(0.015, Math.min(0.985, (hr - 5) / 18));
+      const stops = skyStops();
+      const ev = todaysEvents();
+
+      let s = '<svg class="sky" viewBox="0 0 390 200">';
+      s += '<defs><linearGradient id="skyfill" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + stops[0] + '" stop-opacity="0.85"/>' +
+        '<stop offset="60%" stop-color="' + stops[1] + '" stop-opacity="0.45"/>' +
+        '<stop offset="100%" stop-color="' + stops[2] + '" stop-opacity="0.22"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="arcdone" x1="0" y1="1" x2="1" y2="0">' +
+        '<stop offset="0%" stop-color="#E4572E"/><stop offset="100%" stop-color="#F2A65A"/>' +
+        '</linearGradient>' +
+        '<radialGradient id="sunglow">' +
+        '<stop offset="0%" stop-color="#FFD9A0" stop-opacity="0.9"/>' +
+        '<stop offset="100%" stop-color="#F2A65A" stop-opacity="0"/>' +
+        '</radialGradient></defs>';
+      s += '<path d="M20 182 A175 175 0 0 1 370 182 Z" fill="url(#skyfill)"/>';
+      s += '<path d="M20 182 A175 175 0 0 1 370 182" fill="none" stroke="rgba(244,241,234,0.14)" stroke-width="1.6" stroke-dasharray="2 6"/>';
+
+      if (!night) {
+        const sp = pos(p);
+        s += '<path d="M20 182 A175 175 0 0 1 ' + sp.x.toFixed(1) + ' ' + sp.y.toFixed(1) +
+             '" fill="none" stroke="url(#arcdone)" stroke-width="2.6" stroke-linecap="round"/>';
+        ev.slice(0, 8).forEach(e => {
+          const d = new Date(e.ts);
+          const ehr = d.getHours() + d.getMinutes() / 60;
+          const ep = Math.max(0.02, Math.min(0.98, (ehr - 5) / 18));
+          if (ep > p + 0.01) return;
+          const m = pos(ep);
+          s += '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="4.5" fill="#F2A65A"/>';
+          s += '<text x="' + m.x.toFixed(1) + '" y="' + (m.y - 12).toFixed(1) +
+               '" text-anchor="middle" font-size="11" fill="#F4F1EA">' + e.icon + '</text>';
+        });
+        s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="26" fill="url(#sunglow)"/>';
+        s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="9" fill="#FFD9A0"/>';
+      } else {
+        s += '<text x="195" y="120" text-anchor="middle" font-size="12" fill="rgba(244,241,234,0.4)" font-family="Spline Sans Mono, monospace">sun\'s down — recharge</text>';
+      }
+      s += '<line x1="0" y1="182" x2="390" y2="182" stroke="rgba(244,241,234,0.14)" stroke-width="1"/>';
+      s += '<circle cx="20" cy="182" r="3" fill="rgba(244,241,234,0.35)"/>';
+      s += '<circle cx="370" cy="182" r="3" fill="rgba(244,241,234,0.2)"/>';
+      s += '</svg>';
+      document.getElementById('spSky').innerHTML = s;
+
+      // greeting + sub
+      const h = now.getHours();
+      const name = h < 5 ? 'Rest up,' : h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : h < 23 ? 'Good evening,' : 'Rest up,';
+      document.getElementById('spGreeting').innerHTML = name + '<br>Rame.';
+      const subEl = document.getElementById('spDaySub');
+      if (night) {
+        subEl.innerHTML = 'Your day runs 5:00 — 23:00. See you at sunrise.';
+      } else {
+        const minsLeft = Math.max(0, (23 - hr) * 60);
+        const hh = Math.floor(minsLeft / 60), mm = Math.floor(minsLeft % 60);
+        subEl.innerHTML = '<b class="num">' + hh + 'h ' + mm + 'm</b> left in your day — you\'re ' +
+          Math.round(p * 100) + '% through.';
+      }
+
+      // logged chips
+      const chips = ev.map(e =>
+        '<span class="log-chip glassy"><span class="t num">' + S.fmtClock(e.ts) + '</span><b>' +
+        S.esc(e.label) + '</b>' + (e.detail ? ' ' + S.esc(e.detail) : '') + '</span>'
+      );
+      document.getElementById('spLogged').innerHTML = chips.length
+        ? chips.join('')
+        : '<span class="log-chip glassy" style="color:var(--faint)">nothing logged yet — the day is young</span>';
+    }
+
+    // ---------- up next ----------
+    function renderFocus() {
+      const G = S.goalsToday();
+      const W = S.waterProgress();
+      const st = S.stackToday();
+      document.getElementById('spNextMore').textContent =
+        G.total ? (G.total - G.done) + ' of ' + G.total + ' goals left' : '';
+
+      const pct = G.total ? Math.round(G.done / G.total * 100) : 0;
+      let html = '';
+      const first = G.pending[0];
+      html += '<a class="focus-top" href="index.html">' +
+        '<span class="ring" style="background:conic-gradient(var(--leaf) 0 ' + pct + '%, rgba(244,241,234,0.1) ' + pct + '% 100%)"><i class="num">' +
+        (G.total ? G.done + '/' + G.total : '—') + '</i></span>' +
+        '<span><span class="what">' + (first ? S.esc(first.text) : (G.total ? 'All goals done — solid day.' : 'No goals set yet')) + '</span>' +
+        '<span class="whatsub" style="display:block">' + (first ? 'top of your list · tap to manage' : (G.total ? 'plan tomorrow tonight' : 'tap to add today\'s goals')) + '</span></span></a>';
+
+      html += '<div class="rows" style="margin-top:10px">';
+      if (W.total > 0) {
+        const meter = Array.from({ length: Math.min(W.total, 10) }, (_, i) =>
+          '<i class="' + (i < W.done ? 'on' : '') + '"></i>').join('');
+        html += '<a class="rowi" href="health.html#water"><span class="ic">💧</span>' +
+          '<span class="tx"><span class="t1">Water</span><span class="meter">' + meter + '</span></span>' +
+          '<span class="end num">' + W.done + '/' + W.total + '</span></a>';
+      }
+      if (st.total > 0) {
+        html += '<a class="rowi" href="health.html"><span class="ic">💊</span>' +
+          '<span class="tx"><span class="t1">Supplement stack</span><span class="t2">' +
+          (st.taken >= st.total ? 'all taken' : (st.total - st.taken) + ' still to take') + '</span></span>' +
+          '<span class="end' + (st.taken >= st.total ? '' : ' act') + '">' +
+          (st.taken >= st.total ? '<b>' + st.taken + '/' + st.total + '</b>' : st.taken + '/' + st.total) + '</span></a>';
+      }
+      const split = S.splitToday();
+      if (split && split.toLowerCase() !== 'rest') {
+        const loggedToday = S.fitness().sessions.some(x => x && x.date === S.todayKey() && x.type === 'gym');
+        html += '<a class="rowi" href="gym.html"><span class="ic">🏋️</span>' +
+          '<span class="tx"><span class="t1">' + S.esc(split.charAt(0).toUpperCase() + split.slice(1)) + ' session</span>' +
+          '<span class="t2">' + (loggedToday ? 'logged — nice' : 'today\'s split day') + '</span></span>' +
+          '<span class="end' + (loggedToday ? '' : ' act') + '">' + (loggedToday ? '<b>✓</b>' : '+ LOG') + '</span></a>';
+      }
+      html += '</div>';
+      document.getElementById('spFocus').innerHTML = html;
+    }
+
+    // ---------- module grid ----------
+    function renderGrid() {
+      const F = S.fitness();
+      const st = S.stackToday();
+      const W = S.waterProgress();
+      const L = S.learning();
+      const Lib = S.library();
+      const H = S.habits();
+      const Gr = S.growth();
+      const M = S.money();
+
+      const lastSess = F.sessions[0];
+      const lastLabel = lastSess
+        ? (lastSess.type === 'run' ? 'run' : lastSess.type === 'gym' ? 'gym' : 'muay') + ' · ' + S.fmtDateStr(lastSess.date)
+        : 'no sessions yet';
+      const lastLearn = L.sessions[0];
+      const reading = Lib.books.filter(b => b && b.status === 'reading');
+      const lastNote = Gr.notes[0];
+
+      let g = '';
+      g += '<a class="mod glassy" href="gym.html"><span class="k">Body — Fitness</span>' +
+        '<span class="v num">' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + ' <small>km all-time</small></span>' +
+        '<span class="d">last: ' + S.esc(lastLabel) + '</span></a>';
+      g += '<a class="mod glassy" href="health.html"><span class="k">Body — Health</span>' +
+        '<span class="v num">' + (st.total ? st.taken + '/' + st.total : '—') + ' <small>stack</small></span>' +
+        '<span class="d">water <b' + (W.done >= W.total ? '' : ' class="warm"') + '>' + W.done + '/' + W.total + '</b></span></a>';
+      g += '<a class="mod glassy" href="learning.html"><span class="k">Mind — Learning</span>' +
+        '<span class="v num">' + (L.hours % 1 === 0 ? L.hours : L.hours.toFixed(1)) + ' <small>hours</small></span>' +
+        '<span class="d">' + (lastLearn ? 'last: ' + S.esc((lastLearn.topic || 'session').slice(0, 22)) : 'no sessions yet') + '</span></a>';
+      g += '<a class="mod glassy" href="library.html"><span class="k">Mind — Library</span>' +
+        '<span class="v num">' + reading.length + ' <small>book' + (reading.length === 1 ? '' : 's') + ' open</small></span>' +
+        '<span class="d">' + (reading[0] ? S.esc(String(reading[0].title).slice(0, 24)) : 'shelf is empty') + '</span></a>';
+      const dots = H.list.slice(0, 7).map(h =>
+        '<i class="' + ((H.log[S.todayKey()] || []).indexOf(h.id) !== -1 ? 'on' : '') + '"></i>').join('');
+      g += '<a class="mod glassy" href="habits.html"><span class="k">Habits</span>' +
+        '<span class="v num">' + H.bestStreak + ' <small>day streak</small></span>' +
+        (H.list.length ? '<span class="dots">' + dots + '</span>' : '<span class="d">no habits yet</span>') + '</a>';
+      g += '<a class="mod glassy" href="finance.html"><span class="k">Money</span>' +
+        '<span class="v num">' + (M ? Math.round(M.last.v).toLocaleString() : '—') + ' <small>SGD</small></span>' +
+        '<span class="d">' + (M ? '<b' + (M.delta30 >= 0 ? '' : ' class="warm"') + '>' +
+          (M.delta30 >= 0 ? '+' : '') + Math.round(M.delta30).toLocaleString() + '</b> past 30d' : 'open finance') + '</span></a>';
+
+      let quote;
+      if (Gr.locked) {
+        quote = lastNote
+          ? '<span class="quote-q">Locked · last written ' + S.fmtShort(lastNote.ts) + ' — tap to unlock.</span>'
+          : '<span class="quote-q">Reflections are locked.</span>';
+      } else if (lastNote) {
+        const t = String(lastNote.text || '');
+        quote = '<span class="quote-q">“' + S.esc(t.length > 110 ? t.slice(0, 110) + '…' : t) + '”</span>';
+      } else {
+        quote = '<span class="quote-q">No reflections yet — what did you notice today?</span>';
+      }
+      g += '<a class="glassy card" style="grid-column:1/-1" href="growth.html">' +
+        '<span class="k">Growth — ' + (lastNote ? 'last reflection · ' + S.fmtShort(lastNote.ts) : 'reflections') + '</span>' +
+        '<div style="margin-top:8px">' + quote + '</div></a>';
+
+      document.getElementById('spGrid').innerHTML = g;
+    }
+
+    function render() {
+      S.fillDaterow('');
+      renderSky();
+      renderFocus();
+      renderGrid();
+    }
+
+    S.injectDock('today');
+    render();
+    setInterval(renderSky, 60 * 1000);
+    S.pull({
+      'goals':    { prefixes: ['goals:'], keys: ['goal_streak_v1'] },
+      'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
+      'health':   { keys: ['stack:items', 'po_water_v1'], prefixes: ['stack:taken:'] },
+      'learning': { keys: ['learning_subjects', 'learning_sessions'] },
+      'library':  { keys: ['library_books', 'library_notes'] },
+      'growth':   { keys: ['growth_notes', 'growth_lock_hash'] },
+      'habits':   { keys: ['habits_list', 'habits_log'] },
+      'finance':  { keys: ['nw:history', 'subs'] }
+    }, render);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else { boot(); }
+})();
+</script>
+</body>
+</html>

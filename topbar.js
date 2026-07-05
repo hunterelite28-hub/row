@@ -52,6 +52,13 @@
 }
 .topbar-sync-dot.idle { background: rgba(255,255,255,0.3); box-shadow: none; }
 .topbar-sync-dot.off { background: #ff8a8a; box-shadow: 0 0 8px rgba(255,138,138,0.7); }
+.topbar-sunpath {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  color: #F2A65A; text-decoration: none; font-size: 14px;
+  border: 1px solid rgba(242,166,90,0.3);
+  -webkit-tap-highlight-color: transparent;
+}
 @keyframes os-boot {
   from { opacity: 0; transform: translateY(7px); }
   to   { opacity: 1; transform: none; }
@@ -223,6 +230,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <span class="topbar-sync" id="topbarSync" title="Sync status">
     <span class="topbar-sync-dot" id="topbarSyncDot"></span>
   </span>
+  <a href="today.html" class="topbar-sunpath" title="Sunpath">☀</a>
 </header>`;
 
   const bottombarHtml = `

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0B0E">
+<meta name="color-scheme" content="dark">
+<title>Body — Sunpath</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sunpath.css">
+<script src="sunpath.js" defer></script>
+</head>
+<body>
+<div class="shellwrap">
+  <div class="daterow" id="spDaterow"></div>
+
+  <div class="pagehead">
+    <h1 id="spHead">Body<em>.</em></h1>
+    <div class="sub" id="spSub"></div>
+  </div>
+
+  <div class="section" id="spWeightSec" style="display:none">
+    <a class="glassy card" href="gym.html" id="spWeight"></a>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Today<span class="more num" id="spSplit"></span></div>
+    <div class="glassy card"><div class="rows" id="spToday"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Recent sessions<span class="more num" id="spTotalsLbl"></span></div>
+    <div class="glassy card"><div class="rows" id="spSessions"></div></div>
+    <div class="chiprow" id="spChips"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function boot() {
+    const S = window.Sunpath;
+    if (!S) return;
+
+    function render() {
+      S.fillDaterow('BODY');
+      const F = S.fitness();
+      const st = S.stackToday();
+      const W = S.waterProgress();
+      const wt = S.weight();
+      const split = S.splitToday();
+      const splitNice = split ? split.charAt(0).toUpperCase() + split.slice(1) : '';
+      const isRest = split.toLowerCase() === 'rest';
+
+      // headline
+      const bits = [];
+      if (st.total) bits.push(st.taken >= st.total ? 'stack done' : (st.total - st.taken) + ' supps left');
+      if (W.total) bits.push(W.done >= W.total ? 'water done' : '<b class="warm">' + (W.total - W.done) + ' glasses</b> to go');
+      document.getElementById('spHead').innerHTML = isRest
+        ? 'Rest day —<br>let it <em>rebuild.</em>'
+        : splitNice + ' day —<br>show <em>up.</em>';
+      document.getElementById('spSub').innerHTML = bits.length ? bits.join(' · ') + '.' : 'Log something and this page comes alive.';
+      document.getElementById('spSplit').textContent = splitNice ? new Date().toLocaleDateString('en-SG', { weekday: 'short' }).toUpperCase() + ' · ' + splitNice.toUpperCase() + ' DAY' : '';
+
+      // weight card
+      const sec = document.getElementById('spWeightSec');
+      if (wt) {
+        sec.style.display = '';
+        const vals = wt.entries.slice(-30).map(e => e.weight);
+        const path = S.sparkPath(vals, 320, 40);
+        const d30 = wt.delta30;
+        document.getElementById('spWeight').innerHTML =
+          '<span class="k">Weight</span>' +
+          '<div class="bigv num">' + wt.last.weight.toFixed(1) + ' <small>kg</small></div>' +
+          '<div class="trend"><b' + (d30 <= 0 ? '' : ' class="warm"') + '>' + (d30 > 0 ? '+' : '') + d30.toFixed(1) + ' kg</b> past 30 days · last logged ' + S.fmtDateStr(wt.last.dateKey) + '</div>' +
+          (path ? '<div class="spark" style="margin-top:12px"><svg viewBox="0 0 320 40"><path d="' + path + '" fill="none" stroke="#9ED9A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' : '');
+      } else { sec.style.display = 'none'; }
+
+      // today rows
+      let t = '';
+      if (st.total) {
+        t += '<a class="rowi" href="health.html"><span class="ic">💊</span>' +
+          '<span class="tx"><span class="t1">Supplement stack</span><span class="t2">' +
+          (st.taken >= st.total ? 'all taken' + (st.lastTs ? ' by ' + S.fmtClock(st.lastTs) : '') : (st.total - st.taken) + ' still to take') +
+          '</span></span><span class="end"><b>' + st.taken + '/' + st.total + '</b></span></a>';
+      }
+      if (W.total) {
+        const meter = Array.from({ length: Math.min(W.total, 10) }, (_, i) =>
+          '<i class="' + (i < W.done ? 'on' : '') + '"></i>').join('');
+        t += '<a class="rowi" href="health.html#water"><span class="ic">💧</span>' +
+          '<span class="tx"><span class="t1">Water</span><span class="meter">' + meter + '</span></span>' +
+          '<span class="end num">' + W.done + '/' + W.total + '</span></a>';
+      }
+      const gymLogged = F.sessions.some(x => x && x.date === S.todayKey());
+      t += '<a class="rowi" href="gym.html"><span class="ic">🏋️</span>' +
+        '<span class="tx"><span class="t1">' + (isRest ? 'Rest day' : splitNice + ' session') + '</span>' +
+        '<span class="t2">' + (gymLogged ? 'session logged today' : (isRest ? 'recovery counts too' : 'not logged yet')) + '</span></span>' +
+        '<span class="end' + (gymLogged || isRest ? '' : ' act') + '">' + (gymLogged ? '<b>✓</b>' : (isRest ? '—' : '+ LOG')) + '</span></a>';
+      document.getElementById('spToday').innerHTML = t;
+
+      // recent sessions
+      const rows = F.sessions.slice(0, 4).map(s => {
+        const icon = s.type === 'run' ? '🏃' : s.type === 'gym' ? '🏋️' : '🥊';
+        const title = s.type === 'run'
+          ? 'Run' + (s.km ? ' — ' + s.km + ' km' : '')
+          : s.type === 'gym' ? 'Gym' + (s.split ? ' — ' + s.split : '') : 'Muay Thai';
+        const sub = [s.duration ? s.duration + ' min' : '', s.notes || ''].filter(Boolean).join(' · ');
+        return '<a class="rowi" href="gym.html"><span class="ic">' + icon + '</span>' +
+          '<span class="tx"><span class="t1">' + S.esc(title) + '</span>' +
+          (sub ? '<span class="t2">' + S.esc(sub) + '</span>' : '') + '</span>' +
+          '<span class="end num">' + S.fmtDateStr(s.date) + '</span></a>';
+      });
+      document.getElementById('spSessions').innerHTML = rows.length
+        ? rows.join('')
+        : '<div class="rowi"><span class="tx"><span class="t2">No sessions yet — log your first on Fitness.</span></span></div>';
+      document.getElementById('spTotalsLbl').textContent =
+        'ALL-TIME · ' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + ' KM';
+      document.getElementById('spChips').innerHTML =
+        '<span class="chip glassy"><b class="num">' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + '</b> km</span>' +
+        '<span class="chip glassy"><b class="num">' + F.runs + '</b> runs</span>' +
+        '<span class="chip glassy"><b class="num">' + F.gym + '</b> gym</span>' +
+        '<span class="chip glassy"><b class="num">' + F.muay + '</b> muay</span>';
+    }
+
+    S.injectDock('body');
+    render();
+    S.pull({
+      'goals':    { keys: ['goal_streak_v1'] },
+      'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
+      'health':   { keys: ['stack:items', 'po_water_v1'], prefixes: ['stack:taken:'] }
+    }, render);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else { boot(); }
+})();
+</script>
+</body>
+</html>

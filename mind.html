@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0B0E">
+<meta name="color-scheme" content="dark">
+<title>Mind — Sunpath</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sunpath.css">
+<script src="sunpath.js" defer></script>
+</head>
+<body>
+<div class="shellwrap">
+  <div class="daterow" id="spDaterow"></div>
+
+  <div class="pagehead">
+    <h1 id="spHead">Mind<em>.</em></h1>
+    <div class="sub" id="spSub"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Learning<span class="more num" id="spLearnLbl"></span></div>
+    <a class="glassy card" href="learning.html" id="spLearn"></a>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Library<span class="more num" id="spLibLbl"></span></div>
+    <a class="glassy card" href="library.html" id="spLib"></a>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Growth<span class="more num" id="spGrowLbl"></span></div>
+    <a class="glassy card" href="growth.html" id="spGrow"></a>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function boot() {
+    const S = window.Sunpath;
+    if (!S) return;
+
+    function weekHours(L) {
+      const cut = S.calKey(new Date(Date.now() - 6 * 864e5));
+      return L.sessions.filter(s => s && s.date >= cut)
+        .reduce((t, s) => t + (parseFloat(s.hours) || 0), 0);
+    }
+
+    function render() {
+      S.fillDaterow('MIND');
+      const L = S.learning();
+      const Lib = S.library();
+      const Gr = S.growth();
+      const tk = S.todayKey();
+
+      // headline
+      const todayH = L.sessions.filter(s => s && s.date === tk)
+        .reduce((t, s) => t + (parseFloat(s.hours) || 0), 0);
+      const wk = weekHours(L);
+      document.getElementById('spHead').innerHTML = todayH > 0
+        ? todayH + (todayH === 1 ? ' hour' : ' hours') + ' in —<br>your brain says <em>thanks.</em>'
+        : 'Feed the<br><em>curiosity.</em>';
+      document.getElementById('spSub').innerHTML =
+        (wk > 0 ? '<b>' + (wk % 1 === 0 ? wk : wk.toFixed(1)) + 'h</b> this week' : 'nothing this week yet') +
+        (Lib.books.some(b => b && b.status === 'reading') ? ' · a book is waiting.' : '.');
+
+      // learning card
+      const active = L.subjects[0];
+      document.getElementById('spLearnLbl').textContent = active ? active.icon + ' ' + active.name.toUpperCase() : '';
+      const recent = L.sessions.slice(0, 2).map(s =>
+        '<div class="rowi"><span class="ic">' + (S.subjectName(L, s.subjectId) ? 'λ' : 'λ') + '</span>' +
+        '<span class="tx"><span class="t1">' + S.esc((s.topic || 'Session').slice(0, 34)) + '</span>' +
+        '<span class="t2">' + [s.hours ? s.hours + 'h' : '', s.resource || ''].filter(Boolean).map(S.esc).join(' · ') + '</span></span>' +
+        '<span class="end num">' + (s.date === tk ? 'TODAY' : S.fmtDateStr(s.date)) + '</span></div>'
+      ).join('');
+      document.getElementById('spLearn').innerHTML =
+        '<div class="bigv num">' + (L.hours % 1 === 0 ? L.hours : L.hours.toFixed(1)) + ' <small>hours total</small></div>' +
+        (todayH > 0 ? '<div class="trend"><b>+' + todayH + 'h</b> today</div>' : '') +
+        (recent ? '<div class="rows" style="margin-top:10px">' + recent + '</div>'
+                : '<div class="trend">no sessions yet — log your first.</div>');
+
+      // library card
+      const reading = Lib.books.filter(b => b && b.status === 'reading').slice(0, 2);
+      document.getElementById('spLibLbl').textContent = reading.length + ' OPEN';
+      let lib = '';
+      if (reading.length) {
+        lib += '<div class="books">' + reading.map(b => {
+          const pct = S.bookPct(b);
+          const coverInner = b.cover
+            ? '<img src="' + b.cover + '" alt="">'
+            : S.esc(String(b.title).slice(0, 40));
+          return '<div class="book"><div class="cover">' + coverInner + '</div>' +
+            (pct != null
+              ? '<div class="bmeta"><span class="bbar"><i style="width:' + pct + '%"></i></span><span class="bpct num">' + pct + '%</span></div>'
+              : '<div class="bmeta"><span class="bpct">' + S.esc(String(b.title).slice(0, 18)) + '</span></div>') +
+            '</div>';
+        }).join('') + '</div>';
+      } else {
+        lib += '<div class="trend" style="margin-top:0">no open books — add one to the shelf.</div>';
+      }
+      const lastBookNote = Lib.notes.slice().sort((a, b) => b.ts - a.ts)[0];
+      if (lastBookNote) {
+        const t = String(lastBookNote.text || '').replace(/[*_`~#>-]/g, '');
+        lib += '<div class="trend" style="margin-top:12px">last note · ' +
+          (lastBookNote.page ? '<b class="warm">p.' + lastBookNote.page + '</b> — ' : '') +
+          '"' + S.esc(t.length > 60 ? t.slice(0, 60) + '…' : t) + '"</div>';
+      }
+      document.getElementById('spLib').innerHTML = lib;
+
+      // growth card
+      const last = Gr.notes[0];
+      document.getElementById('spGrowLbl').textContent = last ? 'LAST · ' + S.fmtShort(last.ts).toUpperCase() : '';
+      let g = '';
+      if (Gr.locked) {
+        g += '<div class="quote-q">' + (last
+          ? 'Locked · last written ' + S.fmtShort(last.ts) + ' — tap to unlock.'
+          : 'Reflections are locked.') + '</div>';
+      } else if (last) {
+        const t = String(last.text || '');
+        g += '<div class="quote-q">“' + S.esc(t.length > 140 ? t.slice(0, 140) + '…' : t) + '”</div>';
+      }
+      g += '<div class="rows" style="margin-top:' + (g ? '8px' : '0') + '">' +
+        '<div class="rowi"><span class="ic">✎</span>' +
+        '<span class="tx"><span class="t1" style="color:var(--muted);font-weight:400">What did you notice today?</span></span>' +
+        '<span class="end act">WRITE</span></div></div>';
+      document.getElementById('spGrow').innerHTML = g;
+    }
+
+    S.injectDock('mind');
+    render();
+    S.pull({
+      'goals':    { keys: ['goal_streak_v1'] },
+      'learning': { keys: ['learning_subjects', 'learning_sessions'] },
+      'library':  { keys: ['library_books', 'library_notes'] },
+      'growth':   { keys: ['growth_notes', 'growth_lock_hash'] }
+    }, render);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else { boot(); }
+})();
+</script>
+</body>
+</html>
