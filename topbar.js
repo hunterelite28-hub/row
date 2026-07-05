@@ -316,7 +316,13 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
       const root = document.querySelector('.page, .shell, .po-shell, main');
       if (!root) return;
       Array.prototype.slice.call(root.children, 0, 14).forEach((el, i) => {
-        el.style.animation = 'os-boot 0.38s ease both';
+        // Never animate overlays/modals: they hide via transform/opacity,
+        // and a filled animation end-state would force them visible.
+        const pos = getComputedStyle(el).position;
+        if (pos === 'fixed' || pos === 'absolute') return;
+        // 'backwards' (not 'both') so styles release after the animation
+        // instead of pinning opacity/transform forever.
+        el.style.animation = 'os-boot 0.38s ease backwards';
         el.style.animationDelay = (i * 45) + 'ms';
       });
     } catch (e) {}
