@@ -118,15 +118,27 @@
         const sp = pos(p);
         s += '<path d="M20 182 A175 175 0 0 1 ' + sp.x.toFixed(1) + ' ' + sp.y.toFixed(1) +
              '" fill="none" stroke="url(#arcdone)" stroke-width="2.6" stroke-linecap="round"/>';
-        ev.slice(0, 8).forEach(e => {
+        // Cluster events that sit close together on the arc so a busy
+        // day renders as a few clean markers instead of a pile-up.
+        const MIN_GAP = 0.05;
+        const clusters = [];
+        ev.forEach(e => {
           const d = new Date(e.ts);
           const ehr = d.getHours() + d.getMinutes() / 60;
           const ep = Math.max(0.02, Math.min(0.98, (ehr - 5) / 18));
           if (ep > p + 0.01) return;
-          const m = pos(ep);
-          s += '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="4.5" fill="#F2A65A"/>';
+          const last = clusters[clusters.length - 1];
+          if (last && ep - last.p < MIN_GAP) { last.count++; return; }
+          clusters.push({ p: ep, icon: e.icon, count: 1 });
+        });
+        clusters.slice(0, 10).forEach(c => {
+          const m = pos(c.p);
+          s += '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="' +
+               (c.count > 1 ? 6 : 4.5) + '" fill="#F2A65A"/>';
           s += '<text x="' + m.x.toFixed(1) + '" y="' + (m.y - 12).toFixed(1) +
-               '" text-anchor="middle" font-size="11" fill="#F4F1EA">' + e.icon + '</text>';
+               '" text-anchor="middle" font-size="11" fill="#F4F1EA"' +
+               (c.count > 1 ? ' font-family="Spline Sans Mono, monospace"' : '') + '>' +
+               (c.count > 1 ? '×' + c.count : c.icon) + '</text>';
         });
         s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="26" fill="url(#sunglow)"/>';
         s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="9" fill="#FFD9A0"/>';
@@ -226,7 +238,19 @@
       const reading = Lib.books.filter(b => b && b.status === 'reading');
       const lastNote = Gr.notes[0];
 
+      const G = S.goalsToday();
+      const streak = (S.readJSON('goal_streak_v1', {}) || {}).count || 0;
+
       let g = '';
+      g += '<a class="mod glassy" href="goals.html"><span class="k">Today — Goals</span>' +
+        '<span class="v num">' + (G.total ? G.done + '/' + G.total : '—') + ' <small>done</small></span>' +
+        '<span class="d">' + (streak > 0 ? '<b>🔥 ' + streak + '</b> day streak' : 'start a streak today') + '</span></a>';
+      g += '<a class="mod glassy" href="habits.html"><span class="k">Today — Habits</span>' +
+        '<span class="v num">' + H.bestStreak + ' <small>day streak</small></span>' +
+        (H.list.length
+          ? '<span class="dots">' + H.list.slice(0, 7).map(h =>
+              '<i class="' + ((H.log[S.todayKey()] || []).indexOf(h.id) !== -1 ? 'on' : '') + '"></i>').join('') + '</span>'
+          : '<span class="d">no habits yet</span>') + '</a>';
       g += '<a class="mod glassy" href="gym.html"><span class="k">Body — Fitness</span>' +
         '<span class="v num">' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + ' <small>km all-time</small></span>' +
         '<span class="d">last: ' + S.esc(lastLabel) + '</span></a>';
@@ -239,15 +263,17 @@
       g += '<a class="mod glassy" href="library.html"><span class="k">Mind — Library</span>' +
         '<span class="v num">' + reading.length + ' <small>book' + (reading.length === 1 ? '' : 's') + ' open</small></span>' +
         '<span class="d">' + (reading[0] ? S.esc(String(reading[0].title).slice(0, 24)) : 'shelf is empty') + '</span></a>';
-      const dots = H.list.slice(0, 7).map(h =>
-        '<i class="' + ((H.log[S.todayKey()] || []).indexOf(h.id) !== -1 ? 'on' : '') + '"></i>').join('');
-      g += '<a class="mod glassy" href="habits.html"><span class="k">Habits</span>' +
-        '<span class="v num">' + H.bestStreak + ' <small>day streak</small></span>' +
-        (H.list.length ? '<span class="dots">' + dots + '</span>' : '<span class="d">no habits yet</span>') + '</a>';
-      g += '<a class="mod glassy" href="finance.html"><span class="k">Money</span>' +
-        '<span class="v num">' + (M ? Math.round(M.last.v).toLocaleString() : '—') + ' <small>SGD</small></span>' +
-        '<span class="d">' + (M ? '<b' + (M.delta30 >= 0 ? '' : ' class="warm"') + '>' +
-          (M.delta30 >= 0 ? '+' : '') + Math.round(M.delta30).toLocaleString() + '</b> past 30d' : 'open finance') + '</span></a>';
+      const nwPath = M ? S.sparkPath(M.hist.slice(-40).map(e => e.v), 320, 34) : '';
+      g += '<a class="glassy card" style="grid-column:1/-1" href="finance.html">' +
+        '<span class="k">Money</span>' +
+        '<div style="display:flex;align-items:baseline;gap:10px">' +
+        '<span class="v num" style="font-size:21px;font-weight:650;margin-top:7px;display:inline-block">' +
+        (M ? Math.round(M.last.v).toLocaleString() : '—') + ' <small>SGD</small></span>' +
+        '<span class="d" style="margin-top:0;padding-top:0">' + (M ? '<b' + (M.delta30 >= 0 ? '' : ' class="warm"') + '>' +
+          (M.delta30 >= 0 ? '+' : '') + Math.round(M.delta30).toLocaleString() + '</b> past 30d' : 'open finance') + '</span></div>' +
+        (nwPath ? '<div class="spark" style="margin-top:8px"><svg viewBox="0 0 320 34"><path d="' + nwPath +
+          '" fill="none" stroke="#F2A65A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' : '') +
+        '</a>';
 
       let quote;
       if (Gr.locked) {
