@@ -1833,7 +1833,8 @@ img, video, canvas, svg { max-width: 100%; }
 
     <div class="hv-card" id="svConnect" style="display:none">
       <div class="hv-connect-title">Connect Strava</div>
-      <p class="hv-connect-p">One-time setup: at strava.com/settings/api create an API application with <b>Authorization Callback Domain</b> set to this site's domain, then paste its Client ID and Client Secret below. Both stay on this device only. You'll be sent to Strava once to approve read access.</p>
+      <p class="hv-connect-p">One-time setup: at strava.com/settings/api create an API application, then paste its Client ID and Client Secret below. Both stay on this device only. You'll be sent to Strava once to approve read access.</p>
+      <p class="hv-connect-p">Set its <b>Authorization Callback Domain</b> to exactly: <b id="svDomain" style="color:#F2A65A"></b> (no https://, no path).</p>
       <div class="hv-key-row" style="margin-bottom:8px">
         <input type="text" id="svIdInput" placeholder="Client ID" autocomplete="off" inputmode="numeric">
       </div>
@@ -4432,6 +4433,9 @@ img, video, canvas, svg { max-width: 100%; }
       $('svErr').textContent = e.message;
     }
   })();
+
+  const domEl = $('svDomain');
+  if (domEl) domEl.textContent = window.location.hostname || '(open this page on your deployed site, not a local file)';
 
   render(cached());
   if (connected()) sync(false);
