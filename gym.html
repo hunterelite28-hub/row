@@ -1530,6 +1530,8 @@ img, video, canvas, svg { max-width: 100%; }
 .hv-section.hv-collapsed .hv-stats,
 .hv-section.hv-collapsed .hv-disconnect,
 .hv-section.hv-collapsed .hv-list > .hv-card:not(:first-child) { display: none; }
+.ft-section.hv-collapsed .hv-collapse span { transform: rotate(-90deg); }
+.ft-section.hv-collapsed .ft-log-list > .ft-log-row:not(:first-child) { display: none; }
 </style>
 <link rel="stylesheet" href="glass.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1567,7 +1569,9 @@ img, video, canvas, svg { max-width: 100%; }
       </div>
     </div>
     <div class="ft-log-section">
-      <div class="ft-log-header">// Session Log</div>
+      <div class="ft-log-header" style="display:flex;align-items:center;justify-content:space-between">// Session Log
+        <button class="hv-refresh hv-collapse" id="ftLogToggle" type="button" aria-label="Collapse"><span>⌄</span></button>
+      </div>
       <div class="ft-log-list" id="ftLogList"></div>
     </div>
   </section>
@@ -4465,7 +4469,8 @@ img, video, canvas, svg { max-width: 100%; }
 (function () {
   'use strict';
   [['hvSection', 'hvToggle', 'hv_collapsed'],
-   ['svSection', 'svToggle', 'sv_collapsed']].forEach(function (cfg) {
+   ['svSection', 'svToggle', 'sv_collapsed'],
+   ['ftSection', 'ftLogToggle', 'ft_log_collapsed']].forEach(function (cfg) {
     const sec = document.getElementById(cfg[0]);
     const btn = document.getElementById(cfg[1]);
     const key = cfg[2];
