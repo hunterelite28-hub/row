@@ -1519,6 +1519,17 @@ img, video, canvas, svg { max-width: 100%; }
   font-family: var(--font-mono); font-size: 10px; cursor: pointer;
   text-decoration: underline; margin-top: 8px; -webkit-tap-highlight-color: transparent;
 }
+.hv-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.hv-collapse {
+  width: 34px; padding: 8px 0; text-align: center;
+  background: rgba(255,255,255,0.05); color: var(--text-2);
+  border-color: var(--border-strong);
+}
+.hv-collapse span { display: inline-block; transition: transform 0.2s; }
+.hv-section.hv-collapsed .hv-collapse span { transform: rotate(-90deg); }
+.hv-section.hv-collapsed .hv-stats,
+.hv-section.hv-collapsed .hv-disconnect,
+.hv-section.hv-collapsed .hv-list > .hv-card:not(:first-child) { display: none; }
 </style>
 <link rel="stylesheet" href="glass.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1793,7 +1804,10 @@ img, video, canvas, svg { max-width: 100%; }
         <div class="hv-title">Workouts</div>
         <div class="hv-sub">// synced from Hevy</div>
       </div>
-      <button class="hv-refresh" id="hvRefresh" type="button">↻ Sync</button>
+      <div class="hv-actions">
+        <button class="hv-refresh" id="hvRefresh" type="button">↻ Sync</button>
+        <button class="hv-refresh hv-collapse" id="hvToggle" type="button" aria-label="Collapse"><span>⌄</span></button>
+      </div>
     </div>
 
     <div class="hv-card" id="hvConnect" style="display:none">
@@ -1828,7 +1842,10 @@ img, video, canvas, svg { max-width: 100%; }
         <div class="hv-title">Runs</div>
         <div class="hv-sub">// synced from Strava</div>
       </div>
-      <button class="hv-refresh" id="svRefresh" type="button">↻ Sync</button>
+      <div class="hv-actions">
+        <button class="hv-refresh" id="svRefresh" type="button">↻ Sync</button>
+        <button class="hv-refresh hv-collapse" id="svToggle" type="button" aria-label="Collapse"><span>⌄</span></button>
+      </div>
     </div>
 
     <div class="hv-card" id="svConnect" style="display:none">
@@ -4439,6 +4456,29 @@ img, video, canvas, svg { max-width: 100%; }
 
   render(cached());
   if (connected()) sync(false);
+})();
+</script>
+
+<script>
+// Collapse toggles for the Hevy/Strava sections — collapsed shows
+// only the most recent card. Preference remembered per device.
+(function () {
+  'use strict';
+  [['hvSection', 'hvToggle', 'hv_collapsed'],
+   ['svSection', 'svToggle', 'sv_collapsed']].forEach(function (cfg) {
+    const sec = document.getElementById(cfg[0]);
+    const btn = document.getElementById(cfg[1]);
+    const key = cfg[2];
+    if (!sec || !btn) return;
+    const stored = localStorage.getItem(key);
+    const apply = on => sec.classList.toggle('hv-collapsed', on);
+    apply(stored === null ? true : stored === '1'); // default: collapsed
+    btn.addEventListener('click', () => {
+      const on = !sec.classList.contains('hv-collapsed');
+      apply(on);
+      try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) {}
+    });
+  });
 })();
 </script>
 
