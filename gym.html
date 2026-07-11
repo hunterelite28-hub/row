@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="rameos.css">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Progressive Overload Coach</title>
+<title>Fitness</title>
 <script src="topbar.js" defer></script>
 
 <!-- =============================================================
@@ -1458,6 +1458,67 @@ img, video, canvas, svg { max-width: 100%; }
 .ft-log-btn { box-shadow: 0 4px 16px -4px rgba(110,231,183,0.55); }
 .po-rx-card { box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.42); }
 .ft-title { text-shadow: 0 0 16px rgba(110,231,183,0.18); }
+
+/* ============================================================
+   HEVY WORKOUTS — Sunpath-styled
+   ============================================================ */
+.hv-section { margin-bottom: 28px; }
+.hv-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.hv-title { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; text-shadow: 0 0 16px rgba(242,166,90,0.18); }
+.hv-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: var(--font-mono); }
+.hv-refresh {
+  background: rgba(242,166,90,0.12); color: #F2A65A;
+  border: 1px solid rgba(242,166,90,0.3); border-radius: 10px;
+  padding: 8px 13px; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+}
+.hv-refresh:disabled { opacity: 0.4; cursor: default; }
+.hv-card {
+  position: relative;
+  background: var(--glass-fill, rgba(255,255,255,0.04));
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.12));
+  border-radius: 18px; padding: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.13), 0 16px 40px rgba(0,0,0,0.55);
+  margin-bottom: 10px;
+}
+.hv-connect-title { font-size: 15px; font-weight: 650; margin-bottom: 6px; }
+.hv-connect-p { font-size: 12px; color: var(--text-2); line-height: 1.55; margin-bottom: 12px; }
+.hv-key-row { display: flex; gap: 8px; }
+.hv-key-row input {
+  flex: 1; min-width: 0; background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  color: var(--text-1); font-family: var(--font-mono); font-size: 12px;
+  padding: 10px 12px; outline: none;
+}
+.hv-key-row input:focus { border-color: rgba(242,166,90,0.5); }
+.hv-key-row button {
+  background: #F2A65A; color: #14130C; border: none; border-radius: 10px;
+  padding: 10px 18px; font-family: var(--font); font-size: 12px; font-weight: 700;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.hv-err { color: #ff8a8a; font-size: 11px; min-height: 14px; margin-top: 8px; font-family: var(--font-mono); }
+.hv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.hv-stat {
+  background: var(--glass-fill, rgba(255,255,255,0.04));
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.12));
+  border-radius: 14px; padding: 12px 8px; text-align: center;
+}
+.hv-stat-v { display: block; font-family: var(--font-mono); font-size: 18px; font-weight: 600; color: #F2A65A; text-shadow: 0 0 12px rgba(242,166,90,0.35); }
+.hv-stat-l { display: block; font-size: 9px; color: var(--text-3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-mono); }
+.hv-list { display: flex; flex-direction: column; gap: 10px; }
+.hv-wo-head { display: flex; align-items: baseline; gap: 8px; }
+.hv-wo-title { font-size: 14.5px; font-weight: 650; flex: 1; min-width: 0; }
+.hv-wo-date { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); flex-shrink: 0; }
+.hv-wo-meta { font-size: 11px; color: var(--text-2); margin-top: 3px; font-family: var(--font-mono); }
+.hv-ex { display: flex; align-items: baseline; gap: 8px; padding: 7px 0 0; font-size: 12px; }
+.hv-ex-name { flex: 1; min-width: 0; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hv-ex-best { font-family: var(--font-mono); font-size: 11px; color: #F2A65A; flex-shrink: 0; }
+.hv-empty { color: var(--text-3); font-size: 12px; text-align: center; padding: 18px 0; }
+.hv-disconnect {
+  background: none; border: none; color: var(--text-4);
+  font-family: var(--font-mono); font-size: 10px; cursor: pointer;
+  text-decoration: underline; margin-top: 8px; -webkit-tap-highlight-color: transparent;
+}
 </style>
 <link rel="stylesheet" href="glass.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1721,14 +1782,50 @@ img, video, canvas, svg { max-width: 100%; }
 
   </div>
 
-  <div class="po-header">
+  <!-- ============================================================
+       HEVY WORKOUTS — replaces the Progressive Overload Coach.
+       The coach UI below is hidden (not deleted): its state keys
+       still feed the split-day logic on Today/Body.
+       ============================================================ -->
+  <section class="hv-section" id="hvSection">
+    <div class="hv-header">
+      <div>
+        <div class="hv-title">Workouts</div>
+        <div class="hv-sub">// synced from Hevy</div>
+      </div>
+      <button class="hv-refresh" id="hvRefresh" type="button">↻ Sync</button>
+    </div>
+
+    <div class="hv-card" id="hvConnect" style="display:none">
+      <div class="hv-connect-title">Connect Hevy</div>
+      <p class="hv-connect-p">Paste your API key from the Hevy app — hevy.com → Settings → Developer (needs Hevy Pro). The key is stored on this device only and never synced.</p>
+      <div class="hv-key-row">
+        <input type="password" id="hvKeyInput" placeholder="Hevy API key" autocomplete="off">
+        <button id="hvKeySave" type="button">Save</button>
+      </div>
+      <div class="hv-err" id="hvErr"></div>
+    </div>
+
+    <div id="hvBody" style="display:none">
+      <div class="hv-stats">
+        <div class="hv-stat"><span class="hv-stat-v" id="hvStatWk">0</span><span class="hv-stat-l">This week</span></div>
+        <div class="hv-stat"><span class="hv-stat-v" id="hvStatVol">0</span><span class="hv-stat-l">kg vol / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v" id="hvStatLast">—</span><span class="hv-stat-l">Last workout</span></div>
+      </div>
+      <div class="hv-err" id="hvErr2"></div>
+      <div class="hv-list" id="hvList"></div>
+      <button class="hv-disconnect" id="hvDisconnect" type="button">disconnect hevy</button>
+    </div>
+  </section>
+
+  <div class="po-header" style="display:none">
     <h1 class="po-title" id="appTitle">Progressive Overload Coach</h1>
     <button class="po-icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
   </div>
 
-  <div class="card">
+  <div class="card" style="display:none">
     <!-- Filters -->
     <div class="po-filters">
       <div class="po-seg-row">
@@ -3962,6 +4059,161 @@ img, video, canvas, svg { max-width: 100%; }
   window._ftRender = render;
   render();
   window.addEventListener('storage', e => { if (e.key === KEY || !e.key) render(); });
+})();
+</script>
+
+<script>
+// ============================================================
+// HEVY INTEGRATION
+// Pulls workouts from the Hevy API (browser-direct, CORS ok)
+// and bridges them into fitness_sessions so the Today arc,
+// Body hub and dashboards pick them up automatically.
+// The API key is stored on this device only (never synced).
+// ============================================================
+(function () {
+  'use strict';
+  const KEY_K = 'hevy_api_key';
+  const CACHE_K = 'hevy_workouts_cache';
+  const API = 'https://api.hevyapp.com/v1';
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const $ = id => document.getElementById(id);
+  function getKey() { return localStorage.getItem(KEY_K) || ''; }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function dkey(ms) { const d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+
+  function normalize(raw) {
+    return (raw || []).map(w => {
+      if (!w || !w.id) return null;
+      const start = Date.parse(w.start_time) || null;
+      const end = Date.parse(w.end_time) || null;
+      let volume = 0, sets = 0;
+      const exercises = (w.exercises || []).map(ex => {
+        let best = null;
+        (ex.sets || []).forEach(s => {
+          const kg = Number(s.weight_kg) || 0, reps = Number(s.reps) || 0;
+          volume += kg * reps; sets++;
+          if (!best || kg > best.kg) best = { kg, reps };
+        });
+        return { name: ex.title || ex.name || 'Exercise', sets: (ex.sets || []).length, best };
+      });
+      return {
+        id: String(w.id), title: w.title || 'Workout', start, end,
+        mins: (start && end) ? Math.max(1, Math.round((end - start) / 60000)) : null,
+        volume: Math.round(volume), sets, exercises
+      };
+    }).filter(w => w && w.start);
+  }
+
+  async function fetchWorkouts() {
+    const res = await fetch(API + '/workouts?page=1&pageSize=10', {
+      headers: { 'api-key': getKey(), 'Accept': 'application/json' }
+    });
+    if (res.status === 401 || res.status === 403) throw new Error('Hevy rejected the key — check it and try again.');
+    if (!res.ok) throw new Error('Hevy error ' + res.status);
+    const data = await res.json();
+    return normalize(data.workouts || []);
+  }
+
+  // Bridge Hevy workouts into fitness_sessions. Ids are shaped
+  // 'ft<startMs>_hv<hevyId>' so the sun-arc time parser works and
+  // dedupe is exact. Writing here goes through gym's synced layer.
+  function bridge(workouts) {
+    let sessions;
+    try { sessions = JSON.parse(localStorage.getItem('fitness_sessions') || '[]'); } catch (e) { sessions = []; }
+    if (!Array.isArray(sessions)) sessions = [];
+    let added = 0;
+    workouts.forEach(w => {
+      const marker = '_hv' + w.id;
+      if (sessions.some(s => s && String(s.id || '').indexOf(marker) !== -1)) return;
+      const entry = { id: 'ft' + w.start + marker, type: 'gym', date: dkey(w.start), split: w.title, notes: 'Hevy' };
+      if (w.mins) entry.duration = w.mins;
+      sessions.unshift(entry);
+      added++;
+    });
+    if (added) {
+      sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      localStorage.setItem('fitness_sessions', JSON.stringify(sessions));
+      try { if (typeof window._ftRender === 'function') window._ftRender(); } catch (e) {}
+    }
+    return added;
+  }
+
+  function render(workouts) {
+    const hasKey = !!getKey();
+    $('hvConnect').style.display = hasKey ? 'none' : '';
+    $('hvBody').style.display = hasKey ? '' : 'none';
+    if (!hasKey) return;
+
+    const weekAgo = Date.now() - 7 * 864e5;
+    const wk = workouts.filter(w => w.start >= weekAgo);
+    $('hvStatWk').textContent = wk.length;
+    $('hvStatVol').textContent = Math.round(wk.reduce((t, w) => t + w.volume, 0)).toLocaleString();
+    $('hvStatLast').textContent = workouts[0]
+      ? new Date(workouts[0].start).getDate() + ' ' + MONS[new Date(workouts[0].start).getMonth()]
+      : '—';
+
+    $('hvList').innerHTML = workouts.length ? workouts.map(w => {
+      const d = new Date(w.start);
+      const exRows = w.exercises.slice(0, 4).map(ex =>
+        '<div class="hv-ex"><span class="hv-ex-name">' + esc(ex.name) + '</span>' +
+        '<span class="hv-ex-best">' + (ex.best && ex.best.kg
+          ? ex.best.kg + 'kg × ' + ex.best.reps
+          : ex.sets + ' set' + (ex.sets === 1 ? '' : 's')) + '</span></div>'
+      ).join('');
+      const more = w.exercises.length > 4
+        ? '<div class="hv-ex"><span class="hv-ex-name" style="color:var(--text-3)">+ ' + (w.exercises.length - 4) + ' more</span></div>' : '';
+      return '<div class="hv-card">' +
+        '<div class="hv-wo-head"><span class="hv-wo-title">' + esc(w.title) + '</span>' +
+        '<span class="hv-wo-date">' + d.getDate() + ' ' + MONS[d.getMonth()] + '</span></div>' +
+        '<div class="hv-wo-meta">' +
+          [w.mins ? w.mins + ' min' : '', w.exercises.length + ' exercises', w.sets + ' sets',
+           w.volume ? w.volume.toLocaleString() + ' kg' : ''].filter(Boolean).join(' · ') +
+        '</div>' + exRows + more + '</div>';
+    }).join('') : '<div class="hv-empty">No workouts yet — log one in Hevy and hit Sync.</div>';
+  }
+
+  function cached() {
+    try { return JSON.parse(localStorage.getItem(CACHE_K) || '[]'); } catch (e) { return []; }
+  }
+
+  async function sync(showErr) {
+    const btn = $('hvRefresh');
+    btn.disabled = true; btn.textContent = '↻ …';
+    try {
+      const workouts = await fetchWorkouts();
+      localStorage.setItem(CACHE_K, JSON.stringify(workouts));
+      bridge(workouts);
+      render(workouts);
+      $('hvErr2').textContent = '';
+    } catch (e) {
+      if (showErr) $(getKey() ? 'hvErr2' : 'hvErr').textContent = e.message;
+      render(cached());
+    } finally {
+      btn.disabled = false; btn.textContent = '↻ Sync';
+    }
+  }
+
+  $('hvKeySave').addEventListener('click', () => {
+    const k = $('hvKeyInput').value.trim();
+    if (!k) { $('hvErr').textContent = 'Paste a key first.'; return; }
+    localStorage.setItem(KEY_K, k);
+    $('hvKeyInput').value = '';
+    render([]);
+    sync(true);
+  });
+  $('hvKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('hvKeySave').click(); });
+  $('hvRefresh').addEventListener('click', () => { getKey() ? sync(true) : $('hvErr').textContent = 'Connect Hevy first.'; });
+  $('hvDisconnect').addEventListener('click', () => {
+    if (!confirm('Disconnect Hevy on this device? Bridged sessions stay.')) return;
+    localStorage.removeItem(KEY_K);
+    localStorage.removeItem(CACHE_K);
+    render([]);
+  });
+
+  render(cached());
+  if (getKey()) sync(false);
 })();
 </script>
 
