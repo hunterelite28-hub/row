@@ -532,12 +532,56 @@ window.Nova = buildNova(document.getElementById('novaScene'))
     });
   }
 
-  function runReply(text) {
+  const MENTOR_MODEL = 'claude-sonnet-5';
+  let chatHistory = [];
+
+  function novaSystemPrompt() {
+    return 'You are Nova, a warm, direct personal mentor inside the user\'s Sunpath life-tracking dashboard. ' +
+      'Use the data below to ground your answers in what is actually happening in their life. Be concise — ' +
+      'a few sentences, not an essay — and speak like a supportive coach, not a generic assistant.\n\n' +
+      'Current data:\n' + buildSunpathDigest();
+  }
+
+  async function runReply(text) {
     const think = addThinkingBubble();
-    setTimeout(function () {
+    if (window.Nova) window.Nova.setExpression('thinking');
+    chatHistory.push({ role: 'user', content: text });
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': localStorage.getItem('mentor_api_key') || '',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: MENTOR_MODEL,
+          max_tokens: 512,
+          system: novaSystemPrompt(),
+          messages: chatHistory
+        })
+      });
       think.stop(); think.el.remove();
-      addNovaBubble('(stub reply — wired to Claude in the next step)');
-    }, 1200);
+      if (!res.ok) {
+        const errBody = await res.json().catch(function () { return {}; });
+        const msg = (errBody && errBody.error && errBody.error.message) || ('Request failed (' + res.status + ')');
+        addNovaBubble('Something went wrong: ' + escapeHtml(msg) + '. Check your key (gear icon) and try again.');
+        if (window.Nova) window.Nova.setExpression('sad', 4);
+        chatHistory.pop();
+        return;
+      }
+      const data = await res.json();
+      const reply = (data.content && data.content[0] && data.content[0].text) || '(empty reply)';
+      chatHistory.push({ role: 'assistant', content: reply });
+      addNovaBubble(escapeHtml(reply).replace(/\n/g, '<br>'));
+      if (window.Nova) window.Nova.setExpression('happy', 4);
+    } catch (e) {
+      think.stop(); think.el.remove();
+      addNovaBubble('Couldn\'t reach Claude — check your connection and try again.');
+      if (window.Nova) window.Nova.setExpression('sad', 4);
+      chatHistory.pop();
+    }
   }
 
   function send(text) {
