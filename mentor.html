@@ -72,6 +72,28 @@ body::after {
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
 }
+.nova-card { padding: 20px; margin-bottom: 16px; text-align: center; }
+.nova-stage {
+  position: relative; height: 240px;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(60% 55% at 50% 42%, rgba(80,120,255,0.14), transparent 60%),
+    radial-gradient(40% 40% at 70% 70%, rgba(190,80,255,0.10), transparent 65%);
+  border-radius: 16px;
+}
+#novaScene { width: 200px; height: 200px; display: block; cursor: grab; }
+#novaScene:active { cursor: grabbing; }
+.nova-label { margin-top: 10px; }
+.nova-name {
+  font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+  font-size: 22px; letter-spacing: -0.01em;
+  background: linear-gradient(90deg, #67e8f9, #a78bfa 60%, #f0abfc);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+.nova-role {
+  margin-top: 4px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
 </style>
 </head>
 <body>
@@ -82,7 +104,250 @@ body::after {
       <div class="dash-title-sub">Nova &middot; your AI companion</div>
     </div>
   </div>
-  <!-- Task 2 appends the avatar card here, Task 4 appends the chat card -->
+  <div class="nova-card glassy">
+    <div class="nova-stage"><canvas id="novaScene"></canvas></div>
+    <div class="nova-label">
+      <div class="nova-name">Nova</div>
+      <div class="nova-role" id="novaRole">your mentor</div>
+    </div>
+  </div>
+  <!-- Task 4 appends the chat card here -->
 </div>
+
+<script type="module">
+import * as THREE from 'three'
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+function buildNova(canvas) {
+const CYAN = new THREE.Color('#67E8F9'), VIOLET = new THREE.Color('#A78BFA'), PINK = new THREE.Color('#F0ABFC')
+let renderer
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }) }
+catch (e) { throw e }
+renderer.setClearColor(0x000000, 0)
+renderer.outputColorSpace = THREE.SRGBColorSpace
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.15
+
+const scene = new THREE.Scene()
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100)
+camera.position.set(0, 0.1, 5.2); camera.lookAt(0, 0, 0)
+
+function makeEnv() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64
+  const x = c.getContext('2d'); const g = x.createLinearGradient(0, 0, 0, 64)
+  g.addColorStop(0, '#0a1030'); g.addColorStop(0.5, '#243a8a'); g.addColorStop(0.75, '#7a4adf'); g.addColorStop(1, '#f0abfc')
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64)
+  const tex = new THREE.CanvasTexture(c); tex.mapping = THREE.EquirectangularReflectionMapping
+  const pm = new THREE.PMREMGenerator(renderer); const env = pm.fromEquirectangular(tex).texture
+  tex.dispose(); pm.dispose(); return env
+}
+scene.environment = makeEnv()
+
+const avatar = new THREE.Group(); scene.add(avatar)
+
+const core = new THREE.Mesh(
+  new THREE.OctahedronGeometry(1.18, 0),
+  new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color('#dfe8ff'), metalness: 0, roughness: 0.06,
+    transmission: 0.9, thickness: 2.0, ior: 1.6, clearcoat: 1, clearcoatRoughness: 0.1,
+    iridescence: 1, iridescenceIOR: 1.6, iridescenceThicknessRange: [120, 520],
+    attenuationColor: VIOLET.clone(), attenuationDistance: 2.4, envMapIntensity: 1.4,
+  })
+)
+avatar.add(core)
+
+const glow = new THREE.Mesh(
+  new THREE.SphereGeometry(0.55, 32, 32),
+  new THREE.MeshBasicMaterial({ color: VIOLET, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending })
+)
+avatar.add(glow)
+
+const fc = document.createElement('canvas'); fc.width = fc.height = 256
+const fx = fc.getContext('2d'); const faceTex = new THREE.CanvasTexture(fc)
+
+function strokeStyle(lw = 13) {
+  fx.strokeStyle = '#eafcff'; fx.fillStyle = '#eafcff';
+  fx.lineCap = 'round'; fx.lineJoin = 'round';
+  fx.shadowColor = '#a78bfa'; fx.shadowBlur = 18; fx.lineWidth = lw;
+}
+let gx = 0, gy = 0;
+function eye(cx, cy, open, type, noPupil) {
+  strokeStyle()
+  fx.beginPath()
+  if (type === 'happy')      fx.ellipse(cx, cy + 6, 26, 22, 0, Math.PI * 1.05, Math.PI * 1.95)
+  else if (type === 'sad')   fx.ellipse(cx, cy - 6, 26, 22, 0, Math.PI * 0.05, Math.PI * 0.95)
+  else if (type === 'closed')fx.ellipse(cx, cy, 24, 2, 0, 0, Math.PI * 2)
+  else if (type === 'wide')  fx.ellipse(cx, cy, 22, 24 * open, 0, 0, Math.PI * 2)
+  else                       fx.ellipse(cx, cy, 22, Math.max(1.5, 22 * open), 0, 0, Math.PI * 2)
+  fx.stroke()
+  if ((type === 'wide' || type === 'neutral') && !noPupil && open > 0.55) { fx.beginPath(); fx.arc(cx + gx, cy + gy, 5, 0, Math.PI * 2); fx.fill() }
+}
+function symbol(kind) {
+  strokeStyle(11); fx.beginPath()
+  if (kind === 'heart') {
+    fx.fillStyle = '#ff8fcf'; fx.shadowColor = '#ff8fcf'
+    fx.moveTo(128, 150)
+    fx.bezierCurveTo(70, 100, 90, 60, 128, 96)
+    fx.bezierCurveTo(166, 60, 186, 100, 128, 150)
+    fx.fill()
+  } else if (kind === 'star') {
+    fx.fillStyle = '#ffe08a'; fx.shadowColor = '#ffe08a'
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? 16 : 38, a = -Math.PI / 2 + i * Math.PI / 5
+      const px = 128 + Math.cos(a) * r, py = 118 + Math.sin(a) * r
+      i ? fx.lineTo(px, py) : fx.moveTo(px, py)
+    }
+    fx.closePath(); fx.fill()
+  }
+  faceTex.needsUpdate = true
+}
+
+const EXPR = {
+  neutral:   { eye: 'neutral', mouth: null },
+  happy:     { eye: 'happy',   mouth: 'smile' },
+  sad:       { eye: 'sad',     mouth: 'frown' },
+  surprised: { eye: 'wide',    mouth: 'o' },
+  thinking:  { eye: 'neutral', mouth: null, dots: true },
+  sleepy:    { eye: 'closed',  mouth: null, zzz: true },
+  wink:      { eye: 'wink',    mouth: 'smile' },
+  love:      { symbol: 'heart' },
+  star:      { symbol: 'star' },
+}
+
+function drawFace(open = 1, expr = 'neutral', rightOpen = null, time = 0) {
+  fx.clearRect(0, 0, 256, 256)
+  const e = EXPR[expr] || EXPR.neutral
+  if (e.symbol) { symbol(e.symbol); return }
+  if (rightOpen == null) rightOpen = open
+  if (e.eye === 'wink') {
+    eye(86, 110, open, 'neutral')
+    eye(170, 110, rightOpen, 'neutral', true)
+  } else {
+    eye(86, 110, open, e.eye)
+    eye(170, 110, open, e.eye)
+  }
+  strokeStyle(10)
+  if (e.mouth === 'smile') { fx.beginPath(); fx.arc(128, 158, 30, Math.PI * 0.12, Math.PI * 0.88); fx.stroke() }
+  else if (e.mouth === 'frown') { fx.beginPath(); fx.arc(128, 196, 30, Math.PI * 1.12, Math.PI * 1.88); fx.stroke() }
+  else if (e.mouth === 'o') { fx.beginPath(); fx.arc(128, 168, 13, 0, Math.PI * 2); fx.stroke() }
+  if (e.dots) {
+    fx.fillStyle = '#eafcff'
+    ;[108, 128, 148].forEach((x, i) => {
+      fx.beginPath(); fx.arc(x, 172, 4, 0, Math.PI * 2)
+      fx.globalAlpha = 0.3 + 0.6 * (0.5 + 0.5 * Math.sin(time * 4 - i * 0.9))
+      fx.fill()
+    })
+    fx.globalAlpha = 1
+  }
+  if (e.zzz) {
+    const f = (time * 0.55) % 1
+    fx.fillStyle = '#eafcff'; fx.globalAlpha = 1 - f
+    fx.font = 'italic 22px serif'; fx.fillText('z', 176, 86 - f * 16)
+    fx.font = 'italic 16px serif'; fx.fillText('z', 196, 70 - f * 16)
+    fx.globalAlpha = 1
+  }
+  faceTex.needsUpdate = true
+}
+drawFace(1, 'neutral')
+const face = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 1.05),
+  new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, opacity: 0.98, depthTest: false, depthWrite: false }))
+face.position.set(0, 0, 1.25)
+face.renderOrder = 999
+avatar.add(face)
+
+const N = 70, pPos = new Float32Array(N * 3)
+for (let i = 0; i < N; i++) {
+  const r = 2.0 + Math.random() * 0.9, t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1)
+  pPos[i*3] = r*Math.sin(p)*Math.cos(t); pPos[i*3+1] = r*Math.cos(p)*0.6; pPos[i*3+2] = r*Math.sin(p)*Math.sin(t)
+}
+const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3))
+const halo = new THREE.Points(pGeo, new THREE.PointsMaterial({ color: CYAN, size: 0.03, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }))
+avatar.add(halo)
+
+const key = new THREE.DirectionalLight(CYAN, 2.2); key.position.set(2, 3, 4); scene.add(key)
+const rim = new THREE.DirectionalLight(VIOLET, 1.8); rim.position.set(-3, 1, -2); scene.add(rim)
+const fill = new THREE.PointLight(PINK, 6, 12); fill.position.set(0, -2, 2); scene.add(fill)
+scene.add(new THREE.AmbientLight(0x223066, 0.6))
+
+function setPalette(a, b, c) {
+  CYAN.set(a); VIOLET.set(b); PINK.set(c)
+  key.color.set(a); rim.color.set(b); fill.color.set(c)
+  halo.material.color.set(a)
+  glow.material.color.set(b)
+  core.material.attenuationColor.set(b)
+  core.material.needsUpdate = true
+}
+
+const target = { x: 0, y: 0 }, cur = { x: 0, y: 0 }
+addEventListener('pointermove', e => { target.x = (e.clientX / innerWidth - 0.5) * 2; target.y = (e.clientY / innerHeight - 0.5) * 2 })
+
+function resize() {
+  const s = canvas.clientWidth || 200
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(s, s, false)
+  camera.aspect = 1; camera.updateProjectionMatrix()
+}
+new ResizeObserver(resize).observe(canvas); resize()
+
+let expr = 'neutral';
+let exprHold = -1;
+let pop = 0;
+let winkT = 0;
+let prevExpr = 'neutral';
+let transT = -1;
+const TRANS_DUR = 0.36;
+function setExpression(name, holdSec = 0) {
+  if (!EXPR[name]) return
+  if (name !== expr) { prevExpr = expr; transT = 0 }
+  expr = name; pop = 1; exprHold = holdSec > 0 ? holdSec : -1
+  winkT = 0
+}
+
+const clock = new THREE.Clock(); let nextBlink = 2.5, blinkT = -1
+function frame() {
+  requestAnimationFrame(frame)
+  const t = clock.getElapsedTime(), dt = Math.min(clock.getDelta(), 0.05)
+  if (!reduce) {
+    cur.x += (target.x - cur.x) * 0.06; cur.y += (target.y - cur.y) * 0.06
+    avatar.rotation.y = cur.x * 0.5 + Math.sin(t * 0.25) * 0.15
+    avatar.rotation.x = cur.y * 0.35 + Math.sin(t * 0.4) * 0.05
+    core.rotation.y = t * 0.35; core.rotation.x = Math.sin(t * 0.5) * 0.2
+    pop = Math.max(0, pop - dt * 2.2)
+    const breathe = 1 + Math.sin(t * 1.4) * 0.025 + pop * 0.12
+    core.scale.setScalar(breathe)
+    glow.material.opacity = 0.4 + Math.sin(t * 1.4) * 0.12 + pop * 0.3
+    glow.scale.setScalar(1 + Math.sin(t * 1.4) * 0.06 + pop * 0.15)
+    halo.rotation.y = t * 0.08
+    gx = Math.max(-6, Math.min(6, cur.x * 5 + Math.sin(t * 0.7) * 2))
+    gy = Math.max(-5, Math.min(5, cur.y * 4 + Math.cos(t * 0.9) * 1.5))
+
+    let open = 1
+    let shownExpr = expr
+    const sym = (EXPR[expr] || {}).symbol
+    if (transT >= 0) {
+      transT += dt
+      const k = Math.min(1, transT / TRANS_DUR)
+      shownExpr = k < 0.5 ? prevExpr : expr
+      const h = k < 0.5 ? 1 - k * 2 : (k - 0.5) * 2
+      open = k < 0.5 ? h : h * (1 + 0.14 * Math.sin(h * Math.PI))
+      if (transT >= TRANS_DUR) transT = -1
+    } else if (!sym) {
+      if (blinkT >= 0) { const k = blinkT / 0.18; open = Math.abs(k - 0.5) * 2; blinkT += dt; if (blinkT > 0.18) blinkT = -1 }
+      else if (t > nextBlink) { blinkT = 0; nextBlink = t + 2.4 + Math.random() * 3.4 }
+      else open = 0.93 + 0.07 * Math.sin(t * 2.0)
+    }
+    if (exprHold > 0) { exprHold -= dt; if (exprHold <= 0) { setExpression('neutral'); exprHold = -1 } }
+    winkT += dt
+    const rightOpen = shownExpr === 'wink' ? Math.max(0, 1 - winkT / 0.32) : open
+    drawFace(open, shownExpr, rightOpen, t)
+    face.rotation.y = -avatar.rotation.y * 0.6; face.rotation.x = -avatar.rotation.x * 0.6
+  }
+  renderer.render(scene, camera)
+}
+frame()
+return { setExpression, setPalette, expressions: Object.keys(EXPR) }
+}
+
+window.Nova = buildNova(document.getElementById('novaScene'))
+</script>
 </body>
 </html>
