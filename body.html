@@ -13,8 +13,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="sunpath.css">
 <script src="sunpath.js" defer></script>
+<style>
+@media (min-width: 1024px) {
+  .body-page .shellwrap {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    grid-template-areas:
+      "date      date"
+      "head      head"
+      "today     weight"
+      "workouts  runs"
+      "stack     water"
+      "sessions  sessions";
+  }
+  .body-page .daterow    { grid-area: date; }
+  .body-page .pagehead   { grid-area: head; }
+  .body-page #secToday    { grid-area: today; }
+  .body-page #secWeight   { grid-area: weight; }
+  .body-page #secWorkouts { grid-area: workouts; }
+  .body-page #secRuns     { grid-area: runs; }
+  .body-page #secStack    { grid-area: stack; }
+  .body-page #secWater    { grid-area: water; }
+  .body-page #secSessions { grid-area: sessions; }
+}
+</style>
 </head>
-<body>
+<body class="body-page">
 <div class="shellwrap">
   <div class="daterow" id="spDaterow"></div>
 
@@ -23,16 +50,32 @@
     <div class="sub" id="spSub"></div>
   </div>
 
-  <div class="section" id="spWeightSec" style="display:none">
-    <a class="glassy card" href="gym.html" id="spWeight"></a>
-  </div>
-
-  <div class="section">
+  <div class="section" id="secToday">
     <div class="sec-head">Today<span class="more num" id="spSplit"></span></div>
     <div class="glassy card"><div class="rows" id="spToday"></div></div>
   </div>
 
-  <div class="section">
+  <div class="section" id="secWeight">
+    <!-- Task 2 fills this in -->
+  </div>
+
+  <div class="section" id="secWorkouts">
+    <!-- Task 3 fills this in -->
+  </div>
+
+  <div class="section" id="secRuns">
+    <!-- Task 4 fills this in -->
+  </div>
+
+  <div class="section" id="secStack">
+    <!-- Task 5 fills this in -->
+  </div>
+
+  <div class="section" id="secWater">
+    <!-- Task 6 fills this in -->
+  </div>
+
+  <div class="section" id="secSessions">
     <div class="sec-head">Recent sessions<span class="more num" id="spTotalsLbl"></span></div>
     <div class="glassy card"><div class="rows" id="spSessions"></div></div>
     <div class="chiprow" id="spChips"></div>
