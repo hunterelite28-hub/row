@@ -109,20 +109,6 @@
       document.getElementById('spSub').innerHTML = bits.length ? bits.join(' · ') + '.' : 'Log something and this page comes alive.';
       document.getElementById('spSplit').textContent = splitNice ? new Date().toLocaleDateString('en-SG', { weekday: 'short' }).toUpperCase() + ' · ' + splitNice.toUpperCase() + ' DAY' : '';
 
-      // weight card
-      const sec = document.getElementById('spWeightSec');
-      if (wt) {
-        sec.style.display = '';
-        const vals = wt.entries.slice(-30).map(e => e.weight);
-        const path = S.sparkPath(vals, 320, 40);
-        const d30 = wt.delta30;
-        document.getElementById('spWeight').innerHTML =
-          '<span class="k">Weight</span>' +
-          '<div class="bigv num">' + wt.last.weight.toFixed(1) + ' <small>kg</small></div>' +
-          '<div class="trend"><b' + (d30 <= 0 ? '' : ' class="warm"') + '>' + (d30 > 0 ? '+' : '') + d30.toFixed(1) + ' kg</b> past 30 days · last logged ' + S.fmtDateStr(wt.last.dateKey) + '</div>' +
-          (path ? '<div class="spark" style="margin-top:12px"><svg viewBox="0 0 320 40"><path d="' + path + '" fill="none" stroke="#9ED9A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' : '');
-      } else { sec.style.display = 'none'; }
-
       // today rows
       let t = '';
       if (st.total) {
