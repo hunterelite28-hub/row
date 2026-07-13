@@ -39,6 +39,59 @@
   .body-page #secWater    { grid-area: water; }
   .body-page #secSessions { grid-area: sessions; }
 }
+
+/* ===== Weight tile ===== */
+.hidden { display: none !important; }
+.wt-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.wt-num { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+.wt-unit { font-size: 14px; color: var(--muted); }
+.wt-delta { font-size: 12px; font-weight: 500; margin-bottom: 10px; color: var(--sun); }
+.wt-streak { color: var(--leaf); font-size: 12px; font-weight: 500; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 6px; }
+.wt-empty { text-align: center; padding: 20px 12px; color: var(--faint); font-size: 12px; border: 1px dashed var(--line); border-radius: 12px; margin-bottom: 4px; }
+
+.wt-chart-wrap { position: relative; margin: 14px 0 8px; }
+.wt-chart-yaxis { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0; }
+.wt-chart-yaxis span { font-size: 9px; color: var(--faint); font-family: var(--mono); }
+.wt-chart { height: 120px; display: block; margin-left: 32px; width: calc(100% - 32px); }
+.wt-grid { stroke: var(--line); stroke-width: 1; }
+.wt-area { fill: url(#wtFill); }
+.wt-line { fill: none; stroke: var(--leaf); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.wt-avg-line { fill: none; stroke: rgba(158,217,160,0.45); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.6; }
+.wt-dot { fill: var(--leaf); stroke: var(--card); stroke-width: 1.5; }
+.wt-dot-today { fill: var(--ink); stroke: var(--leaf); stroke-width: 2; }
+.wt-meta { text-align: center; font-size: 10.5px; color: var(--faint); margin-top: 6px; }
+.wt-legend { display: flex; justify-content: center; gap: 16px; margin-top: 8px; }
+.wt-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 9.5px; letter-spacing: 0.14em; font-weight: 600; color: var(--faint); }
+.wt-legend-dot { width: 14px; height: 2px; background: var(--leaf); border-radius: 1px; }
+.wt-legend-dot-avg { background: transparent; border-top: 2px dashed rgba(158,217,160,0.45); height: 2px; }
+
+.wt-comp { margin-top: 16px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; }
+.wt-comp-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.wt-comp-label { font-size: 9.5px; letter-spacing: 0.14em; font-weight: 700; text-transform: uppercase; color: var(--faint); }
+.wt-comp-window { font-size: 9.5px; color: var(--faint); }
+.wt-comp-headline { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--ink); margin-bottom: 10px; }
+.wt-comp-headline.good { color: var(--leaf); }
+.wt-comp-headline.warn { color: var(--sun); }
+.wt-comp-headline.bad  { color: var(--ember); }
+.wt-comp-bars { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: rgba(255,255,255,0.05); }
+.wt-comp-bar { height: 100%; transition: width 0.3s ease; }
+.wt-comp-bar.muscle { background: var(--leaf); }
+.wt-comp-bar.fat    { background: var(--sun); }
+.wt-comp-foot { font-size: 11px; line-height: 1.45; color: var(--muted); }
+
+.wt-locked { display: flex; align-items: center; justify-content: space-between; background: rgba(158,217,160,0.06); border: 1px solid rgba(158,217,160,0.22); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+.wt-locked-info { display: flex; align-items: center; gap: 12px; }
+.wt-locked-check { width: 28px; height: 28px; background: rgba(158,217,160,0.15); color: var(--leaf); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.wt-locked-label { font-size: 9.5px; letter-spacing: 0.14em; font-weight: 600; color: var(--faint); margin-bottom: 2px; }
+.wt-locked-value { font-size: 15px; font-weight: 600; }
+.wt-edit-btn { background: transparent; border: none; color: var(--leaf); font-family: var(--display); font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 10px; }
+
+.wt-input-row { margin-top: 14px; }
+.wt-input-top { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; }
+.wt-input { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font-family: var(--display); font-size: 16px; font-weight: 500; padding: 11px 13px; width: 100%; outline: none; }
+.wt-input:focus { border-color: rgba(158,217,160,0.4); }
+.wt-unit-static { color: var(--faint); font-size: 13px; }
+.wt-save-btn { background: var(--sun); color: #0A0B0E; border: none; border-radius: 10px; padding: 11px 18px; font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body class="body-page">
@@ -56,8 +109,327 @@
   </div>
 
   <div class="section" id="secWeight">
-    <!-- Task 2 fills this in -->
+    <div class="sec-head">Weight</div>
+    <div class="glassy card wt-card">
+      <div class="wt-row">
+        <span class="wt-num num" id="wtNum">—</span>
+        <span class="wt-unit" id="wtUnit">kg</span>
+      </div>
+      <div class="wt-delta hidden num" id="wtDelta"></div>
+      <div class="wt-streak hidden" id="wtStreak">🔥<span id="wtStreakNum">0 day streak</span></div>
+      <div class="wt-empty" id="wtEmpty">Log your first weight to start tracking.</div>
+
+      <div class="wt-chart-wrap hidden" id="wtChartWrap">
+        <div class="wt-chart-yaxis">
+          <span id="wtYAxisMax">—</span>
+          <span id="wtYAxisMin">—</span>
+        </div>
+        <svg class="wt-chart" viewBox="0 0 320 130" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wtFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#9ED9A0" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#9ED9A0" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="wtGlow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <line class="wt-grid" x1="0" y1="20" x2="320" y2="20"></line>
+          <line class="wt-grid" x1="0" y1="65" x2="320" y2="65"></line>
+          <line class="wt-grid" x1="0" y1="110" x2="320" y2="110"></line>
+          <g id="wtChartContent"></g>
+        </svg>
+        <div class="wt-meta num" id="wtMeta">0 entries</div>
+      </div>
+
+      <div class="wt-legend hidden" id="wtLegend">
+        <span class="wt-legend-item"><span class="wt-legend-dot"></span>DAILY</span>
+        <span class="wt-legend-item"><span class="wt-legend-dot wt-legend-dot-avg"></span>7-DAY AVG</span>
+      </div>
+
+      <div class="wt-comp hidden" id="wtComp">
+        <div class="wt-comp-h">
+          <span class="wt-comp-label">Composition estimate</span>
+          <span class="wt-comp-window num" id="wtCompWindow">last 30d</span>
+        </div>
+        <div class="wt-comp-headline" id="wtCompHeadline">—</div>
+        <div class="wt-comp-bars" id="wtCompBars"></div>
+        <div class="wt-comp-foot num" id="wtCompFoot">—</div>
+      </div>
+
+      <div class="wt-locked hidden" id="wtLocked">
+        <div class="wt-locked-info">
+          <span class="wt-locked-check">✓</span>
+          <div>
+            <div class="wt-locked-label">LOGGED TODAY</div>
+            <div class="wt-locked-value num" id="wtLockedValue">— kg</div>
+          </div>
+        </div>
+        <button class="wt-edit-btn" id="wtEditBtn" type="button">Edit</button>
+      </div>
+
+      <div class="wt-input-row" id="wtInputRow">
+        <div class="wt-input-top">
+          <input type="number" step="0.1" class="wt-input" id="wtInput" placeholder="Enter weight" inputmode="decimal" aria-label="Today's weight">
+          <span class="wt-unit-static" id="wtUnitStatic">kg</span>
+          <button class="wt-save-btn" id="wtSaveBtn" type="button">Save</button>
+        </div>
+      </div>
+    </div>
   </div>
+
+<script>
+(function () {
+  'use strict';
+  const S = window.Sunpath;
+  const $ = id => document.getElementById(id);
+  const WT_KEY = 'po_coach_weights';
+  const COACH_KEY = 'po_coach_v1';
+
+  function wtLoad() {
+    const arr = S.readJSON(WT_KEY, []);
+    return Array.isArray(arr) ? arr.slice().sort((a, b) => a.dateKey.localeCompare(b.dateKey)) : [];
+  }
+  function wtSaveAll(arr) { localStorage.setItem(WT_KEY, JSON.stringify(arr)); }
+  function wtDateKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function wtParseKey(key) { const p = key.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); }
+  function wtSmoothPath(points) {
+    if (!points.length) return '';
+    if (points.length === 1) return 'M ' + points[0].x + ' ' + points[0].y;
+    let d = 'M ' + points[0].x.toFixed(2) + ' ' + points[0].y.toFixed(2);
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i-1], curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ' Q ' + cx.toFixed(2) + ' ' + prev.y.toFixed(2) + ', ' + cx.toFixed(2) + ' ' + ((prev.y + curr.y)/2).toFixed(2);
+      d += ' T ' + curr.x.toFixed(2) + ' ' + curr.y.toFixed(2);
+    }
+    return d;
+  }
+  function estimate1RM(w, r) { if (r < 2) return w; return w * (1 + r / 30); }
+
+  let wtEntries = wtLoad();
+  function units() { return (S.readJSON(COACH_KEY, {}) || {}).units || 'kg'; }
+
+  function wtSaveEntry(weight) {
+    const key = wtDateKey(new Date());
+    const existing = wtEntries.find(e => e.dateKey === key);
+    if (existing) existing.weight = weight;
+    else { wtEntries.push({ dateKey: key, weight }); wtEntries.sort((a,b) => a.dateKey.localeCompare(b.dateKey)); }
+    wtSaveAll(wtEntries);
+    wtRender();
+  }
+
+  function wtRender() {
+    wtEntries = wtLoad();
+    const u = units();
+    const last = wtEntries[wtEntries.length - 1] || null;
+    const todayKey = wtDateKey(new Date());
+    const todayEntry = wtEntries.find(e => e.dateKey === todayKey);
+
+    $('wtUnit').textContent = u;
+    $('wtUnitStatic').textContent = u;
+    $('wtNum').textContent = last ? last.weight.toFixed(1) : '—';
+
+    if (todayEntry) {
+      $('wtEmpty').classList.add('hidden');
+      $('wtLockedValue').textContent = todayEntry.weight.toFixed(1) + ' ' + u;
+      $('wtLocked').classList.remove('hidden');
+      $('wtInputRow').classList.add('hidden');
+    } else {
+      $('wtEmpty').classList.toggle('hidden', wtEntries.length !== 0);
+      $('wtLocked').classList.add('hidden');
+      $('wtInputRow').classList.remove('hidden');
+      if (last && !$('wtInput').value) $('wtInput').value = last.weight.toFixed(1);
+    }
+
+    if (wtEntries.length >= 2) {
+      $('wtChartWrap').classList.remove('hidden');
+      $('wtLegend').classList.remove('hidden');
+      wtRenderChart();
+      wtRenderDelta();
+      wtRenderComposition();
+    } else {
+      $('wtChartWrap').classList.add('hidden');
+      $('wtLegend').classList.add('hidden');
+      $('wtDelta').classList.add('hidden');
+      $('wtComp').classList.add('hidden');
+    }
+    wtRenderStreak();
+  }
+
+  function wtRenderStreak() {
+    const el = $('wtStreak');
+    let streak = 0;
+    let cursor = new Date();
+    if (!wtEntries.find(e => e.dateKey === wtDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+    while (wtEntries.find(e => e.dateKey === wtDateKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    if (streak >= 2) { $('wtStreakNum').textContent = streak + ' day streak'; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  }
+
+  function wtRenderChart() {
+    const recent = wtEntries.slice(-30);
+    const weights = recent.map(e => e.weight);
+    const min = Math.min.apply(null, weights), max = Math.max.apply(null, weights);
+    const pad = Math.max((max - min) * 0.15, 0.5);
+    const yMin = min - pad, yMax = max + pad;
+    const xLeft = 8, xRight = 312, yTop = 20, yBot = 110;
+    const xRange = xRight - xLeft, yRange = yBot - yTop;
+    const xFor = (i) => recent.length === 1 ? xRight : xLeft + (i / (recent.length - 1)) * xRange;
+    const yFor = (w) => yBot - ((w - yMin) / (yMax - yMin)) * yRange;
+    const points = recent.map((e, i) => ({ x: xFor(i), y: yFor(e.weight) }));
+    const linePath = wtSmoothPath(points);
+    const areaPath = linePath + ' L ' + points[points.length-1].x.toFixed(2) + ' ' + yBot + ' L ' + points[0].x.toFixed(2) + ' ' + yBot + ' Z';
+    const avgPoints = recent.map((_, i) => {
+      const start = Math.max(0, i - 6);
+      const win = recent.slice(start, i + 1);
+      const avg = win.reduce((s, p) => s + p.weight, 0) / win.length;
+      return { x: xFor(i), y: yFor(avg) };
+    });
+    const avgPath = wtSmoothPath(avgPoints);
+    let html = '<path class="wt-avg-line" d="' + avgPath + '"></path>'
+             + '<path class="wt-area" d="' + areaPath + '"></path>'
+             + '<path class="wt-line" filter="url(#wtGlow)" d="' + linePath + '"></path>';
+    points.forEach((p, i) => {
+      const cls = (i === points.length - 1) ? 'wt-dot-today' : 'wt-dot';
+      const r = (i === points.length - 1) ? 5 : 3;
+      html += '<circle class="' + cls + '" cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="' + r + '"/>';
+    });
+    $('wtChartContent').innerHTML = html;
+    $('wtYAxisMax').textContent = yMax.toFixed(1);
+    $('wtYAxisMin').textContent = yMin.toFixed(1);
+    $('wtMeta').textContent = wtEntries.length + ' ' + (wtEntries.length === 1 ? 'entry' : 'entries') + ' · last ' + recent.length + ' days';
+  }
+
+  function wtRenderDelta() {
+    const last = wtEntries[wtEntries.length - 1];
+    const lastDate = wtParseKey(last.dateKey);
+    const cutoff = new Date(lastDate); cutoff.setDate(cutoff.getDate() - 7);
+    const baseline = wtEntries.find(e => wtParseKey(e.dateKey) >= cutoff) || wtEntries[0];
+    const diff = last.weight - baseline.weight;
+    const el = $('wtDelta');
+    if (Math.abs(diff) < 0.05) { el.classList.add('hidden'); return; }
+    const arrow = diff > 0 ? '↑' : '↓';
+    const sign = diff > 0 ? '+' : '−';
+    el.textContent = arrow + ' ' + sign + Math.abs(diff).toFixed(1) + ' ' + units() + ' · last 7d';
+    el.classList.remove('hidden');
+  }
+
+  const COMPOSITION = { enabled: true, yearsTraining: 1, windowDays: 30 };
+
+  function wtRenderComposition() {
+    const compEl = $('wtComp');
+    if (!COMPOSITION.enabled || wtEntries.length < 2) { compEl.classList.add('hidden'); return; }
+    const coach = S.readJSON(COACH_KEY, {}) || {};
+    const exercises = Array.isArray(coach.exercises) ? coach.exercises : [];
+    const logs = (coach.logs && typeof coach.logs === 'object') ? coach.logs : {};
+    const u = units();
+
+    const windowDays = COMPOSITION.windowDays;
+    const now = wtParseKey(wtEntries[wtEntries.length - 1].dateKey);
+    const start = new Date(now); start.setDate(start.getDate() - windowDays);
+
+    const startEntry = wtEntries.find(e => wtParseKey(e.dateKey) >= start);
+    const endEntry = wtEntries[wtEntries.length - 1];
+    if (!startEntry || startEntry === endEntry) { compEl.classList.add('hidden'); return; }
+    const weightDelta = endEntry.weight - startEntry.weight;
+    const actualDays = Math.max(1, Math.round((wtParseKey(endEntry.dateKey) - wtParseKey(startEntry.dateKey)) / 86400000));
+    const weeks = actualDays / 7;
+
+    let strengthRatios = [];
+    let workoutDays = new Set();
+    exercises.forEach(ex => {
+      const exLogs = (logs[ex.id] || []).slice();
+      if (exLogs.length < 2 || ex.bw) {
+        exLogs.forEach(l => { if (new Date(l.date) >= start) workoutDays.add(String(l.date).slice(0, 10)); });
+        return;
+      }
+      const inWin = exLogs.filter(l => new Date(l.date) >= start);
+      const before = exLogs.filter(l => new Date(l.date) < start);
+      inWin.forEach(l => workoutDays.add(String(l.date).slice(0, 10)));
+      if (!inWin.length || !before.length) return;
+      const avg = arr => arr.reduce((s, l) => s + estimate1RM(l.weight, l.reps), 0) / arr.length;
+      const a = avg(before), b = avg(inWin);
+      if (a <= 0) return;
+      strengthRatios.push(b / a);
+    });
+    const strengthDelta = strengthRatios.length
+      ? (strengthRatios.reduce((s, r) => s + r, 0) / strengthRatios.length) - 1
+      : 0;
+    const sessionsPerWeek = (workoutDays.size / actualDays) * 7;
+    const frequencyFactor = Math.max(0.4, Math.min(1.2, sessionsPerWeek / 4));
+
+    const yt = COMPOSITION.yearsTraining;
+    let maxMuscleKgPerWeek;
+    if (yt <= 1) maxMuscleKgPerWeek = 0.45; else if (yt === 2) maxMuscleKgPerWeek = 0.23; else maxMuscleKgPerWeek = 0.11;
+    const unitConv = (u === 'lb') ? 2.20462 : 1;
+    const maxMusclePerWeek = maxMuscleKgPerWeek * unitConv;
+
+    const strengthBoost = Math.max(0.5, Math.min(1.5, 1 + strengthDelta * 4));
+    let estMuscle = maxMusclePerWeek * weeks * strengthBoost * frequencyFactor;
+
+    let estFat, headlineCls, headline;
+    if (weightDelta > 0) {
+      estMuscle = Math.min(estMuscle, weightDelta);
+      estFat = Math.max(0, weightDelta - estMuscle);
+      const musclePct = estMuscle / weightDelta;
+      if (musclePct >= 0.6 && strengthDelta > 0) { headlineCls = 'good'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mostly muscle, strength up.'; }
+      else if (musclePct >= 0.35) { headlineCls = 'warn'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mixed. Tighten kcal or push lifts harder.'; }
+      else { headlineCls = 'bad'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mostly fat. Strength flat. Cut kcal.'; }
+    } else {
+      const wDown = Math.abs(weightDelta);
+      if (strengthDelta >= 0) {
+        estMuscle = Math.min(maxMusclePerWeek * weeks * 0.3, 0.5);
+        estFat = wDown + estMuscle;
+        headlineCls = 'good'; headline = '−' + wDown.toFixed(1) + ' ' + u + ' — strength holding, fat dropping.';
+      } else {
+        const lossPct = Math.min(0.4, Math.abs(strengthDelta) * 2);
+        estMuscle = -wDown * lossPct;
+        estFat = -(wDown + estMuscle);
+        headlineCls = 'warn'; headline = '−' + wDown.toFixed(1) + ' ' + u + ' — strength slipping. You may be losing muscle.';
+      }
+    }
+
+    compEl.classList.remove('hidden');
+    $('wtCompWindow').textContent = 'last ' + actualDays + 'd';
+    const headlineEl = $('wtCompHeadline');
+    headlineEl.textContent = headline;
+    headlineEl.className = 'wt-comp-headline ' + headlineCls;
+
+    const totalAbs = Math.abs(estMuscle) + Math.abs(estFat) || 1;
+    const musclePct = (Math.abs(estMuscle) / totalAbs) * 100;
+    const fatPct = (Math.abs(estFat) / totalAbs) * 100;
+    $('wtCompBars').innerHTML =
+      '<div class="wt-comp-bar muscle" style="width:' + musclePct.toFixed(1) + '%"></div>' +
+      '<div class="wt-comp-bar fat" style="width:' + fatPct.toFixed(1) + '%"></div>';
+
+    const sd = strengthDelta * 100;
+    const sdStr = (sd >= 0 ? '+' : '') + sd.toFixed(1) + '%';
+    const muscleSign = estMuscle >= 0 ? '+' : '';
+    const fatSign = estFat >= 0 ? '+' : '';
+    $('wtCompFoot').textContent =
+      '~' + muscleSign + estMuscle.toFixed(1) + ' ' + u + ' muscle · '
+      + '~' + fatSign + estFat.toFixed(1) + ' ' + u + ' fat · '
+      + 'strength ' + sdStr + ' · ' + sessionsPerWeek.toFixed(1) + ' sessions/wk'
+      + (strengthRatios.length ? '' : ' (no lift data)');
+  }
+
+  $('wtSaveBtn').addEventListener('click', () => {
+    const v = parseFloat($('wtInput').value);
+    if (isNaN(v) || v <= 0) return;
+    wtSaveEntry(v);
+  });
+  $('wtInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('wtSaveBtn').click(); });
+  $('wtEditBtn').addEventListener('click', () => {
+    $('wtLocked').classList.add('hidden');
+    $('wtInputRow').classList.remove('hidden');
+    const todayEntry = wtEntries.find(e => e.dateKey === wtDateKey(new Date()));
+    if (todayEntry) $('wtInput').value = todayEntry.weight.toFixed(1);
+    $('wtInput').focus(); $('wtInput').select();
+  });
+
+  wtRender();
+  window._bodyWtRender = wtRender;
+})();
+</script>
 
   <div class="section" id="secWorkouts">
     <!-- Task 3 fills this in -->
