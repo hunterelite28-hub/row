@@ -537,6 +537,7 @@ window.Nova = buildNova(document.getElementById('novaScene'))
         body: JSON.stringify({
           model: MENTOR_MODEL,
           max_tokens: 512,
+          thinking: { type: 'disabled' },
           system: novaSystemPrompt(),
           messages: chatHistory
         })
@@ -551,7 +552,8 @@ window.Nova = buildNova(document.getElementById('novaScene'))
         return;
       }
       const data = await res.json();
-      const reply = (data.content && data.content[0] && data.content[0].text) || '(empty reply)';
+      const textBlock = data.content && data.content.find(function (b) { return b.type === 'text'; });
+      const reply = (textBlock && textBlock.text) || '(empty reply)';
       chatHistory.push({ role: 'assistant', content: reply });
       addNovaBubble(escapeHtml(reply).replace(/\n/g, '<br>'));
       if (window.Nova) window.Nova.setExpression('happy', 4);
