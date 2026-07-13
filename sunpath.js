@@ -56,11 +56,9 @@ window.Sunpath = (function () {
     const d = new Date();
     const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
     const MONS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-    const streak = (readJSON('goal_streak_v1', {}) || {}).count || 0;
     el.innerHTML =
       (label ? '<span>' + label + '</span><span>·</span>' : '') +
-      '<span>' + DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate() + '</span>' +
-      '<span class="flame num">🔥 ' + streak + '</span>';
+      '<span>' + DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate() + '</span>';
   }
 
   const DOCK = [

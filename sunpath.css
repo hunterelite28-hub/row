@@ -22,7 +22,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  background: linear-gradient(180deg, #202228 0%, #101114 30%, #000 68%);
+  background: var(--bg);
   min-height: 100vh;
   color: var(--ink);
   font-family: var(--display);
@@ -66,7 +66,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
   font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
   color: var(--muted); text-transform: uppercase;
 }
-.daterow .flame { margin-left: auto; color: var(--sun); }
 
 .pagehead { padding: 8px 20px 0; }
 .pagehead h1 {
@@ -148,7 +147,7 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .hero .sub { color: var(--muted); font-size: 13.5px; margin-top: 6px; font-weight: 400; }
 .hero .sub b { color: var(--sun); font-weight: 600; }
 .skywrap { position: relative; margin-top: 6px; }
-.sky { display: block; width: 100%; }
+.sky { display: block; width: 100%; overflow: visible; }
 .sky-caps {
   display: flex; justify-content: space-between;
   font-family: var(--mono); font-size: 10px; color: var(--faint);
