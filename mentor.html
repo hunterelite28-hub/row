@@ -349,5 +349,56 @@ return { setExpression, setPalette, expressions: Object.keys(EXPR) }
 
 window.Nova = buildNova(document.getElementById('novaScene'))
 </script>
+
+<script>
+  function buildSunpathDigest() {
+    const S = window.Sunpath;
+    if (!S) return 'No Sunpath data available yet.';
+    const parts = [];
+    try {
+      const G = S.goalsToday();
+      parts.push('Goals: ' + (G.total ? G.done + '/' + G.total + ' done today' : 'none set today'));
+    } catch (e) {}
+    try {
+      const H = S.habits();
+      parts.push('Habits: best streak ' + H.bestStreak + ' days, ' + H.list.length + ' tracked');
+    } catch (e) {}
+    try {
+      const F = S.fitness();
+      const last = F.sessions[0];
+      parts.push('Fitness: ' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + ' km all-time' +
+        (last ? ', last session ' + last.type + ' on ' + last.date : ', no sessions yet'));
+    } catch (e) {}
+    try {
+      const W = S.waterProgress();
+      parts.push('Water today: ' + (W.total ? W.done + '/' + W.total : 'not tracked'));
+    } catch (e) {}
+    try {
+      const st = S.stackToday();
+      if (st.total) parts.push('Supplement stack: ' + st.taken + '/' + st.total + ' taken today');
+    } catch (e) {}
+    try {
+      const L = S.learning();
+      parts.push('Learning: ' + (L.hours % 1 === 0 ? L.hours : L.hours.toFixed(1)) + ' hours total');
+    } catch (e) {}
+    try {
+      const Lib = S.library();
+      const reading = Lib.books.filter(function (b) { return b && b.status === 'reading'; });
+      parts.push('Library: ' + reading.length + ' book(s) currently reading' +
+        (reading[0] ? ' — "' + reading[0].title + '"' : ''));
+    } catch (e) {}
+    try {
+      const Gr = S.growth();
+      const lastNote = Gr.notes[0];
+      parts.push('Growth: ' + (lastNote ? 'last reflection ' + S.fmtShort(lastNote.ts) : 'no reflections yet'));
+    } catch (e) {}
+    try {
+      const M = S.money();
+      if (M) parts.push('Money: net worth ' + Math.round(M.last.v).toLocaleString() + ' SGD, ' +
+        (M.delta30 >= 0 ? '+' : '') + Math.round(M.delta30).toLocaleString() + ' past 30d');
+    } catch (e) {}
+    return parts.join('\n');
+  }
+</script>
 </body>
 </html>
