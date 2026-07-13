@@ -1,0 +1,2484 @@
+# Body Dashboard Restructure Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Restructure `body.html` into a 2-column × 3-row desktop dashboard that brings Weight, Workouts (Hevy), Runs (Strava), Supplement stack, and Water tracker onto the page as fully interactive, Sunpath-styled tiles — plus widen `mind.html`/`money.html` to match.
+
+**Architecture:** Everything lives in `body.html` as a single self-contained file (matching this codebase's existing convention — `gym.html` is 4491 lines, `health.html` is 1078 lines, all single-file pages). Each tile is a self-contained `<style>` + HTML section + `<script>` IIFE, placed together in the file, reading/writing the exact same `localStorage` keys the source pages (`gym.html`, `health.html`, `po-water.html`) already use, restyled to Sunpath's glass/warm design language instead of the source pages' dark tech aesthetic.
+
+**Tech Stack:** Static HTML/CSS/vanilla JS, no build step, no test runner. "Tests" in this plan are manual browser-verification steps (open the page, click things, inspect `localStorage` via devtools console) — there is no Jest/Playwright/etc. in this repo.
+
+## Global Constraints
+
+- Spec: `docs/superpowers/specs/2026-07-13-body-dashboard-restructure-design.md` — read it before starting, every task below implements a piece of it.
+- Every new tile is restyled to Sunpath's design tokens (`sunpath.css`): `var(--display)` (Bricolage Grotesque) for body text, `var(--mono)` (Spline Sans Mono, via the `.num` class) for numeric/stat values, `var(--sun)` `#F2A65A` for warm/attention accents, `var(--leaf)` `#9ED9A0` for good/positive, `var(--ember)` `#E4572E` for bad/missed, `var(--muted)`/`var(--faint)` for secondary text, `var(--line)`/`var(--glass-border)` for borders. Card chrome comes from the existing `.glassy card` wrapper — new tile CSS must NOT redefine `.card` or add its own card background/border/padding (that would collide with `sunpath.css`'s `.card`, which every other page section already relies on).
+- Every new tile reads/writes the **same localStorage keys** as its source page. No new keys. No data migration.
+- Do not duplicate `initCloudSync(...)` calls in `body.html` — `gym.html`/`health.html`/`po-water.html` already own cross-device sync for these keys; `body.html`'s copies are additional local readers/writers only.
+- Out of scope (confirmed in spec): weight progress photos/camera, water settings' day-pill header and app title (redundant with body.html's own header), Hevy/Strava section collapse-toggle chevrons.
+- In scope (confirmed in spec): the supplement stack's missed/low-stock ticker banner, and the water tracker's full Settings modal.
+
+---
+
+### Task 1: Grid scaffold — 2×3 desktop grid on body.html
+
+**Files:**
+- Modify: `body.html:1-40` (full current file — see below)
+
+**Interfaces:**
+- Produces: `.body-page` class on `<body>`; grid areas `date`, `head`, `today`, `weight`, `workouts`, `runs`, `stack`, `water` that Tasks 2–6 place their sections into via matching `id` selectors.
+
+Current `body.html` body markup (for reference — this is what you're restructuring):
+
+```html
+<body>
+<div class="shellwrap">
+  <div class="daterow" id="spDaterow"></div>
+
+  <div class="pagehead">
+    <h1 id="spHead">Body<em>.</em></h1>
+    <div class="sub" id="spSub"></div>
+  </div>
+
+  <div class="section" id="spWeightSec" style="display:none">
+    <a class="glassy card" href="gym.html" id="spWeight"></a>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Today<span class="more num" id="spSplit"></span></div>
+    <div class="glassy card"><div class="rows" id="spToday"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Recent sessions<span class="more num" id="spTotalsLbl"></span></div>
+    <div class="glassy card"><div class="rows" id="spSessions"></div></div>
+    <div class="chiprow" id="spChips"></div>
+  </div>
+</div>
+```
+
+- [ ] **Step 1: Add the grid CSS and set `body-page` class**
+
+Edit `body.html`. Change the `<head>` to add a page-scoped `<style>` block (same pattern `today.html` uses), placed right after the `<link rel="stylesheet" href="sunpath.css">` line:
+
+```html
+<link rel="stylesheet" href="sunpath.css">
+<script src="sunpath.js" defer></script>
+<style>
+@media (min-width: 1024px) {
+  .body-page .shellwrap {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    grid-template-areas:
+      "date      date"
+      "head      head"
+      "today     weight"
+      "workouts  runs"
+      "stack     water"
+      "sessions  sessions";
+  }
+  .body-page .daterow    { grid-area: date; }
+  .body-page .pagehead   { grid-area: head; }
+  .body-page #secToday    { grid-area: today; }
+  .body-page #secWeight   { grid-area: weight; }
+  .body-page #secWorkouts { grid-area: workouts; }
+  .body-page #secRuns     { grid-area: runs; }
+  .body-page #secStack    { grid-area: stack; }
+  .body-page #secWater    { grid-area: water; }
+  .body-page #secSessions { grid-area: sessions; }
+}
+</style>
+```
+
+Change `<body>` to `<body class="body-page">`.
+
+- [ ] **Step 2: Restructure the body markup into the new sections**
+
+Replace the entire `<div class="shellwrap">...</div>` block with:
+
+```html
+<div class="shellwrap">
+  <div class="daterow" id="spDaterow"></div>
+
+  <div class="pagehead">
+    <h1 id="spHead">Body<em>.</em></h1>
+    <div class="sub" id="spSub"></div>
+  </div>
+
+  <div class="section" id="secToday">
+    <div class="sec-head">Today<span class="more num" id="spSplit"></span></div>
+    <div class="glassy card"><div class="rows" id="spToday"></div></div>
+  </div>
+
+  <div class="section" id="secWeight">
+    <!-- Task 2 fills this in -->
+  </div>
+
+  <div class="section" id="secWorkouts">
+    <!-- Task 3 fills this in -->
+  </div>
+
+  <div class="section" id="secRuns">
+    <!-- Task 4 fills this in -->
+  </div>
+
+  <div class="section" id="secStack">
+    <!-- Task 5 fills this in -->
+  </div>
+
+  <div class="section" id="secWater">
+    <!-- Task 6 fills this in -->
+  </div>
+
+  <div class="section" id="secSessions">
+    <div class="sec-head">Recent sessions<span class="more num" id="spTotalsLbl"></span></div>
+    <div class="glassy card"><div class="rows" id="spSessions"></div></div>
+    <div class="chiprow" id="spChips"></div>
+  </div>
+</div>
+```
+
+Note: the old `id="spWeightSec" style="display:none"` link-out card is gone — Task 2 replaces it with a fully interactive tile that's always visible (no more hide-if-no-data toggle, since the tile itself has an empty state).
+
+- [ ] **Step 3: Manual verification**
+
+Open `body.html` in a browser at a desktop width (≥1024px, e.g. resize the window or use devtools responsive mode at 1200px). Confirm:
+- The page still loads without JS errors (check devtools console) — Weight/Workouts/Runs/Stack/Water sections will render empty/blank since Tasks 2–6 haven't filled them in yet, that's expected.
+- Today card appears top-left, an empty gap top-right, then two more empty-gap rows, then Recent Sessions spanning full width at the bottom.
+- Resize below 1024px: everything stacks in a single column in source order (Today, then the empty sections, then Recent Sessions).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add 2x3 desktop grid scaffold to body.html
+
+Restructures body.html's sections into named grid areas
+(today/weight/workouts/runs/stack/water) matching today.html's
+max-width:1100px desktop grid pattern. Tile content lands in
+follow-up tasks.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 2: Weight tile
+
+**Files:**
+- Modify: `body.html` — fill `#secWeight` (Task 1), add `<style>` block, add `<script>` block
+
+**Interfaces:**
+- Consumes: `window.Sunpath` (`S.readJSON`, `S.esc`) from `sunpath.js`; `po_coach_weights` (array of `{dateKey, weight}`), `po_coach_v1` (`{units, exercises, logs, ...}`) written by `gym.html`.
+- Produces: `window._bodyWtRender()` — re-reads `po_coach_weights`/`po_coach_v1` from localStorage and re-renders the tile. Task 7 calls this on external data changes.
+
+- [ ] **Step 1: Fill in the Weight tile markup**
+
+Replace `<div class="section" id="secWeight">...</div>`'s contents:
+
+```html
+<div class="section" id="secWeight">
+  <div class="sec-head">Weight</div>
+  <div class="glassy card wt-card">
+    <div class="wt-row">
+      <span class="wt-num num" id="wtNum">—</span>
+      <span class="wt-unit" id="wtUnit">kg</span>
+    </div>
+    <div class="wt-delta hidden num" id="wtDelta"></div>
+    <div class="wt-streak hidden" id="wtStreak">🔥<span id="wtStreakNum">0 day streak</span></div>
+    <div class="wt-empty" id="wtEmpty">Log your first weight to start tracking.</div>
+
+    <div class="wt-chart-wrap hidden" id="wtChartWrap">
+      <div class="wt-chart-yaxis">
+        <span id="wtYAxisMax">—</span>
+        <span id="wtYAxisMin">—</span>
+      </div>
+      <svg class="wt-chart" viewBox="0 0 320 130" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wtFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#9ED9A0" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#9ED9A0" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="wtGlow"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <line class="wt-grid" x1="0" y1="20" x2="320" y2="20"></line>
+        <line class="wt-grid" x1="0" y1="65" x2="320" y2="65"></line>
+        <line class="wt-grid" x1="0" y1="110" x2="320" y2="110"></line>
+        <g id="wtChartContent"></g>
+      </svg>
+      <div class="wt-meta num" id="wtMeta">0 entries</div>
+    </div>
+
+    <div class="wt-legend hidden" id="wtLegend">
+      <span class="wt-legend-item"><span class="wt-legend-dot"></span>DAILY</span>
+      <span class="wt-legend-item"><span class="wt-legend-dot wt-legend-dot-avg"></span>7-DAY AVG</span>
+    </div>
+
+    <div class="wt-comp hidden" id="wtComp">
+      <div class="wt-comp-h">
+        <span class="wt-comp-label">Composition estimate</span>
+        <span class="wt-comp-window num" id="wtCompWindow">last 30d</span>
+      </div>
+      <div class="wt-comp-headline" id="wtCompHeadline">—</div>
+      <div class="wt-comp-bars" id="wtCompBars"></div>
+      <div class="wt-comp-foot num" id="wtCompFoot">—</div>
+    </div>
+
+    <div class="wt-locked hidden" id="wtLocked">
+      <div class="wt-locked-info">
+        <span class="wt-locked-check">✓</span>
+        <div>
+          <div class="wt-locked-label">LOGGED TODAY</div>
+          <div class="wt-locked-value num" id="wtLockedValue">— kg</div>
+        </div>
+      </div>
+      <button class="wt-edit-btn" id="wtEditBtn" type="button">Edit</button>
+    </div>
+
+    <div class="wt-input-row" id="wtInputRow">
+      <div class="wt-input-top">
+        <input type="number" step="0.1" class="wt-input" id="wtInput" placeholder="Enter weight" inputmode="decimal" aria-label="Today's weight">
+        <span class="wt-unit-static" id="wtUnitStatic">kg</span>
+        <button class="wt-save-btn" id="wtSaveBtn" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Add the Weight tile CSS**
+
+Add to the `<style>` block created in Task 1, after the grid CSS:
+
+```css
+/* ===== Weight tile ===== */
+.hidden { display: none !important; }
+.wt-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.wt-num { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+.wt-unit { font-size: 14px; color: var(--muted); }
+.wt-delta { font-size: 12px; font-weight: 500; margin-bottom: 10px; color: var(--sun); }
+.wt-streak { color: var(--leaf); font-size: 12px; font-weight: 500; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 6px; }
+.wt-empty { text-align: center; padding: 20px 12px; color: var(--faint); font-size: 12px; border: 1px dashed var(--line); border-radius: 12px; margin-bottom: 4px; }
+
+.wt-chart-wrap { position: relative; margin: 14px 0 8px; }
+.wt-chart-yaxis { position: absolute; left: 0; top: 0; bottom: 0; width: 32px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0; }
+.wt-chart-yaxis span { font-size: 9px; color: var(--faint); font-family: var(--mono); }
+.wt-chart { height: 120px; display: block; margin-left: 32px; width: calc(100% - 32px); }
+.wt-grid { stroke: var(--line); stroke-width: 1; }
+.wt-area { fill: url(#wtFill); }
+.wt-line { fill: none; stroke: var(--leaf); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.wt-avg-line { fill: none; stroke: rgba(158,217,160,0.45); stroke-width: 1.5; stroke-dasharray: 4 3; opacity: 0.6; }
+.wt-dot { fill: var(--leaf); stroke: var(--card); stroke-width: 1.5; }
+.wt-dot-today { fill: var(--ink); stroke: var(--leaf); stroke-width: 2; }
+.wt-meta { text-align: center; font-size: 10.5px; color: var(--faint); margin-top: 6px; }
+.wt-legend { display: flex; justify-content: center; gap: 16px; margin-top: 8px; }
+.wt-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 9.5px; letter-spacing: 0.14em; font-weight: 600; color: var(--faint); }
+.wt-legend-dot { width: 14px; height: 2px; background: var(--leaf); border-radius: 1px; }
+.wt-legend-dot-avg { background: transparent; border-top: 2px dashed rgba(158,217,160,0.45); height: 2px; }
+
+.wt-comp { margin-top: 16px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; }
+.wt-comp-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.wt-comp-label { font-size: 9.5px; letter-spacing: 0.14em; font-weight: 700; text-transform: uppercase; color: var(--faint); }
+.wt-comp-window { font-size: 9.5px; color: var(--faint); }
+.wt-comp-headline { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--ink); margin-bottom: 10px; }
+.wt-comp-headline.good { color: var(--leaf); }
+.wt-comp-headline.warn { color: var(--sun); }
+.wt-comp-headline.bad  { color: var(--ember); }
+.wt-comp-bars { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: rgba(255,255,255,0.05); }
+.wt-comp-bar { height: 100%; transition: width 0.3s ease; }
+.wt-comp-bar.muscle { background: var(--leaf); }
+.wt-comp-bar.fat    { background: var(--sun); }
+.wt-comp-foot { font-size: 11px; line-height: 1.45; color: var(--muted); }
+
+.wt-locked { display: flex; align-items: center; justify-content: space-between; background: rgba(158,217,160,0.06); border: 1px solid rgba(158,217,160,0.22); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+.wt-locked-info { display: flex; align-items: center; gap: 12px; }
+.wt-locked-check { width: 28px; height: 28px; background: rgba(158,217,160,0.15); color: var(--leaf); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.wt-locked-label { font-size: 9.5px; letter-spacing: 0.14em; font-weight: 600; color: var(--faint); margin-bottom: 2px; }
+.wt-locked-value { font-size: 15px; font-weight: 600; }
+.wt-edit-btn { background: transparent; border: none; color: var(--leaf); font-family: var(--display); font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 10px; }
+
+.wt-input-row { margin-top: 14px; }
+.wt-input-top { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; }
+.wt-input { background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 10px; color: var(--ink); font-family: var(--display); font-size: 16px; font-weight: 500; padding: 11px 13px; width: 100%; outline: none; }
+.wt-input:focus { border-color: rgba(158,217,160,0.4); }
+.wt-unit-static { color: var(--faint); font-size: 13px; }
+.wt-save-btn { background: var(--sun); color: #0A0B0E; border: none; border-radius: 10px; padding: 11px 18px; font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; }
+```
+
+- [ ] **Step 3: Add the Weight tile script**
+
+Add a new `<script>` block right after the `#secWeight` markup (before the closing `</div>` of `.shellwrap`, or anywhere after the markup and before the final Sunpath boot script — this codebase's convention, seen in `gym.html`/`health.html`, is to place each feature's script immediately after its markup):
+
+```html
+<script>
+(function () {
+  'use strict';
+  const S = window.Sunpath;
+  const $ = id => document.getElementById(id);
+  const WT_KEY = 'po_coach_weights';
+  const COACH_KEY = 'po_coach_v1';
+
+  function wtLoad() {
+    const arr = S.readJSON(WT_KEY, []);
+    return Array.isArray(arr) ? arr.slice().sort((a, b) => a.dateKey.localeCompare(b.dateKey)) : [];
+  }
+  function wtSaveAll(arr) { localStorage.setItem(WT_KEY, JSON.stringify(arr)); }
+  function wtDateKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function wtParseKey(key) { const p = key.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); }
+  function wtSmoothPath(points) {
+    if (!points.length) return '';
+    if (points.length === 1) return 'M ' + points[0].x + ' ' + points[0].y;
+    let d = 'M ' + points[0].x.toFixed(2) + ' ' + points[0].y.toFixed(2);
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i-1], curr = points[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ' Q ' + cx.toFixed(2) + ' ' + prev.y.toFixed(2) + ', ' + cx.toFixed(2) + ' ' + ((prev.y + curr.y)/2).toFixed(2);
+      d += ' T ' + curr.x.toFixed(2) + ' ' + curr.y.toFixed(2);
+    }
+    return d;
+  }
+  function estimate1RM(w, r) { if (r < 2) return w; return w * (1 + r / 30); }
+
+  let wtEntries = wtLoad();
+  function units() { return (S.readJSON(COACH_KEY, {}) || {}).units || 'kg'; }
+
+  function wtSaveEntry(weight) {
+    const key = wtDateKey(new Date());
+    const existing = wtEntries.find(e => e.dateKey === key);
+    if (existing) existing.weight = weight;
+    else { wtEntries.push({ dateKey: key, weight }); wtEntries.sort((a,b) => a.dateKey.localeCompare(b.dateKey)); }
+    wtSaveAll(wtEntries);
+    wtRender();
+  }
+
+  function wtRender() {
+    wtEntries = wtLoad();
+    const u = units();
+    const last = wtEntries[wtEntries.length - 1] || null;
+    const todayKey = wtDateKey(new Date());
+    const todayEntry = wtEntries.find(e => e.dateKey === todayKey);
+
+    $('wtUnit').textContent = u;
+    $('wtUnitStatic').textContent = u;
+    $('wtNum').textContent = last ? last.weight.toFixed(1) : '—';
+
+    if (todayEntry) {
+      $('wtEmpty').classList.add('hidden');
+      $('wtLockedValue').textContent = todayEntry.weight.toFixed(1) + ' ' + u;
+      $('wtLocked').classList.remove('hidden');
+      $('wtInputRow').classList.add('hidden');
+    } else {
+      $('wtEmpty').classList.toggle('hidden', wtEntries.length !== 0);
+      $('wtLocked').classList.add('hidden');
+      $('wtInputRow').classList.remove('hidden');
+      if (last && !$('wtInput').value) $('wtInput').value = last.weight.toFixed(1);
+    }
+
+    if (wtEntries.length >= 2) {
+      $('wtChartWrap').classList.remove('hidden');
+      $('wtLegend').classList.remove('hidden');
+      wtRenderChart();
+      wtRenderDelta();
+      wtRenderComposition();
+    } else {
+      $('wtChartWrap').classList.add('hidden');
+      $('wtLegend').classList.add('hidden');
+      $('wtDelta').classList.add('hidden');
+      $('wtComp').classList.add('hidden');
+    }
+    wtRenderStreak();
+  }
+
+  function wtRenderStreak() {
+    const el = $('wtStreak');
+    let streak = 0;
+    let cursor = new Date();
+    if (!wtEntries.find(e => e.dateKey === wtDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+    while (wtEntries.find(e => e.dateKey === wtDateKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    if (streak >= 2) { $('wtStreakNum').textContent = streak + ' day streak'; el.classList.remove('hidden'); }
+    else el.classList.add('hidden');
+  }
+
+  function wtRenderChart() {
+    const recent = wtEntries.slice(-30);
+    const weights = recent.map(e => e.weight);
+    const min = Math.min.apply(null, weights), max = Math.max.apply(null, weights);
+    const pad = Math.max((max - min) * 0.15, 0.5);
+    const yMin = min - pad, yMax = max + pad;
+    const xLeft = 8, xRight = 312, yTop = 20, yBot = 110;
+    const xRange = xRight - xLeft, yRange = yBot - yTop;
+    const xFor = (i) => recent.length === 1 ? xRight : xLeft + (i / (recent.length - 1)) * xRange;
+    const yFor = (w) => yBot - ((w - yMin) / (yMax - yMin)) * yRange;
+    const points = recent.map((e, i) => ({ x: xFor(i), y: yFor(e.weight) }));
+    const linePath = wtSmoothPath(points);
+    const areaPath = linePath + ' L ' + points[points.length-1].x.toFixed(2) + ' ' + yBot + ' L ' + points[0].x.toFixed(2) + ' ' + yBot + ' Z';
+    const avgPoints = recent.map((_, i) => {
+      const start = Math.max(0, i - 6);
+      const win = recent.slice(start, i + 1);
+      const avg = win.reduce((s, p) => s + p.weight, 0) / win.length;
+      return { x: xFor(i), y: yFor(avg) };
+    });
+    const avgPath = wtSmoothPath(avgPoints);
+    let html = '<path class="wt-avg-line" d="' + avgPath + '"></path>'
+             + '<path class="wt-area" d="' + areaPath + '"></path>'
+             + '<path class="wt-line" filter="url(#wtGlow)" d="' + linePath + '"></path>';
+    points.forEach((p, i) => {
+      const cls = (i === points.length - 1) ? 'wt-dot-today' : 'wt-dot';
+      const r = (i === points.length - 1) ? 5 : 3;
+      html += '<circle class="' + cls + '" cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="' + r + '"/>';
+    });
+    $('wtChartContent').innerHTML = html;
+    $('wtYAxisMax').textContent = yMax.toFixed(1);
+    $('wtYAxisMin').textContent = yMin.toFixed(1);
+    $('wtMeta').textContent = wtEntries.length + ' ' + (wtEntries.length === 1 ? 'entry' : 'entries') + ' · last ' + recent.length + ' days';
+  }
+
+  function wtRenderDelta() {
+    const last = wtEntries[wtEntries.length - 1];
+    const lastDate = wtParseKey(last.dateKey);
+    const cutoff = new Date(lastDate); cutoff.setDate(cutoff.getDate() - 7);
+    const baseline = wtEntries.find(e => wtParseKey(e.dateKey) >= cutoff) || wtEntries[0];
+    const diff = last.weight - baseline.weight;
+    const el = $('wtDelta');
+    if (Math.abs(diff) < 0.05) { el.classList.add('hidden'); return; }
+    const arrow = diff > 0 ? '↑' : '↓';
+    const sign = diff > 0 ? '+' : '−';
+    el.textContent = arrow + ' ' + sign + Math.abs(diff).toFixed(1) + ' ' + units() + ' · last 7d';
+    el.classList.remove('hidden');
+  }
+
+  const COMPOSITION = { enabled: true, yearsTraining: 1, windowDays: 30 };
+
+  function wtRenderComposition() {
+    const compEl = $('wtComp');
+    if (!COMPOSITION.enabled || wtEntries.length < 2) { compEl.classList.add('hidden'); return; }
+    const coach = S.readJSON(COACH_KEY, {}) || {};
+    const exercises = Array.isArray(coach.exercises) ? coach.exercises : [];
+    const logs = (coach.logs && typeof coach.logs === 'object') ? coach.logs : {};
+    const u = units();
+
+    const windowDays = COMPOSITION.windowDays;
+    const now = wtParseKey(wtEntries[wtEntries.length - 1].dateKey);
+    const start = new Date(now); start.setDate(start.getDate() - windowDays);
+
+    const startEntry = wtEntries.find(e => wtParseKey(e.dateKey) >= start);
+    const endEntry = wtEntries[wtEntries.length - 1];
+    if (!startEntry || startEntry === endEntry) { compEl.classList.add('hidden'); return; }
+    const weightDelta = endEntry.weight - startEntry.weight;
+    const actualDays = Math.max(1, Math.round((wtParseKey(endEntry.dateKey) - wtParseKey(startEntry.dateKey)) / 86400000));
+    const weeks = actualDays / 7;
+
+    let strengthRatios = [];
+    let workoutDays = new Set();
+    exercises.forEach(ex => {
+      const exLogs = (logs[ex.id] || []).slice();
+      if (exLogs.length < 2 || ex.bw) {
+        exLogs.forEach(l => { if (new Date(l.date) >= start) workoutDays.add(String(l.date).slice(0, 10)); });
+        return;
+      }
+      const inWin = exLogs.filter(l => new Date(l.date) >= start);
+      const before = exLogs.filter(l => new Date(l.date) < start);
+      inWin.forEach(l => workoutDays.add(String(l.date).slice(0, 10)));
+      if (!inWin.length || !before.length) return;
+      const avg = arr => arr.reduce((s, l) => s + estimate1RM(l.weight, l.reps), 0) / arr.length;
+      const a = avg(before), b = avg(inWin);
+      if (a <= 0) return;
+      strengthRatios.push(b / a);
+    });
+    const strengthDelta = strengthRatios.length
+      ? (strengthRatios.reduce((s, r) => s + r, 0) / strengthRatios.length) - 1
+      : 0;
+    const sessionsPerWeek = (workoutDays.size / actualDays) * 7;
+    const frequencyFactor = Math.max(0.4, Math.min(1.2, sessionsPerWeek / 4));
+
+    const yt = COMPOSITION.yearsTraining;
+    let maxMuscleKgPerWeek;
+    if (yt <= 1) maxMuscleKgPerWeek = 0.45; else if (yt === 2) maxMuscleKgPerWeek = 0.23; else maxMuscleKgPerWeek = 0.11;
+    const unitConv = (u === 'lb') ? 2.20462 : 1;
+    const maxMusclePerWeek = maxMuscleKgPerWeek * unitConv;
+
+    const strengthBoost = Math.max(0.5, Math.min(1.5, 1 + strengthDelta * 4));
+    let estMuscle = maxMusclePerWeek * weeks * strengthBoost * frequencyFactor;
+
+    let estFat, headlineCls, headline;
+    if (weightDelta > 0) {
+      estMuscle = Math.min(estMuscle, weightDelta);
+      estFat = Math.max(0, weightDelta - estMuscle);
+      const musclePct = estMuscle / weightDelta;
+      if (musclePct >= 0.6 && strengthDelta > 0) { headlineCls = 'good'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mostly muscle, strength up.'; }
+      else if (musclePct >= 0.35) { headlineCls = 'warn'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mixed. Tighten kcal or push lifts harder.'; }
+      else { headlineCls = 'bad'; headline = '+' + weightDelta.toFixed(1) + ' ' + u + ' — mostly fat. Strength flat. Cut kcal.'; }
+    } else {
+      const wDown = Math.abs(weightDelta);
+      if (strengthDelta >= 0) {
+        estMuscle = Math.min(maxMusclePerWeek * weeks * 0.3, 0.5);
+        estFat = wDown + estMuscle;
+        headlineCls = 'good'; headline = '−' + wDown.toFixed(1) + ' ' + u + ' — strength holding, fat dropping.';
+      } else {
+        const lossPct = Math.min(0.4, Math.abs(strengthDelta) * 2);
+        estMuscle = -wDown * lossPct;
+        estFat = -(wDown + estMuscle);
+        headlineCls = 'warn'; headline = '−' + wDown.toFixed(1) + ' ' + u + ' — strength slipping. You may be losing muscle.';
+      }
+    }
+
+    compEl.classList.remove('hidden');
+    $('wtCompWindow').textContent = 'last ' + actualDays + 'd';
+    const headlineEl = $('wtCompHeadline');
+    headlineEl.textContent = headline;
+    headlineEl.className = 'wt-comp-headline ' + headlineCls;
+
+    const totalAbs = Math.abs(estMuscle) + Math.abs(estFat) || 1;
+    const musclePct = (Math.abs(estMuscle) / totalAbs) * 100;
+    const fatPct = (Math.abs(estFat) / totalAbs) * 100;
+    $('wtCompBars').innerHTML =
+      '<div class="wt-comp-bar muscle" style="width:' + musclePct.toFixed(1) + '%"></div>' +
+      '<div class="wt-comp-bar fat" style="width:' + fatPct.toFixed(1) + '%"></div>';
+
+    const sd = strengthDelta * 100;
+    const sdStr = (sd >= 0 ? '+' : '') + sd.toFixed(1) + '%';
+    const muscleSign = estMuscle >= 0 ? '+' : '';
+    const fatSign = estFat >= 0 ? '+' : '';
+    $('wtCompFoot').textContent =
+      '~' + muscleSign + estMuscle.toFixed(1) + ' ' + u + ' muscle · '
+      + '~' + fatSign + estFat.toFixed(1) + ' ' + u + ' fat · '
+      + 'strength ' + sdStr + ' · ' + sessionsPerWeek.toFixed(1) + ' sessions/wk'
+      + (strengthRatios.length ? '' : ' (no lift data)');
+  }
+
+  $('wtSaveBtn').addEventListener('click', () => {
+    const v = parseFloat($('wtInput').value);
+    if (isNaN(v) || v <= 0) return;
+    wtSaveEntry(v);
+  });
+  $('wtInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('wtSaveBtn').click(); });
+  $('wtEditBtn').addEventListener('click', () => {
+    $('wtLocked').classList.add('hidden');
+    $('wtInputRow').classList.remove('hidden');
+    const todayEntry = wtEntries.find(e => e.dateKey === wtDateKey(new Date()));
+    if (todayEntry) $('wtInput').value = todayEntry.weight.toFixed(1);
+    $('wtInput').focus(); $('wtInput').select();
+  });
+
+  wtRender();
+  window._bodyWtRender = wtRender;
+})();
+</script>
+```
+
+- [ ] **Step 4: Manual verification**
+
+Open `body.html` in a browser (desktop width). In devtools console:
+```js
+localStorage.setItem('po_coach_weights', JSON.stringify([
+  {dateKey:'2026-06-01', weight:74.2}, {dateKey:'2026-06-15', weight:73.0},
+  {dateKey:'2026-07-01', weight:72.1}, {dateKey:'2026-07-12', weight:71.5}
+]));
+location.reload();
+```
+Confirm: the number shows `71.5`, a chart with 4 points renders, delta shows relative to ~7 days back, no composition block yet (no `po_coach_v1` data — that's expected, `wtRenderComposition` hides itself). Type a weight into the input and click Save — confirm it locks (shows "LOGGED TODAY"), and re-running `JSON.parse(localStorage.getItem('po_coach_weights'))` in console shows today's entry appended. Click "Edit" — confirm it unlocks back to the input.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add interactive Weight tile to body.html
+
+Ports gym.html's weight tracker (number/delta/streak/chart/
+composition-estimate/save) into body.html's grid, restyled to
+Sunpath's design language. Reads/writes po_coach_weights and
+po_coach_v1, same keys gym.html uses.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 3: Workouts (Hevy) tile
+
+**Files:**
+- Modify: `body.html` — fill `#secWorkouts`, add shared `.hv-*` CSS (also used by Task 4), add `<script>` block
+
+**Interfaces:**
+- Consumes: `window.Sunpath` (`S.readJSON`, `S.esc`); `hevy_api_key`, `hevy_workouts_cache` (written here and by `gym.html`); writes into `fitness_sessions` (bridge).
+- Produces: `.hv-*` CSS classes reused by Task 4 (Strava tile — do not redefine them there). `window._bodyHvRender()` for Task 7.
+
+- [ ] **Step 1: Fill in the Workouts tile markup**
+
+```html
+<div class="section" id="secWorkouts">
+  <div class="sec-head">Workouts<span class="more num" id="hvSub">synced from Hevy</span></div>
+  <div class="glassy card">
+    <div class="hv-header">
+      <button class="hv-refresh" id="hvRefresh" type="button">↻ Sync</button>
+    </div>
+    <div class="hv-connect" id="hvConnect" style="display:none">
+      <div class="hv-connect-title">Connect Hevy</div>
+      <p class="hv-connect-p">Paste your API key from the Hevy app — hevy.com → Settings → Developer (needs Hevy Pro). The key is stored on this device only and never synced.</p>
+      <div class="hv-key-row">
+        <input type="password" id="hvKeyInput" placeholder="Hevy API key" autocomplete="off">
+        <button id="hvKeySave" type="button">Save</button>
+      </div>
+      <div class="hv-err" id="hvErr"></div>
+    </div>
+    <div id="hvBody" style="display:none">
+      <div class="hv-stats">
+        <div class="hv-stat"><span class="hv-stat-v num" id="hvStatWk">0</span><span class="hv-stat-l">This week</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="hvStatVol">0</span><span class="hv-stat-l">kg vol / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="hvStatLast">—</span><span class="hv-stat-l">Last workout</span></div>
+      </div>
+      <div class="hv-err" id="hvErr2"></div>
+      <div class="hv-list" id="hvList"></div>
+      <button class="hv-disconnect" id="hvDisconnect" type="button">disconnect hevy</button>
+    </div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Add the shared Hevy/Strava CSS**
+
+Add to the `<style>` block (these classes are reused as-is by Task 4's Strava tile — do not duplicate them there):
+
+```css
+/* ===== Hevy / Strava tiles (shared classes) ===== */
+.hv-header { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.hv-refresh { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 12px; font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.hv-refresh:hover { background: rgba(255,255,255,0.09); color: var(--ink); }
+.hv-refresh:disabled { opacity: 0.5; cursor: default; }
+
+.hv-connect-title { font-size: 15px; font-weight: 650; margin-bottom: 8px; }
+.hv-connect-p { font-size: 12px; line-height: 1.5; color: var(--muted); margin-bottom: 12px; }
+.hv-key-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.hv-key-row input { flex: 1; min-width: 0; background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink); font-family: var(--display); font-size: 13px; padding: 10px 12px; border-radius: 10px; outline: none; }
+.hv-key-row input:focus { border-color: rgba(158,217,160,0.4); }
+.hv-key-row button { background: var(--sun); color: #0A0B0E; border: none; border-radius: 10px; padding: 10px 16px; font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; }
+.hv-err { color: var(--ember); font-size: 11.5px; min-height: 14px; margin-bottom: 4px; }
+
+.hv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.hv-stat { padding: 12px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; text-align: center; }
+.hv-stat-v { display: block; font-size: 18px; font-weight: 650; color: var(--sun); }
+.hv-stat-l { display: block; font-size: 9px; color: var(--faint); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); }
+
+.hv-list { display: flex; flex-direction: column; gap: 8px; }
+.hv-item { background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.hv-wo-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hv-wo-title { font-size: 13px; font-weight: 650; }
+.hv-wo-date { font-size: 10.5px; color: var(--faint); font-family: var(--mono); }
+.hv-wo-meta { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+.hv-ex { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.hv-ex-name { color: var(--muted); }
+.hv-ex-best { font-family: var(--mono); color: var(--faint); }
+.hv-empty { text-align: center; padding: 20px 0; color: var(--faint); font-size: 12px; font-style: italic; }
+.hv-disconnect { width: 100%; margin-top: 10px; background: transparent; border: 1px solid var(--line); color: var(--faint); border-radius: 10px; padding: 9px; cursor: pointer; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.hv-disconnect:hover { color: var(--ember); border-color: rgba(228,87,46,0.35); }
+```
+
+- [ ] **Step 3: Add the Workouts tile script**
+
+Add a `<script>` block right after `#secWorkouts`:
+
+```html
+<script>
+(function () {
+  'use strict';
+  const S = window.Sunpath;
+  const $ = id => document.getElementById(id);
+  const KEY_K = 'hevy_api_key';
+  const CACHE_K = 'hevy_workouts_cache';
+  const API = 'https://api.hevyapp.com/v1';
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function getKey() { return localStorage.getItem(KEY_K) || ''; }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function dkey(ms) { const d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+
+  function normalize(raw) {
+    return (raw || []).map(w => {
+      if (!w || !w.id) return null;
+      const start = Date.parse(w.start_time) || null;
+      const end = Date.parse(w.end_time) || null;
+      let volume = 0, sets = 0;
+      const exercises = (w.exercises || []).map(ex => {
+        let best = null;
+        (ex.sets || []).forEach(s => {
+          const kg = Number(s.weight_kg) || 0, reps = Number(s.reps) || 0;
+          volume += kg * reps; sets++;
+          if (!best || kg > best.kg) best = { kg, reps };
+        });
+        return { name: ex.title || ex.name || 'Exercise', sets: (ex.sets || []).length, best };
+      });
+      return { id: String(w.id), title: w.title || 'Workout', start, end,
+        mins: (start && end) ? Math.max(1, Math.round((end - start) / 60000)) : null,
+        volume: Math.round(volume), sets, exercises };
+    }).filter(w => w && w.start);
+  }
+
+  async function fetchWorkouts() {
+    const res = await fetch(API + '/workouts?page=1&pageSize=10', {
+      headers: { 'api-key': getKey(), 'Accept': 'application/json' }
+    });
+    if (res.status === 401 || res.status === 403) throw new Error('Hevy rejected the key — check it and try again.');
+    if (!res.ok) throw new Error('Hevy error ' + res.status);
+    const data = await res.json();
+    return normalize(data.workouts || []);
+  }
+
+  function bridge(workouts) {
+    let sessions = S.readJSON('fitness_sessions', []);
+    if (!Array.isArray(sessions)) sessions = [];
+    let added = 0;
+    workouts.forEach(w => {
+      const marker = '_hv' + w.id;
+      if (sessions.some(s => s && String(s.id || '').indexOf(marker) !== -1)) return;
+      const entry = { id: 'ft' + w.start + marker, type: 'gym', date: dkey(w.start), split: w.title, notes: 'Hevy' };
+      if (w.mins) entry.duration = w.mins;
+      sessions.unshift(entry);
+      added++;
+    });
+    if (added) {
+      sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      localStorage.setItem('fitness_sessions', JSON.stringify(sessions));
+    }
+    return added;
+  }
+
+  function render(workouts) {
+    const hasKey = !!getKey();
+    $('hvConnect').style.display = hasKey ? 'none' : '';
+    $('hvBody').style.display = hasKey ? '' : 'none';
+    if (!hasKey) return;
+
+    const weekAgo = Date.now() - 7 * 864e5;
+    const wk = workouts.filter(w => w.start >= weekAgo);
+    $('hvStatWk').textContent = wk.length;
+    $('hvStatVol').textContent = Math.round(wk.reduce((t, w) => t + w.volume, 0)).toLocaleString();
+    $('hvStatLast').textContent = workouts[0]
+      ? new Date(workouts[0].start).getDate() + ' ' + MONS[new Date(workouts[0].start).getMonth()] : '—';
+
+    $('hvList').innerHTML = workouts.length ? workouts.slice(0, 6).map(w => {
+      const d = new Date(w.start);
+      const exRows = w.exercises.slice(0, 4).map(ex =>
+        '<div class="hv-ex"><span class="hv-ex-name">' + S.esc(ex.name) + '</span>' +
+        '<span class="hv-ex-best">' + (ex.best && ex.best.kg ? ex.best.kg + 'kg × ' + ex.best.reps : ex.sets + ' set' + (ex.sets === 1 ? '' : 's')) + '</span></div>'
+      ).join('');
+      const more = w.exercises.length > 4
+        ? '<div class="hv-ex"><span class="hv-ex-name" style="color:var(--faint)">+ ' + (w.exercises.length - 4) + ' more</span></div>' : '';
+      return '<div class="hv-item">' +
+        '<div class="hv-wo-head"><span class="hv-wo-title">' + S.esc(w.title) + '</span>' +
+        '<span class="hv-wo-date">' + d.getDate() + ' ' + MONS[d.getMonth()] + '</span></div>' +
+        '<div class="hv-wo-meta">' +
+          [w.mins ? w.mins + ' min' : '', w.exercises.length + ' exercises', w.sets + ' sets',
+           w.volume ? w.volume.toLocaleString() + ' kg' : ''].filter(Boolean).join(' · ') +
+        '</div>' + exRows + more + '</div>';
+    }).join('') : '<div class="hv-empty">No workouts yet — log one in Hevy and hit Sync.</div>';
+  }
+
+  function cached() { return S.readJSON(CACHE_K, []); }
+
+  async function sync(showErr) {
+    const btn = $('hvRefresh');
+    btn.disabled = true; btn.textContent = '↻ …';
+    try {
+      const workouts = await fetchWorkouts();
+      localStorage.setItem(CACHE_K, JSON.stringify(workouts));
+      bridge(workouts);
+      render(workouts);
+      $('hvErr2').textContent = '';
+    } catch (e) {
+      if (showErr) $(getKey() ? 'hvErr2' : 'hvErr').textContent = e.message;
+      render(cached());
+    } finally {
+      btn.disabled = false; btn.textContent = '↻ Sync';
+    }
+  }
+
+  $('hvKeySave').addEventListener('click', () => {
+    const k = $('hvKeyInput').value.trim();
+    if (!k) { $('hvErr').textContent = 'Paste a key first.'; return; }
+    localStorage.setItem(KEY_K, k);
+    $('hvKeyInput').value = '';
+    render([]);
+    sync(true);
+  });
+  $('hvKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('hvKeySave').click(); });
+  $('hvRefresh').addEventListener('click', () => { getKey() ? sync(true) : $('hvErr').textContent = 'Connect Hevy first.'; });
+  $('hvDisconnect').addEventListener('click', () => {
+    if (!confirm('Disconnect Hevy on this device? Bridged sessions stay.')) return;
+    localStorage.removeItem(KEY_K);
+    localStorage.removeItem(CACHE_K);
+    render([]);
+  });
+
+  render(cached());
+  if (getKey()) sync(false);
+  window._bodyHvRender = () => render(cached());
+})();
+</script>
+```
+
+- [ ] **Step 4: Manual verification**
+
+With no key set, reload `body.html` — confirm the "Connect Hevy" form shows. In devtools console, simulate cached data without a real API call:
+```js
+localStorage.setItem('hevy_api_key', 'fake-for-ui-test');
+localStorage.setItem('hevy_workouts_cache', JSON.stringify([
+  {id:'1', title:'Push Day', start: Date.now() - 86400000, end: Date.now() - 86400000 + 3600000,
+   mins: 60, volume: 3200, sets: 15, exercises: [{name:'Bench Press', sets:4, best:{kg:80, reps:6}}]}
+]));
+location.reload();
+```
+Confirm: connect form is hidden, stats/list show the fake workout, "disconnect hevy" clears both keys and reverts to the connect form. (A real Hevy key can be used to verify the live `fetch`/Sync path if available; otherwise this cached-data check is sufficient — the fetch/bridge logic is a verbatim port from `gym.html`, already proven there.)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add interactive Workouts (Hevy) tile to body.html
+
+Ports gym.html's Hevy integration (connect/sync/stats/list/
+disconnect) into body.html's grid, restyled to Sunpath. Reads/
+writes hevy_api_key and hevy_workouts_cache, same keys gym.html
+uses, and bridges into fitness_sessions identically.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 4: Runs (Strava) tile
+
+**Files:**
+- Modify: `body.html` — fill `#secRuns`, add `<script>` block (reuses `.hv-*` CSS from Task 3, no new CSS needed)
+
+**Interfaces:**
+- Consumes: `.hv-*` CSS classes from Task 3; `window.Sunpath` (`S.readJSON`, `S.esc`); `strava_client_id`, `strava_client_secret`, `strava_tokens`, `strava_cache` (written here and by `gym.html`); writes into `fitness_sessions` (bridge).
+- Produces: `window._bodySvRender()` for Task 7.
+
+- [ ] **Step 1: Fill in the Runs tile markup**
+
+```html
+<div class="section" id="secRuns">
+  <div class="sec-head">Runs<span class="more num" id="svSub">synced from Strava</span></div>
+  <div class="glassy card">
+    <div class="hv-header">
+      <button class="hv-refresh" id="svRefresh" type="button">↻ Sync</button>
+    </div>
+    <div class="hv-connect" id="svConnect" style="display:none">
+      <div class="hv-connect-title">Connect Strava</div>
+      <p class="hv-connect-p">One-time setup: at strava.com/settings/api create an API application, then paste its Client ID and Client Secret below. Both stay on this device only. You'll be sent to Strava once to approve read access.</p>
+      <p class="hv-connect-p">Set its <b>Authorization Callback Domain</b> to exactly: <b id="svDomain" style="color:var(--sun)"></b> (no https://, no path).</p>
+      <div class="hv-key-row" style="margin-bottom:8px">
+        <input type="text" id="svIdInput" placeholder="Client ID" autocomplete="off" inputmode="numeric">
+      </div>
+      <div class="hv-key-row">
+        <input type="password" id="svSecretInput" placeholder="Client Secret" autocomplete="off">
+        <button id="svGo" type="button">Connect</button>
+      </div>
+      <div class="hv-err" id="svErr"></div>
+    </div>
+    <div id="svBody" style="display:none">
+      <div class="hv-stats">
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatRuns">0</span><span class="hv-stat-l">Runs / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatKm">0</span><span class="hv-stat-l">km / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatLast">—</span><span class="hv-stat-l">Last run</span></div>
+      </div>
+      <div class="hv-err" id="svErr2"></div>
+      <div class="hv-list" id="svList"></div>
+      <button class="hv-disconnect" id="svDisconnect" type="button">disconnect strava</button>
+    </div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Add the Runs tile script**
+
+Add a `<script>` block right after `#secRuns`:
+
+```html
+<script>
+(function () {
+  'use strict';
+  const S = window.Sunpath;
+  const $ = id => document.getElementById(id);
+  const ID_K = 'strava_client_id', SEC_K = 'strava_client_secret';
+  const TOK_K = 'strava_tokens', CACHE_K = 'strava_cache';
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad2 = n => String(n).padStart(2, '0');
+  const dkey = ms => { const d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); };
+
+  function creds() { return { id: localStorage.getItem(ID_K) || '', secret: localStorage.getItem(SEC_K) || '' }; }
+  function tokens() { return S.readJSON(TOK_K, null); }
+  function saveTokens(t) {
+    localStorage.setItem(TOK_K, JSON.stringify({ access_token: t.access_token, refresh_token: t.refresh_token, expires_at: t.expires_at }));
+  }
+  function connected() { const c = creds(); return !!(c.id && c.secret && tokens()); }
+
+  async function tokenPost(params) {
+    const c = creds();
+    const body = new URLSearchParams(Object.assign({ client_id: c.id, client_secret: c.secret }, params));
+    const res = await fetch('https://www.strava.com/oauth/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
+    });
+    if (!res.ok) throw new Error('Strava auth failed (' + res.status + ') — check ID/secret.');
+    return res.json();
+  }
+  async function accessToken() {
+    let t = tokens();
+    if (!t) throw new Error('Not connected.');
+    if (t.expires_at * 1000 < Date.now() + 5 * 60 * 1000) {
+      t = await tokenPost({ grant_type: 'refresh_token', refresh_token: t.refresh_token });
+      saveTokens(t);
+    }
+    return t.access_token;
+  }
+
+  const RUN_TYPES = { Run: 1, TrailRun: 1, VirtualRun: 1 };
+  async function fetchRuns() {
+    const at = await accessToken();
+    const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=20', {
+      headers: { 'Authorization': 'Bearer ' + at }
+    });
+    if (res.status === 401) throw new Error('Strava rejected the token — reconnect.');
+    if (!res.ok) throw new Error('Strava error ' + res.status);
+    const acts = await res.json();
+    return (acts || []).filter(a => a && RUN_TYPES[a.sport_type || a.type])
+      .map(a => ({ id: String(a.id), name: a.name || 'Run', start: Date.parse(a.start_date),
+        km: Math.round((a.distance || 0) / 10) / 100, mins: Math.max(1, Math.round((a.moving_time || 0) / 60)) }))
+      .filter(a => a.start);
+  }
+
+  function bridge(runs) {
+    let sessions = S.readJSON('fitness_sessions', []);
+    if (!Array.isArray(sessions)) sessions = [];
+    let added = 0;
+    runs.forEach(r => {
+      const marker = '_sv' + r.id;
+      if (sessions.some(s => s && String(s.id || '').indexOf(marker) !== -1)) return;
+      sessions.unshift({ id: 'ft' + r.start + marker, type: 'run', date: dkey(r.start), km: r.km, duration: r.mins, notes: r.name });
+      added++;
+    });
+    if (added) {
+      sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      localStorage.setItem('fitness_sessions', JSON.stringify(sessions));
+    }
+  }
+
+  function pace(r) {
+    if (!r.km || !r.mins) return '';
+    const p = r.mins / r.km;
+    return Math.floor(p) + ':' + pad2(Math.round((p % 1) * 60)) + ' /km';
+  }
+
+  function render(runs) {
+    $('svConnect').style.display = connected() ? 'none' : '';
+    $('svBody').style.display = connected() ? '' : 'none';
+    if (!connected()) return;
+    const weekAgo = Date.now() - 7 * 864e5;
+    const wk = runs.filter(r => r.start >= weekAgo);
+    $('svStatRuns').textContent = wk.length;
+    $('svStatKm').textContent = (Math.round(wk.reduce((t, r) => t + r.km, 0) * 10) / 10) || 0;
+    $('svStatLast').textContent = runs[0] ? new Date(runs[0].start).getDate() + ' ' + MONS[new Date(runs[0].start).getMonth()] : '—';
+    $('svList').innerHTML = runs.length ? runs.slice(0, 6).map(r => {
+      const d = new Date(r.start);
+      return '<div class="hv-item">' +
+        '<div class="hv-wo-head"><span class="hv-wo-title">' + S.esc(r.name) + '</span>' +
+        '<span class="hv-wo-date">' + d.getDate() + ' ' + MONS[d.getMonth()] + '</span></div>' +
+        '<div class="hv-wo-meta">' + [r.km ? r.km + ' km' : '', r.mins ? r.mins + ' min' : '', pace(r)].filter(Boolean).join(' · ') + '</div></div>';
+    }).join('') : '<div class="hv-empty">No runs yet — lace up.</div>';
+  }
+
+  function cached() { return S.readJSON(CACHE_K, []); }
+
+  async function sync(showErr) {
+    const btn = $('svRefresh');
+    btn.disabled = true; btn.textContent = '↻ …';
+    try {
+      const runs = await fetchRuns();
+      localStorage.setItem(CACHE_K, JSON.stringify(runs));
+      bridge(runs);
+      render(runs);
+      $('svErr2').textContent = '';
+    } catch (e) {
+      if (showErr) $(connected() ? 'svErr2' : 'svErr').textContent = e.message;
+      render(cached());
+    } finally {
+      btn.disabled = false; btn.textContent = '↻ Sync';
+    }
+  }
+
+  function redirectUri() { return window.location.origin + window.location.pathname; }
+
+  $('svGo').addEventListener('click', () => {
+    const id = $('svIdInput').value.trim(), sec = $('svSecretInput').value.trim();
+    if (!id || !sec) { $('svErr').textContent = 'Both Client ID and Secret are needed.'; return; }
+    localStorage.setItem(ID_K, id);
+    localStorage.setItem(SEC_K, sec);
+    window.location.href = 'https://www.strava.com/oauth/authorize' +
+      '?client_id=' + encodeURIComponent(id) + '&response_type=code' +
+      '&redirect_uri=' + encodeURIComponent(redirectUri()) + '&approval_prompt=auto&scope=activity:read_all';
+  });
+  $('svRefresh').addEventListener('click', () => { connected() ? sync(true) : $('svErr').textContent = 'Connect Strava first.'; });
+  $('svDisconnect').addEventListener('click', () => {
+    if (!confirm('Disconnect Strava on this device? Bridged runs stay.')) return;
+    [ID_K, SEC_K, TOK_K, CACHE_K].forEach(k => localStorage.removeItem(k));
+    render([]);
+  });
+
+  (async function handleCallback() {
+    const q = new URLSearchParams(window.location.search);
+    const code = q.get('code');
+    if (!code) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    try {
+      const t = await tokenPost({ grant_type: 'authorization_code', code: code });
+      saveTokens(t);
+      render([]);
+      sync(true);
+    } catch (e) { $('svErr').textContent = e.message; }
+  })();
+
+  const domEl = $('svDomain');
+  if (domEl) domEl.textContent = window.location.hostname || '(open this page on your deployed site, not a local file)';
+
+  render(cached());
+  if (connected()) sync(false);
+  window._bodySvRender = () => render(cached());
+})();
+</script>
+```
+
+- [ ] **Step 3: Manual verification**
+
+With nothing connected, reload — confirm "Connect Strava" form shows, and `#svDomain` fills in with the page's hostname. Simulate cached data:
+```js
+localStorage.setItem('strava_client_id', 'fake');
+localStorage.setItem('strava_client_secret', 'fake');
+localStorage.setItem('strava_tokens', JSON.stringify({access_token:'x', refresh_token:'y', expires_at: Math.floor(Date.now()/1000) + 3600}));
+localStorage.setItem('strava_cache', JSON.stringify([{id:'1', name:'Morning Run', start: Date.now() - 3600000, km: 5.2, mins: 28}]));
+location.reload();
+```
+Confirm stats/list render, disconnect clears all four keys and reverts to the connect form. Confirm `redirectUri()` in the connect flow (inspect via console: `new URLSearchParams('').toString()` isn't needed — just verify the `svGo` click would navigate to a URL containing `redirect_uri=` + the current page's own origin+pathname, by checking `window.location.origin + window.location.pathname` in console while on `body.html`).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add interactive Runs (Strava) tile to body.html
+
+Ports gym.html's Strava OAuth integration (connect/sync/stats/
+list/disconnect) into body.html's grid, restyled to Sunpath and
+reusing the Hevy tile's shared .hv-* CSS. Reads/writes the same
+strava_* keys gym.html uses; redirect_uri is computed from the
+current page so OAuth works correctly when initiated from body.html.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 5: Supplement stack tile
+
+**Files:**
+- Modify: `body.html` — fill `#secStack`, add `<style>` block, add `<script>` block
+
+**Interfaces:**
+- Consumes: `stack:items`, `stack:taken:<dateKey>`, `stack:low`, `stack:version` (written here and by `health.html`).
+- Produces: `window._bodyStackRender()` for Task 7.
+
+- [ ] **Step 1: Fill in the Supplement stack tile markup**
+
+```html
+<div class="section" id="secStack">
+  <div class="sec-head">Supplements<span class="more num" id="stackHeadCount"></span></div>
+  <div class="glassy card">
+    <div class="stack-ticker" id="stackTicker">
+      <span class="stack-ticker-dot"></span>
+      <span class="stack-ticker-label">STACK</span>
+      <span class="stack-ticker-sep">·</span>
+      <span class="stack-ticker-msg" id="stackTickerMsg">All caught up — keep it rolling</span>
+      <span class="stack-ticker-count num" id="stackTickerCount">0/0</span>
+    </div>
+
+    <div class="stack-progress-text num" id="stackProgressText">— / — taken today · resets at 5 AM</div>
+    <div class="stack-progress-track">
+      <div id="stackProgressBar" class="stack-progress-fill"></div>
+    </div>
+
+    <div id="stackGroups"></div>
+
+    <div class="stack-add-wrap">
+      <div class="stack-add-label">Add to stack</div>
+      <div class="stack-add-row">
+        <div class="stack-name-wrap">
+          <input id="stackAddName" type="text" placeholder="Name (e.g. B-complex)" class="stack-input" autocomplete="off" spellcheck="false" />
+          <div id="stackSearchResults" class="stack-search-results" hidden></div>
+        </div>
+        <input id="stackAddDose" type="text" placeholder="Dose (e.g. 1 cap)" class="stack-input" />
+        <select id="stackAddWindow" class="stack-input stack-select">
+          <option value="morning">Morning</option>
+          <option value="lunch">Lunch</option>
+          <option value="evening">Evening</option>
+          <option value="anytime">Anytime</option>
+        </select>
+        <button id="stackAddBtn" class="stack-add-btn" type="button">+ Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Add the Supplement stack CSS**
+
+```css
+/* ===== Supplement stack tile ===== */
+.stack-progress-text { font-size: 12px; color: var(--faint); margin: 2px 0 10px; }
+.stack-progress-track { height: 5px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
+.stack-progress-fill { height: 100%; width: 0%; background: var(--sun); border-radius: 999px; transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }
+
+.stack-window { margin-bottom: 14px; }
+.stack-window-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.stack-window-icon { font-size: 15px; }
+.stack-window-title { font-size: 12.5px; font-weight: 650; color: var(--ink); }
+.stack-window-time { font-size: 10.5px; color: var(--faint); }
+
+.stack-item { display: grid; grid-template-columns: 30px 1fr auto auto; gap: 10px; align-items: center; padding: 9px 11px; border-radius: 10px; background: rgba(255,255,255,0.03); margin-bottom: 6px; border: 1px solid transparent; transition: background 0.2s, border-color 0.2s; }
+.stack-item.taken { background: rgba(158,217,160,0.07); }
+.stack-item.taken .stack-item-name { text-decoration: line-through; color: var(--faint); }
+
+@keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(228,87,46,0.4); } 50% { box-shadow: 0 0 0 8px rgba(228,87,46,0); } }
+.stack-item.missed { border: 1px solid rgba(228,87,46,0.45); animation: pulse-red 1.5s ease-in-out infinite; }
+.stack-item.missed .stack-check { border-color: rgba(228,87,46,0.55); }
+.stack-item.taken.missed { animation: none; border-color: transparent; }
+.stack-item.taken.missed .stack-check { border-color: var(--sun); }
+
+.stack-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--glass-border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: transparent; transition: all 0.2s; flex-shrink: 0; font-family: inherit; padding: 0; }
+.stack-check:hover { border-color: var(--sun); }
+.stack-check.checked { background: var(--sun); border-color: var(--sun); color: #0A0B0E; box-shadow: 0 0 10px rgba(242,166,90,0.4); }
+
+.stack-item-body { min-width: 0; }
+.stack-item-name { font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.2; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; outline: none; }
+.stack-item-name[contenteditable="true"] { outline: 1px solid var(--glass-border); outline-offset: 4px; border-radius: 4px; }
+.stack-item-meta { font-size: 11px; color: var(--faint); margin-top: 2px; outline: none; cursor: text; }
+.stack-item-meta[contenteditable="true"] { outline: 1px solid var(--glass-border); outline-offset: 4px; border-radius: 4px; color: var(--muted); }
+.stack-item-meta:empty::before { content: 'add notes…'; color: var(--faint); font-style: italic; }
+
+.stack-item-tag { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 99px; font-weight: 600; letter-spacing: 0.04em; text-transform: lowercase; }
+.stack-item-tag.tag-stack { background: rgba(242,166,90,0.15); color: var(--sun); }
+.stack-item-tag.tag-not-ordered { background: rgba(228,87,46,0.10); color: var(--faint); }
+
+.stack-low-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--faint); font-size: 9.5px; padding: 5px 9px; border-radius: 6px; cursor: pointer; font-family: var(--mono); font-weight: 600; letter-spacing: 0.04em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; }
+.stack-low-btn:hover { border-color: rgba(228,87,46,0.4); color: var(--ember); }
+.stack-low-btn.is-low { background: rgba(228,87,46,0.10); border-color: rgba(228,87,46,0.4); color: var(--ember); }
+
+.stack-item-del { background: transparent; border: 1px solid var(--glass-border); color: var(--faint); cursor: pointer; font-size: 15px; padding: 4px 9px; border-radius: 6px; opacity: 0.7; transition: opacity 0.15s, color 0.15s, border-color 0.15s, background 0.15s; font-family: inherit; line-height: 1; min-width: 26px; min-height: 26px; display: inline-flex; align-items: center; justify-content: center; }
+.stack-item:hover .stack-item-del { opacity: 1; }
+.stack-item-del:hover, .stack-item-del:active { color: var(--ember); border-color: rgba(228,87,46,0.45); background: rgba(228,87,46,0.08); opacity: 1; }
+
+.stack-window-empty { font-size: 12px; color: var(--faint); font-style: italic; padding: 8px 12px; }
+
+.stack-ticker { display: flex; align-items: center; gap: 12px; padding: 9px 12px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; font-size: 12px; min-height: 34px; }
+.stack-ticker-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); flex-shrink: 0; transition: background 0.3s; }
+.stack-ticker.status-low .stack-ticker-dot { background: var(--sun); }
+.stack-ticker.status-missed .stack-ticker-dot { background: var(--ember); animation: ticker-pulse 1.5s ease-in-out infinite; }
+@keyframes ticker-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(228,87,46,0.5); } 50% { box-shadow: 0 0 0 5px rgba(228,87,46,0); } }
+.stack-ticker-label { font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); flex-shrink: 0; }
+.stack-ticker-sep { color: var(--faint); flex-shrink: 0; }
+.stack-ticker-msg { flex: 1; font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.28s; }
+.stack-ticker-msg.is-fading { opacity: 0; }
+.stack-ticker-count { font-size: 11px; color: var(--faint); flex-shrink: 0; }
+
+.stack-add-wrap { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.stack-add-label { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); margin-bottom: 10px; }
+.stack-add-row { display: grid; grid-template-columns: 1fr 1fr 100px 80px; gap: 6px; align-items: center; }
+.stack-input { font-size: 12.5px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04); color: var(--ink); font-family: var(--display); transition: border-color 0.18s, background 0.18s; }
+.stack-input::placeholder { color: var(--faint); }
+.stack-input:focus { outline: none; border-color: rgba(158,217,160,0.4); }
+.stack-select { cursor: pointer; }
+.stack-add-btn { font-size: 12.5px; padding: 9px 11px; border-radius: 10px; border: none; background: var(--sun); color: #0A0B0E; font-weight: 700; cursor: pointer; font-family: var(--display); }
+
+.stack-name-wrap { position: relative; }
+.stack-search-results { position: absolute; top: calc(100% + 6px); left: 0; width: max(100%, 300px); background: #14151c; border: 1px solid var(--glass-border); border-radius: 12px; max-height: 260px; overflow-y: auto; box-shadow: 0 16px 40px rgba(0,0,0,0.5); z-index: 50; padding: 6px; }
+.stack-search-results[hidden] { display: none; }
+.stack-result { display: flex; gap: 12px; align-items: center; width: 100%; padding: 9px 11px; background: transparent; border: none; border-radius: 8px; cursor: pointer; text-align: left; font-family: inherit; color: var(--muted); transition: background 0.12s; }
+.stack-result:hover, .stack-result.is-focused { background: rgba(255,255,255,0.06); }
+.stack-result-icon { font-size: 16px; flex-shrink: 0; width: 22px; text-align: center; }
+.stack-result-body { min-width: 0; flex: 1; }
+.stack-result-name { font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.stack-result-meta { font-size: 10.5px; color: var(--faint); margin-top: 2px; }
+
+@media (max-width: 600px) {
+  .stack-item { grid-template-columns: 26px 1fr auto; gap: 8px; }
+  .stack-item .stack-low-btn { grid-column: 2 / 4; margin-top: 4px; justify-self: start; }
+  .stack-add-row { grid-template-columns: 1fr 1fr; }
+  .stack-add-row .stack-add-btn, .stack-add-row .stack-select { grid-column: 1 / -1; }
+  .stack-search-results { width: 100%; }
+}
+```
+
+- [ ] **Step 3: Add the Supplement stack script**
+
+Add a `<script>` block right after `#secStack`. `SUPPLEMENT_DB` is copied **verbatim, unmodified** from `health.html:580-655` (70 entries, the supplement autocomplete database) — copy that exact array literal in as `SUPPLEMENT_DB` below. Everything else is written out in full:
+
+```html
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const storeGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  const storeSet = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  function getActiveDate() {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  const STACK_DEFAULTS = [
+    { id: 'm1', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'm2', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: 'stack', ordered: true  },
+    { id: 'm3', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'l1', name: 'XXXXX - Supplement of choice', dose: '', window: 'lunch',   note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'l2', name: 'XXXXX - Supplement of choice', dose: '', window: 'lunch',   note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'e1', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'e2', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: 'not-ordered', ordered: false },
+    { id: 'e3', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+  ];
+
+  const STACK_WINDOWS = [
+    { key: 'morning', icon: '🌅', title: 'Morning', time: '7–10 AM', cutoffHour: 10 },
+    { key: 'lunch',   icon: '🍽️', title: 'Lunch',   time: '12–2 PM', cutoffHour: 14 },
+    { key: 'evening', icon: '🌙', title: 'Evening', time: '9–11 PM', cutoffHour: 23 },
+    { key: 'anytime', icon: '⏱️', title: 'Anytime', time: 'No fixed window', cutoffHour: null },
+  ];
+
+  const SUPPLEMENT_DB = [
+    { name: 'Creatine monohydrate', dose: '5g', window: 'anytime', note: 'Daily — consistency matters more than timing', icon: '🏋️', aliases: ['creatine'] },
+    { name: 'Beta-alanine', dose: '2–5g', window: 'morning', note: 'Pre-workout — split doses to avoid tingles', icon: '🏋️', aliases: ['beta alanine'] },
+    { name: 'L-citrulline', dose: '6–8g', window: 'morning', note: '~30 min pre-workout for pump', icon: '🏋️', aliases: ['citrulline'] },
+    { name: 'BCAAs', dose: '5–10g', window: 'anytime', note: 'Around workout window', icon: '🏋️', aliases: ['bcaa'] },
+    { name: 'Whey protein', dose: '25–40g', window: 'anytime', note: 'Post-workout or to hit daily target', icon: '🥤', aliases: ['whey'] },
+    { name: 'Casein protein', dose: '25–40g', window: 'evening', note: 'Before bed for slow overnight aminos', icon: '🥤', aliases: ['casein'] },
+    { name: 'L-carnitine', dose: '1–2g', window: 'morning', note: 'With carbs for best uptake', icon: '🏋️', aliases: ['carnitine'] },
+    { name: 'Acetyl-L-carnitine', dose: '500mg–2g', window: 'morning', note: 'Cognitive variant — crosses BBB', icon: '🧠', aliases: ['alcar'] },
+    { name: 'HMB', dose: '3g', window: 'anytime', note: 'Split 3x daily — muscle preservation', icon: '🏋️', aliases: ['hmb'] },
+    { name: 'Glutamine', dose: '5g', window: 'anytime', note: 'Recovery — post-workout or before bed', icon: '🏋️', aliases: ['l-glutamine'] },
+    { name: 'Vitamin D3', dose: '2000–5000 IU', window: 'lunch', note: 'Fat-soluble — take with biggest meal', icon: '☀️', aliases: ['vit d', 'vitamin d', 'd3', 'cholecalciferol'] },
+    { name: 'Vitamin K2 (MK-7)', dose: '100–200 mcg', window: 'lunch', note: 'Pairs with D3 — same meal', icon: '💊', aliases: ['vit k', 'vitamin k', 'k2', 'mk7'] },
+    { name: 'Vitamin C', dose: '500–1000mg', window: 'morning', note: 'Water-soluble — split if over 500mg', icon: '🍊', aliases: ['vit c', 'ascorbic acid'] },
+    { name: 'Vitamin B12', dose: '500–1000mcg', window: 'morning', note: 'Methylcobalamin form preferred', icon: '⚡', aliases: ['b12', 'methylcobalamin'] },
+    { name: 'B-complex', dose: '1 cap', window: 'morning', note: 'All B vitamins — energy', icon: '⚡', aliases: ['b complex', 'b vitamins'] },
+    { name: 'Vitamin A', dose: '5000 IU', window: 'lunch', note: 'Fat-soluble — with fat', icon: '💊', aliases: ['vit a', 'retinol'] },
+    { name: 'Vitamin E', dose: '400 IU', window: 'lunch', note: 'Fat-soluble — with fat', icon: '💊', aliases: ['vit e', 'tocopherol'] },
+    { name: 'Folate', dose: '400–800mcg', window: 'morning', note: 'Methylfolate preferred', icon: '💊', aliases: ['folic acid', 'b9', 'methylfolate'] },
+    { name: 'Biotin', dose: '30mcg–5mg', window: 'anytime', note: 'Hair, skin, nails', icon: '💅', aliases: ['biotin', 'b7'] },
+    { name: 'Multivitamin', dose: '1 serving', window: 'lunch', note: 'Take with food', icon: '💊', aliases: ['multi', 'multivitamin'] },
+    { name: 'Magnesium glycinate', dose: '200–400mg', window: 'evening', note: '30–60 min before bed — sleep helper', icon: '🌙', aliases: ['magnesium', 'mag glycinate', 'bisglycinate'] },
+    { name: 'Magnesium L-threonate', dose: '144mg elemental', window: 'evening', note: 'Cognitive variant — crosses BBB', icon: '🧠', aliases: ['magtein', 'threonate'] },
+    { name: 'Magnesium citrate', dose: '200–400mg', window: 'evening', note: 'Also supports digestion', icon: '🌙', aliases: ['mag citrate'] },
+    { name: 'Zinc', dose: '15–30mg', window: 'evening', note: 'With food — not with calcium or iron', icon: '💊', aliases: ['zinc'] },
+    { name: 'Iron', dose: '18–65mg', window: 'morning', note: 'Empty stomach with vit C', icon: '💊', aliases: ['iron'] },
+    { name: 'Calcium', dose: '500mg', window: 'evening', note: 'With food — not with iron', icon: '🦴', aliases: ['calcium'] },
+    { name: 'Selenium', dose: '100–200mcg', window: 'anytime', note: 'Thyroid + antioxidant', icon: '💊', aliases: ['selenium'] },
+    { name: 'Iodine', dose: '150mcg', window: 'morning', note: 'Thyroid support', icon: '💊', aliases: ['iodine'] },
+    { name: 'Omega-3 (Fish oil)', dose: '2–3g EPA+DHA', window: 'lunch', note: 'With biggest fatty meal', icon: '🐟', aliases: ['omega 3', 'omega3', 'fish oil', 'epa', 'dha'] },
+    { name: 'Krill oil', dose: '500–1000mg', window: 'lunch', note: 'More absorbable than fish oil', icon: '🐟', aliases: ['krill'] },
+    { name: 'MCT oil', dose: '1–2 tbsp', window: 'morning', note: 'Fast energy — start low', icon: '🥥', aliases: ['mct'] },
+    { name: 'Flaxseed oil', dose: '1–2g', window: 'lunch', note: 'Plant omega-3 — with food', icon: '🌱', aliases: ['flax', 'flaxseed'] },
+    { name: 'L-theanine', dose: '100–200mg', window: 'morning', note: 'Stacks with caffeine 2:1', icon: '🧠', aliases: ['theanine'] },
+    { name: 'Caffeine', dose: '100–200mg', window: 'morning', note: 'Stack with L-theanine for cleaner focus', icon: '☕', aliases: ['caffeine'] },
+    { name: 'Rhodiola rosea', dose: '200–400mg', window: 'morning', note: 'Adaptogen — energy and stress', icon: '🌿', aliases: ['rhodiola'] },
+    { name: 'Lion\'s mane', dose: '500–1000mg', window: 'morning', note: 'Cognitive support — daily', icon: '🍄', aliases: ['lions mane', 'hericium'] },
+    { name: 'Bacopa monnieri', dose: '300–600mg', window: 'morning', note: 'With fat — long-term memory', icon: '🌿', aliases: ['bacopa'] },
+    { name: 'Ginkgo biloba', dose: '120–240mg', window: 'morning', note: 'Circulation and cognition', icon: '🌿', aliases: ['ginkgo'] },
+    { name: 'Alpha-GPC', dose: '300–600mg', window: 'morning', note: 'Choline — focus and learning', icon: '🧠', aliases: ['alpha gpc'] },
+    { name: 'Phosphatidylserine', dose: '100–300mg', window: 'evening', note: 'Cortisol regulation', icon: '🧠', aliases: ['ps'] },
+    { name: 'NAC', dose: '600–1800mg', window: 'morning', note: 'Glutathione precursor — split doses', icon: '💊', aliases: ['nac', 'n-acetyl cysteine'] },
+    { name: 'Melatonin', dose: '0.3–3mg', window: 'evening', note: '30–60 min before bed — start low', icon: '🌙', aliases: ['melatonin'] },
+    { name: 'Glycine', dose: '3g', window: 'evening', note: 'Body temp drop = better sleep onset', icon: '🌙', aliases: ['glycine'] },
+    { name: 'Apigenin', dose: '50mg', window: 'evening', note: 'From chamomile — before bed', icon: '🌙', aliases: ['apigenin'] },
+    { name: 'Ashwagandha', dose: '300–600mg', window: 'evening', note: 'KSM-66 form — stress and cortisol', icon: '🌿', aliases: ['ashwagandha', 'ksm-66'] },
+    { name: 'L-tryptophan', dose: '500mg–1g', window: 'evening', note: 'Serotonin precursor — sleep onset', icon: '🌙', aliases: ['tryptophan'] },
+    { name: 'GABA', dose: '500–750mg', window: 'evening', note: 'Calming — before bed', icon: '🌙', aliases: ['gaba'] },
+    { name: 'Valerian root', dose: '300–600mg', window: 'evening', note: 'Sleep onset support', icon: '🌙', aliases: ['valerian'] },
+    { name: 'Probiotics', dose: '10–50 billion CFU', window: 'morning', note: 'Empty stomach or with food', icon: '🦠', aliases: ['probiotic'] },
+    { name: 'Quercetin', dose: '500–1000mg', window: 'anytime', note: 'Pairs well with vitamin C', icon: '🌿', aliases: ['quercetin'] },
+    { name: 'Curcumin', dose: '500–1000mg', window: 'lunch', note: 'With black pepper + fat', icon: '🌿', aliases: ['curcumin', 'turmeric'] },
+    { name: 'Resveratrol', dose: '250–500mg', window: 'morning', note: 'With fat for absorption', icon: '🍇', aliases: ['resveratrol'] },
+    { name: 'CoQ10 / Ubiquinol', dose: '100–200mg', window: 'lunch', note: 'Fat-soluble — with biggest meal', icon: '💊', aliases: ['coq10', 'ubiquinol'] },
+    { name: 'Alpha lipoic acid', dose: '300–600mg', window: 'morning', note: 'Empty stomach for absorption', icon: '💊', aliases: ['ala', 'alpha lipoic'] },
+    { name: 'Glutathione', dose: '250–1000mg', window: 'morning', note: 'Liposomal form for absorption', icon: '💊', aliases: ['glutathione'] },
+    { name: 'Astaxanthin', dose: '4–12mg', window: 'lunch', note: 'Fat-soluble — with fatty meal', icon: '💊', aliases: ['astaxanthin'] },
+    { name: 'Berberine', dose: '500mg', window: 'lunch', note: 'Before meals — glucose support', icon: '💊', aliases: ['berberine'] },
+    { name: 'Milk thistle', dose: '200–400mg', window: 'anytime', note: 'Silymarin — liver support', icon: '🌿', aliases: ['milk thistle', 'silymarin'] },
+    { name: 'Spirulina', dose: '3–5g', window: 'morning', note: 'Algae — protein and antioxidants', icon: '🌱', aliases: ['spirulina'] },
+    { name: 'Chlorella', dose: '2–4g', window: 'morning', note: 'Algae — detox support', icon: '🌱', aliases: ['chlorella'] },
+    { name: 'Tongkat ali', dose: '200–400mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: '🌿', aliases: ['tongkat', 'longjack'] },
+    { name: 'Fadogia agrestis', dose: '600mg', window: 'morning', note: 'Cycle 8 weeks on/off', icon: '🌿', aliases: ['fadogia'] },
+    { name: 'DHEA', dose: '25–50mg', window: 'morning', note: 'Hormonal — consult doctor', icon: '💊', aliases: ['dhea'] },
+    { name: 'Pregnenolone', dose: '10–50mg', window: 'morning', note: 'Hormonal — consult doctor', icon: '💊', aliases: ['pregnenolone'] },
+    { name: 'Tribulus terrestris', dose: '250–750mg', window: 'morning', note: 'Libido and energy', icon: '🌿', aliases: ['tribulus'] },
+    { name: 'Maca root', dose: '1.5–3g', window: 'morning', note: 'Adaptogen — energy and libido', icon: '🌿', aliases: ['maca'] },
+    { name: 'Collagen peptides', dose: '10–20g', window: 'anytime', note: 'With vitamin C for synthesis', icon: '💅', aliases: ['collagen'] },
+    { name: 'Glucosamine', dose: '1500mg', window: 'lunch', note: 'With food', icon: '🦴', aliases: ['glucosamine'] },
+    { name: 'Chondroitin', dose: '1200mg', window: 'lunch', note: 'Often paired with glucosamine', icon: '🦴', aliases: ['chondroitin'] },
+    { name: 'MSM', dose: '1–3g', window: 'anytime', note: 'Joint support', icon: '🦴', aliases: ['msm'] },
+    { name: 'Hyaluronic acid', dose: '120–200mg', window: 'anytime', note: 'Skin and joint hydration', icon: '💅', aliases: ['hyaluronic', 'ha'] },
+    { name: 'Cordyceps', dose: '1–3g', window: 'morning', note: 'Energy and endurance', icon: '🍄', aliases: ['cordyceps'] },
+    { name: 'Reishi', dose: '1–2g', window: 'evening', note: 'Calming adaptogen', icon: '🍄', aliases: ['reishi', 'ganoderma'] },
+    { name: 'Chaga', dose: '1–2g', window: 'morning', note: 'Antioxidant and immune', icon: '🍄', aliases: ['chaga'] },
+  ];
+
+  let todayKey = `stack:taken:${getActiveDate()}`;
+
+  function getItems() {
+    const storedVersion = storeGet('stack:version');
+    const stored = storeGet('stack:items');
+    if (Array.isArray(stored) && stored.length) return stored;
+    if (storedVersion != null) return Array.isArray(stored) ? stored : [];
+    const fresh = JSON.parse(JSON.stringify(STACK_DEFAULTS));
+    storeSet('stack:items', fresh);
+    storeSet('stack:version', 5);
+    return fresh;
+  }
+  function setItems(items) { storeSet('stack:items', items); }
+  function getTaken() { return storeGet(todayKey) || {}; }
+  function setTaken(map) { storeSet(todayKey, map); }
+  function getLow() { return storeGet('stack:low') || []; }
+  function setLow(arr) { storeSet('stack:low', arr); }
+
+  function toggleTaken(id) {
+    const taken = getTaken();
+    if (taken[id]) delete taken[id]; else taken[id] = Date.now();
+    setTaken(taken); render();
+  }
+  function toggleLow(id) {
+    const low = getLow();
+    if (low.includes(id)) setLow(low.filter(x => x !== id));
+    else { low.push(id); setLow(low); }
+    render();
+  }
+  function deleteItem(id) {
+    setItems(getItems().filter(i => i.id !== id));
+    const taken = getTaken();
+    delete taken[id];
+    setTaken(taken);
+    setLow(getLow().filter(x => x !== id));
+    render();
+  }
+  function addItem(name, dose, windowKey, note = '') {
+    const v = String(name || '').trim();
+    if (!v) return;
+    const items = getItems();
+    const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    items.push({
+      id, name: v,
+      dose: String(dose || '').trim(),
+      window: ['morning','lunch','evening','anytime'].includes(windowKey) ? windowKey : 'anytime',
+      note: String(note || '').trim(),
+      tag: null, ordered: true
+    });
+    setItems(items);
+    render();
+  }
+  function updateItem(id, field, value) {
+    const items = getItems();
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    item[field] = value;
+    setItems(items);
+  }
+
+  function render() {
+    const items = getItems();
+    const taken = getTaken();
+    const low = getLow();
+    const totalCount = items.length;
+    const takenCount = items.filter(i => taken[i.id]).length;
+    $('stackProgressText').textContent = `${takenCount} / ${totalCount} taken today · resets at 5 AM`;
+    $('stackHeadCount').textContent = `${takenCount}/${totalCount}`;
+    const pct = totalCount === 0 ? 0 : (takenCount / totalCount) * 100;
+    $('stackProgressBar').style.width = pct + '%';
+
+    const groupsEl = $('stackGroups');
+    groupsEl.innerHTML = '';
+
+    const now = new Date();
+    const nowHour = now.getHours() + (now.getMinutes() / 60);
+
+    STACK_WINDOWS.forEach(win => {
+      const winItems = items.filter(i => (i.window || 'anytime') === win.key);
+      if (winItems.length === 0) return;
+
+      const group = document.createElement('div');
+      group.className = 'stack-window';
+      group.innerHTML = `
+        <div class="stack-window-header">
+          <span class="stack-window-icon">${win.icon}</span>
+          <span class="stack-window-title">${win.title}</span>
+          <span class="stack-window-time">${win.time}</span>
+        </div>`;
+
+      const isPastCutoff = win.cutoffHour !== null && nowHour > win.cutoffHour;
+
+      winItems.forEach(item => {
+        const isTaken = !!taken[item.id];
+        const isLow = low.includes(item.id);
+        const isMissed = !isTaken && isPastCutoff;
+
+        const row = document.createElement('div');
+        row.className = 'stack-item' + (isTaken ? ' taken' : '') + (isMissed ? ' missed' : '');
+
+        let tagHtml = '';
+        if (item.tag === 'stack') tagHtml = '<span class="stack-item-tag tag-stack">stack</span>';
+        else if (item.tag === 'not-ordered') tagHtml = '<span class="stack-item-tag tag-not-ordered">not ordered</span>';
+
+        row.innerHTML = `
+          <button class="stack-check ${isTaken ? 'checked' : ''}" data-action="toggle" data-id="${item.id}" aria-label="Mark taken">${isTaken ? '✓' : ''}</button>
+          <div class="stack-item-body">
+            <div class="stack-item-name" data-edit="name" data-id="${item.id}">
+              <span class="stack-item-name-text">${escapeHtml(item.name)}</span>${tagHtml}
+            </div>
+            <div class="stack-item-meta" data-edit="meta" data-id="${item.id}">${escapeHtml(metaText(item))}</div>
+          </div>
+          <button class="stack-low-btn ${isLow ? 'is-low' : ''}" data-action="low" data-id="${item.id}">↓ Running low</button>
+          <button class="stack-item-del" data-action="del" data-id="${item.id}" aria-label="Delete">×</button>`;
+
+        group.appendChild(row);
+      });
+
+      groupsEl.appendChild(group);
+    });
+
+    if (groupsEl.children.length === 0) {
+      groupsEl.innerHTML = `<div class="stack-window-empty">No items yet — add one below to start your stack.</div>`;
+    }
+
+    renderTicker();
+  }
+
+  let tickerIndex = 0;
+  let tickerInterval = null;
+  let cachedIssues = [];
+
+  function getStackIssues() {
+    const items = getItems();
+    const taken = getTaken();
+    const low = getLow();
+    const now = new Date();
+    const nowHour = now.getHours() + (now.getMinutes() / 60);
+
+    const missed = [];
+    const lowList = [];
+
+    items.forEach(item => {
+      const win = STACK_WINDOWS.find(w => w.key === (item.window || 'anytime'));
+      const isPastCutoff = win && win.cutoffHour !== null && nowHour > win.cutoffHour;
+      const isTaken = !!taken[item.id];
+      if (isPastCutoff && !isTaken) missed.push({ type: 'missed', text: `${item.name} — missed ${win.title.toLowerCase()} dose` });
+      if (low.includes(item.id)) lowList.push({ type: 'low', text: `${item.name} — running low, reorder soon` });
+    });
+
+    return [...missed, ...lowList];
+  }
+
+  function renderTicker() {
+    const issues = getStackIssues();
+    const tickerEl = $('stackTicker');
+    const msgEl = $('stackTickerMsg');
+    const countEl = $('stackTickerCount');
+    const totalItems = getItems().length;
+
+    cachedIssues = issues;
+
+    if (issues.length === 0) {
+      msgEl.textContent = 'All caught up — keep it rolling';
+      tickerEl.classList.remove('status-low', 'status-missed');
+      countEl.textContent = `0/${totalItems}`;
+      tickerIndex = 0;
+      return;
+    }
+
+    const hasMissed = issues.some(i => i.type === 'missed');
+    tickerEl.classList.remove('status-low', 'status-missed');
+    tickerEl.classList.add(hasMissed ? 'status-missed' : 'status-low');
+
+    if (tickerIndex >= issues.length) tickerIndex = 0;
+    msgEl.textContent = issues[tickerIndex].text;
+    countEl.textContent = `${issues.length}/${totalItems}`;
+  }
+
+  function cycleTicker() {
+    if (cachedIssues.length <= 1) { renderTicker(); return; }
+    const msgEl = $('stackTickerMsg');
+    msgEl.classList.add('is-fading');
+    setTimeout(() => { tickerIndex++; renderTicker(); msgEl.classList.remove('is-fading'); }, 280);
+  }
+
+  function startTicker() {
+    if (tickerInterval) clearInterval(tickerInterval);
+    tickerInterval = setInterval(cycleTicker, 5000);
+  }
+
+  function metaText(item) {
+    const parts = [];
+    if (item.dose) parts.push(item.dose);
+    if (item.note) parts.push(item.note);
+    return parts.join(' · ');
+  }
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  $('stackGroups').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    e.stopPropagation();
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'toggle') toggleTaken(id);
+    else if (btn.dataset.action === 'low') toggleLow(id);
+    else if (btn.dataset.action === 'del') deleteItem(id);
+  });
+  $('stackGroups').addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('[data-action="del"]');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    deleteItem(btn.dataset.id);
+  });
+  $('stackGroups').addEventListener('click', (e) => {
+    const editEl = e.target.closest('[data-edit]');
+    if (!editEl) return;
+    if (e.target.closest('[data-action]')) return;
+    if (editEl.getAttribute('contenteditable') === 'true') return;
+    startEdit(editEl);
+  });
+
+  function startEdit(el) {
+    const id = el.dataset.id;
+    const field = el.dataset.edit;
+    if (field === 'name') {
+      const textSpan = el.querySelector('.stack-item-name-text');
+      if (!textSpan) return;
+      textSpan.setAttribute('contenteditable', 'true');
+      textSpan.focus();
+      placeCaretAtEnd(textSpan);
+      const finish = (commit) => {
+        textSpan.removeAttribute('contenteditable');
+        if (commit) {
+          const newVal = textSpan.textContent.trim();
+          if (newVal) updateItem(id, 'name', newVal); else render();
+        } else render();
+      };
+      textSpan.addEventListener('blur', () => finish(true), { once: true });
+      textSpan.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); textSpan.blur(); }
+        if (e.key === 'Escape') { textSpan.blur(); render(); }
+      });
+    }
+    if (field === 'meta') {
+      el.setAttribute('contenteditable', 'true');
+      el.focus(); placeCaretAtEnd(el);
+      const finish = (commit) => {
+        el.removeAttribute('contenteditable');
+        if (commit) {
+          const text = el.textContent.trim();
+          const parts = text.split(/\s*·\s*/);
+          updateItem(id, 'dose', parts[0] || '');
+          updateItem(id, 'note', parts.slice(1).join(' · '));
+        }
+        render();
+      };
+      el.addEventListener('blur', () => finish(true), { once: true });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        if (e.key === 'Escape') { el.blur(); render(); }
+      });
+    }
+  }
+
+  function placeCaretAtEnd(el) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  const nameInput = $('stackAddName');
+  const doseInput = $('stackAddDose');
+  const winSelect = $('stackAddWindow');
+  const addBtn = $('stackAddBtn');
+  const resultsEl = $('stackSearchResults');
+  let pendingNote = '';
+
+  function searchSupplements(q) {
+    const query = q.toLowerCase().trim();
+    if (!query) return [];
+    const starts = [];
+    const contains = [];
+    SUPPLEMENT_DB.forEach(s => {
+      const nameLC = s.name.toLowerCase();
+      const aliases = (s.aliases || []).map(a => a.toLowerCase());
+      const allNames = [nameLC, ...aliases];
+      if (allNames.some(n => n.startsWith(query))) starts.push(s);
+      else if (allNames.some(n => n.includes(query))) contains.push(s);
+    });
+    return [...starts, ...contains].slice(0, 6);
+  }
+
+  function renderSearchResults(q) {
+    const matches = searchSupplements(q);
+    if (!q.trim() || matches.length === 0) { resultsEl.hidden = true; resultsEl.innerHTML = ''; return; }
+    resultsEl.hidden = false;
+    resultsEl.innerHTML = matches.map(s => {
+      const winMeta = STACK_WINDOWS.find(w => w.key === s.window) || STACK_WINDOWS[3];
+      return `
+        <button class="stack-result" data-name="${escapeHtml(s.name)}" data-dose="${escapeHtml(s.dose)}" data-window="${s.window}" data-note="${escapeHtml(s.note)}">
+          <div class="stack-result-icon">${s.icon || '💊'}</div>
+          <div class="stack-result-body">
+            <div class="stack-result-name">${escapeHtml(s.name)}</div>
+            <div class="stack-result-meta">${escapeHtml(s.dose)} · ${winMeta.icon} ${winMeta.title.toLowerCase()} · ${escapeHtml(s.note)}</div>
+          </div>
+        </button>`;
+    }).join('');
+  }
+
+  nameInput.addEventListener('input', () => { renderSearchResults(nameInput.value); pendingNote = ''; });
+  nameInput.addEventListener('focus', () => { if (nameInput.value.trim()) renderSearchResults(nameInput.value); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.stack-name-wrap')) resultsEl.hidden = true; });
+  resultsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.stack-result');
+    if (!btn) return;
+    nameInput.value = btn.dataset.name;
+    doseInput.value = btn.dataset.dose;
+    winSelect.value = btn.dataset.window;
+    pendingNote = btn.dataset.note;
+    resultsEl.hidden = true;
+    addBtn.focus();
+  });
+  addBtn.addEventListener('click', () => {
+    addItem(nameInput.value, doseInput.value, winSelect.value, pendingNote);
+    nameInput.value = ''; doseInput.value = ''; pendingNote = '';
+    resultsEl.hidden = true;
+    nameInput.focus();
+  });
+  [nameInput, doseInput].forEach(i => {
+    i.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        if (!resultsEl.hidden && i === nameInput) {
+          const firstResult = resultsEl.querySelector('.stack-result');
+          if (firstResult) { e.preventDefault(); firstResult.click(); return; }
+        }
+        addBtn.click();
+      }
+      if (e.key === 'Escape') resultsEl.hidden = true;
+    });
+  });
+
+  render();
+  startTicker();
+  window._bodyStackRender = () => { todayKey = `stack:taken:${getActiveDate()}`; render(); };
+})();
+</script>
+```
+
+- [ ] **Step 4: Manual verification**
+
+Open `body.html`. If `stack:items` is empty in localStorage, confirm the tile seeds `STACK_DEFAULTS` on first load (check `localStorage.getItem('stack:items')` in console). Click a checkbox on an item — confirm it shows as taken and the progress bar/count update. Add a supplement via the "Add to stack" form (type "creatine" in the name field — confirm the autocomplete dropdown shows "Creatine monohydrate" from `SUPPLEMENT_DB`, click it, confirm dose/window auto-fill, click "+ Add" — confirm it appears in the Anytime group). Mark an item "Running low" — confirm the ticker banner switches to showing the low-stock message. Open `health.html` in another tab — confirm the same items/taken-state appear there too (shared `stack:items`/`stack:taken:*` keys).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add interactive Supplement stack tile to body.html
+
+Ports health.html's windowed supplement checklist (checkboxes,
+add-item autocomplete, missed/low-stock ticker) into body.html's
+grid, restyled to Sunpath. Reads/writes stack:items, stack:taken:*,
+stack:low — same keys and same never-clobber load logic as
+health.html.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 6: Water tracker tile (with Settings modal)
+
+**Files:**
+- Modify: `body.html` — fill `#secWater`, add the Settings modal markup at the end of `.shellwrap`, add `<style>` block, add `<script>` block
+
+**Interfaces:**
+- Consumes: `po_water_v1` (written here and by `po-water.html`/`health.html`'s embed of it).
+- Produces: `window._bodyWaterRender()` for Task 7.
+
+- [ ] **Step 1: Fill in the Water tile markup**
+
+```html
+<div class="section" id="secWater">
+  <div class="sec-head">Water<span class="more num" id="waterHeadCount"></span>
+    <button class="water-settings-btn" id="waterSettingsBtn" type="button" aria-label="Water settings">⚙</button>
+  </div>
+  <div class="glassy card">
+    <div class="water-row">
+      <span class="water-num num" id="waterNum">0</span>
+      <span class="water-target num" id="waterTarget">/ 9</span>
+    </div>
+    <div class="water-bar-wrap">
+      <div class="water-bar-track">
+        <div class="water-bar-fill" id="waterBarFill" style="width:0%"></div>
+        <div class="water-bar-zone" id="waterBarZoneStart" style="left:55%"></div>
+        <div class="water-bar-zone" id="waterBarZoneEnd" style="left:80%"></div>
+      </div>
+      <div class="water-bar-labels">
+        <span id="waterBarMin" class="num">0</span>
+        <span class="water-zone-name">healthy zone</span>
+        <span id="waterBarMax" class="num">12+</span>
+      </div>
+    </div>
+    <div class="water-actions">
+      <button class="water-minus-btn" id="waterMinusBtn" type="button" aria-label="Undo last">−</button>
+      <button class="water-plus-btn" id="waterPlusBtn" type="button">
+        <span id="waterPlusLabel">Drank a bottle</span><span>↑</span>
+      </button>
+    </div>
+    <div class="water-helper" id="waterHelper">Start the day — first one in.</div>
+
+    <button class="why-toggle" id="whyToggle" type="button" aria-expanded="false">
+      <span>Why this target?</span><span class="why-arrow">▾</span>
+    </button>
+    <div class="why-body" id="whyBody"></div>
+
+    <div class="water-divider"><span>LAST 7 DAYS</span></div>
+    <div id="histList"></div>
+
+    <div class="water-divider"><span>LAST 14 DAYS</span></div>
+    <div class="spark-wrap"><svg class="spark-svg" id="sparkSvg" viewBox="0 0 280 70" preserveAspectRatio="none"></svg></div>
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Add the Settings modal markup**
+
+Add this just before the closing `</div>` of `.shellwrap` (it's a fixed-position overlay, so its position in the DOM doesn't matter for layout, but keep it grouped with the water tile logically):
+
+```html
+<div class="modal-bg" id="setModalBg">
+  <div class="modal">
+    <h3>Water settings</h3>
+    <div class="set-section">
+      <h4>Profile</h4>
+      <div class="field-row">
+        <div class="field"><label>Weight</label><input type="number" id="setWeight" step="0.5" min="20" max="300"></div>
+        <div class="field"><label>Weight unit</label>
+          <div class="seg" id="setWeightUnit"><button data-u="kg" type="button">kg</button><button data-u="lb" type="button">lb</button></div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Age</label><input type="number" id="setAge" min="13" max="100"></div>
+        <div class="field"><label>Sex</label>
+          <div class="seg" id="setSex"><button data-s="m" type="button">Male</button><button data-s="f" type="button">Female</button><button data-s="o" type="button">Other</button></div>
+        </div>
+      </div>
+      <div class="field"><label>Activity (training hours per week)</label><input type="number" id="setActivity" min="0" max="40" step="0.5"></div>
+    </div>
+    <div class="set-section">
+      <h4>Display</h4>
+      <div class="field"><label>Show water as</label>
+        <div class="seg" id="setUnit"><button data-u="bottle" type="button">Bottles</button><button data-u="glass" type="button">Glasses</button><button data-u="oz" type="button">oz</button><button data-u="ml" type="button">ml</button></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Bottle size (ml)</label><input type="number" id="setBottleMl" min="100" max="2000" step="50"></div>
+        <div class="field"><label>Glass size (ml)</label><input type="number" id="setGlassMl" min="100" max="500" step="10"></div>
+      </div>
+    </div>
+    <div class="set-section">
+      <h4>Caffeine</h4>
+      <div class="field"><label>Average caffeine per day (mg)</label><input type="number" id="setCaffeine" min="0" max="1000" step="10">
+        <div class="field-hint">~1 cup of coffee = 95mg · espresso shot = 75mg · energy drink = 160mg. Above 200mg/day starts to add a small water requirement.</div>
+      </div>
+    </div>
+    <div class="set-section">
+      <h4>Stimulants &amp; meds</h4>
+      <div class="field"><label>Search to add</label>
+        <div class="search-wrap">
+          <input type="text" class="search-input" id="subSearch" placeholder="Type a name (Adderall, Concerta, Lithium…)" autocomplete="off">
+          <div class="search-results" id="subResults"></div>
+        </div>
+        <div class="field-hint">Each substance bumps your daily water target. Includes ADHD stims, diuretics, decongestants, nicotine, alcohol, and a few others.</div>
+      </div>
+      <div class="subs-list" id="subsList"></div>
+    </div>
+    <div class="set-section">
+      <h4>Data</h4>
+      <div class="data-btn-row">
+        <button class="btn-secondary" id="setExport" type="button">Export JSON</button>
+        <button class="btn-secondary" id="setImport" type="button">Import JSON</button>
+        <button class="btn-secondary btn-danger" id="setReset" type="button">Reset all</button>
+      </div>
+      <input type="file" id="setImportFile" accept=".json" style="display:none">
+    </div>
+    <div class="modal-actions"><button class="btn-primary" id="setClose" type="button">Done</button></div>
+  </div>
+</div>
+```
+
+- [ ] **Step 3: Add the Water tile CSS**
+
+```css
+/* ===== Water tile ===== */
+.water-settings-btn { margin-left: auto; background: transparent; border: none; color: var(--faint); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+.water-settings-btn:hover { color: var(--ink); }
+.water-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.water-num { font-size: 44px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+.water-target { font-size: 15px; color: var(--faint); }
+
+.water-bar-wrap { position: relative; margin: 12px 0 18px; }
+.water-bar-track { position: relative; height: 26px; border-radius: 13px; background: rgba(255,255,255,0.05); overflow: hidden; }
+.water-bar-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 13px; background: linear-gradient(90deg, var(--sun), var(--leaf)); transition: width 0.4s ease; }
+.water-bar-fill.over { background: linear-gradient(90deg, var(--leaf), var(--sun)); }
+.water-bar-zone { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.18); }
+.water-bar-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 9.5px; color: var(--faint); }
+.water-bar-labels .water-zone-name { color: var(--leaf); font-weight: 700; letter-spacing: 0.1em; text-transform: lowercase; }
+
+.water-actions { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: stretch; }
+.water-minus-btn { background: rgba(255,255,255,0.06); border: none; border-radius: 14px; color: var(--ink); font-size: 20px; font-weight: 700; cursor: pointer; }
+.water-minus-btn:hover { background: rgba(255,255,255,0.10); }
+.water-minus-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.water-plus-btn { background: var(--sun); color: #0A0B0E; border: none; border-radius: 14px; font-family: var(--display); font-size: 15px; font-weight: 700; cursor: pointer; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.water-plus-btn:active { transform: scale(0.98); }
+.water-helper { text-align: center; font-size: 11.5px; color: var(--faint); margin-top: 10px; font-style: italic; }
+.water-helper.good { color: var(--leaf); font-style: normal; }
+
+.why-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 10px 13px; cursor: pointer; margin-top: 14px; font-family: var(--display); font-size: 12px; font-weight: 600; }
+.why-toggle:hover { background: rgba(255,255,255,0.04); color: var(--ink); }
+.why-arrow { transition: transform 0.2s; font-size: 13px; }
+.why-toggle[aria-expanded="true"] .why-arrow { transform: rotate(180deg); }
+.why-body { margin-top: 8px; padding: 13px 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; display: none; }
+.why-body.show { display: block; }
+.why-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; padding: 4px 0; }
+.why-row .why-label { color: var(--muted); }
+.why-row .why-val { color: var(--ink); font-weight: 600; font-family: var(--mono); }
+.why-row.total { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+.why-row.total .why-label { color: var(--leaf); font-weight: 700; }
+.why-row.total .why-val { color: var(--leaf); }
+
+.water-divider { display: flex; align-items: center; gap: 14px; margin: 18px 0 12px; }
+.water-divider::before, .water-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.water-divider span { font-size: 9.5px; letter-spacing: 0.2em; font-weight: 700; color: var(--faint); }
+
+.hist-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 10px; padding: 8px 0; align-items: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-date { font-size: 10.5px; color: var(--faint); }
+.hist-bar-wrap { height: 7px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.hist-bar-fill { height: 100%; background: linear-gradient(90deg, var(--sun), var(--leaf)); border-radius: 4px; }
+.hist-bar-fill.miss { background: rgba(228,87,46,0.4); }
+.hist-count { font-size: 11px; color: var(--muted); }
+
+.spark-wrap { padding: 4px 0; }
+.spark-svg { width: 100%; height: 66px; display: block; }
+.spark-bar { fill: var(--leaf); }
+.spark-bar.miss { fill: rgba(228,87,46,0.5); }
+.spark-target { stroke: var(--glass-border); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+/* Settings modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.show { display: flex; }
+.modal { width: 100%; max-width: 480px; background: #14151c; border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; max-height: 88vh; overflow-y: auto; font-family: var(--display); color: var(--muted); }
+.modal h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; color: var(--ink); }
+.set-section { margin-bottom: 22px; }
+.set-section h4 { margin: 0 0 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.field label { font-size: 10.5px; color: var(--faint); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.field input[type="number"], .field input[type="text"], .field select { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink); font-family: var(--display); font-size: 13px; padding: 9px 11px; border-radius: 10px; outline: none; width: 100%; }
+.field input:focus, .field select:focus { border-color: rgba(158,217,160,0.4); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-hint { font-size: 10.5px; color: var(--faint); margin-top: 4px; line-height: 1.4; }
+.seg { display: flex; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.seg button { flex: 1; padding: 8px; border: none; background: transparent; color: var(--faint); border-radius: 7px; font-family: var(--display); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.seg button.active { background: var(--sun); color: #0A0B0E; }
+
+.search-wrap { position: relative; }
+.search-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink); font-family: var(--display); font-size: 13px; padding: 10px 13px; border-radius: 10px; outline: none; }
+.search-input:focus { border-color: rgba(158,217,160,0.4); }
+.search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #1a1b23; border: 1px solid var(--glass-border); border-radius: 10px; padding: 4px; max-height: 220px; overflow-y: auto; z-index: 5; display: none; }
+.search-results.show { display: block; }
+.search-result { display: flex; flex-direction: column; gap: 2px; padding: 8px 11px; border-radius: 7px; cursor: pointer; font-size: 12.5px; }
+.search-result:hover { background: rgba(255,255,255,0.06); }
+.search-result-name { color: var(--ink); font-weight: 600; }
+.search-result-meta { font-size: 10px; color: var(--faint); }
+.search-result-add { color: var(--leaf); }
+
+.subs-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.sub-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.sub-row-info { flex: 1; min-width: 140px; }
+.sub-row-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.sub-row-meta { font-size: 10.5px; color: var(--faint); margin-top: 2px; }
+.sub-row-dose { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.sub-row-dose .sub-dose-input { width: 52px; background: transparent; border: none; outline: none; color: var(--ink); font-family: var(--display); font-size: 12.5px; font-weight: 600; text-align: center; }
+.sub-row-dose .sub-dose-unit { font-size: 10.5px; color: var(--faint); white-space: nowrap; }
+.sub-row-del { background: transparent; border: none; color: var(--faint); font-size: 15px; cursor: pointer; padding: 4px 8px; }
+.sub-row-del:hover { color: var(--ember); }
+
+.btn-primary { width: 100%; padding: 12px; border: none; background: var(--sun); color: #0A0B0E; border-radius: 12px; font-family: var(--display); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.btn-secondary { padding: 10px 15px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--ink); border-radius: 10px; font-family: var(--display); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn-secondary:hover { background: rgba(255,255,255,0.09); }
+.btn-danger { color: var(--ember); border-color: rgba(228,87,46,0.3); }
+.data-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+```
+
+- [ ] **Step 4: Add the Water tile script**
+
+Add a `<script>` block right after the Settings modal markup. `SUBSTANCE_DB` is copied **verbatim, unmodified** from `po-water.html:663-685` (22 entries) — paste that exact array literal in below:
+
+```html
+<script>
+(function() {
+  const $ = (id) => document.getElementById(id);
+
+  const SUBSTANCE_DB = [
+    { id: 'adderall',    name: 'Adderall (mixed amphetamine salts)', cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 25,    note: 'Stim · reduces thirst signal · dries you out' },
+    { id: 'concerta',    name: 'Concerta (methylphenidate ER)',      cat: 'ADHD stim',    unit: 'mg',           defaultDose: 36,   mlPerUnit: 13.9,  note: 'Stim · reduces thirst signal' },
+    { id: 'vyvanse',     name: 'Vyvanse (lisdexamfetamine)',         cat: 'ADHD stim',    unit: 'mg',           defaultDose: 50,   mlPerUnit: 10,    note: 'Stim prodrug · long acting' },
+    { id: 'ritalin',     name: 'Ritalin IR (methylphenidate)',       cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 20,    note: 'Short-acting stim' },
+    { id: 'focalin',     name: 'Focalin / Focalin XR',               cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 20,    note: 'Methylphenidate isomer' },
+    { id: 'modafinil',   name: 'Modafinil',                          cat: 'Wakefulness',  unit: 'mg',           defaultDose: 200,  mlPerUnit: 1.75,  note: 'Mild dehydrating effect' },
+    { id: 'lithium',     name: 'Lithium',                            cat: 'Mood',         unit: 'mg',           defaultDose: 600,  mlPerUnit: 1.67,  note: 'Critical — narrow therapeutic window, dehydration → toxicity' },
+    { id: 'hctz',        name: 'Hydrochlorothiazide (HCTZ)',         cat: 'Diuretic',     unit: 'mg',           defaultDose: 25,   mlPerUnit: 40,    note: 'Direct diuretic — drink to compensate' },
+    { id: 'lasix',       name: 'Furosemide (Lasix)',                 cat: 'Diuretic',     unit: 'mg',           defaultDose: 40,   mlPerUnit: 30,    note: 'Loop diuretic · talk to your doctor about target' },
+    { id: 'spironol',    name: 'Spironolactone',                     cat: 'Diuretic',     unit: 'mg',           defaultDose: 50,   mlPerUnit: 12,    note: 'K-sparing diuretic' },
+    { id: 'sudafed',     name: 'Pseudoephedrine (Sudafed)',          cat: 'Decongestant', unit: 'mg',           defaultDose: 60,   mlPerUnit: 4.17,  note: 'Sympathomimetic · dries mucous membranes' },
+    { id: 'phenyl',      name: 'Phenylephrine',                      cat: 'Decongestant', unit: 'mg',           defaultDose: 10,   mlPerUnit: 20,    note: 'Vasoconstrictor — mild' },
+    { id: 'nicotine',    name: 'Nicotine pouch (Velo / Zyn)',        cat: 'Stim',         unit: 'pouches/day',  defaultDose: 4,    mlPerUnit: 62.5,  note: 'Vasoconstriction + dry mouth' },
+    { id: 'nicpatch',    name: 'Nicotine patch',                     cat: 'Stim',         unit: 'mg',           defaultDose: 14,   mlPerUnit: 18,    note: '24-h transdermal · sustained release' },
+    { id: 'alcohol',     name: 'Alcohol',                            cat: 'Depressant',   unit: 'drinks/day',   defaultDose: 1,    mlPerUnit: 400,   note: '~10ml urine per gram ethanol — adds up fast' },
+    { id: 'cannabis',    name: 'Cannabis / THC',                     cat: 'Other',        unit: 'sessions/day', defaultDose: 1,    mlPerUnit: 250,   note: 'Cottonmouth — saliva gland inhibition' },
+    { id: 'creatine',    name: 'Creatine monohydrate',               cat: 'Supplement',   unit: 'g/day',        defaultDose: 5,    mlPerUnit: 80,    note: 'Pulls water into muscle cells — drink more' },
+    { id: 'preworkout',  name: 'Pre-workout (caffeine + others)',    cat: 'Stim',         unit: 'servings/day', defaultDose: 1,    mlPerUnit: 300,   note: 'High-stim formula on top of caffeine' },
+    { id: 'metformin',   name: 'Metformin',                          cat: 'Glucose',      unit: 'mg',           defaultDose: 1000, mlPerUnit: 0.3,   note: 'Mild GI fluid loss' },
+    { id: 'sertraline',  name: 'SSRI (sertraline / escitalopram / fluoxetine)', cat: 'SSRI', unit: 'mg',         defaultDose: 50,   mlPerUnit: 4,     note: 'Mild dry mouth in some users' },
+    { id: 'wellbutrin',  name: 'Bupropion (Wellbutrin)',             cat: 'NDRI',         unit: 'mg',           defaultDose: 300,  mlPerUnit: 1.17,  note: 'Stim-like profile' }
+  ];
+
+  function subExtraMl(s) {
+    const dose = (s.dose != null ? s.dose : s.defaultDose) || 0;
+    return Math.max(0, dose * (s.mlPerUnit || 0));
+  }
+  function subDoseLabel(s) {
+    const dose = (s.dose != null ? s.dose : s.defaultDose);
+    return dose + ' ' + (s.unit || '');
+  }
+
+  const LS_KEY = 'po_water_v1';
+  const DEFAULTS = { unit: 'bottle', bottleMl: 500, glassMl: 250, caffeineMgPerDay: 200,
+    profile: { weightKg: 75, age: 25, sex: 'm', activityHrsPerWeek: 5 } };
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) return normalize(JSON.parse(raw));
+    } catch (e) {}
+    return normalize({});
+  }
+  function normalize(s) {
+    s = s || {};
+    s.unit = s.unit || DEFAULTS.unit;
+    s.bottleMl = s.bottleMl || DEFAULTS.bottleMl;
+    s.glassMl  = s.glassMl  || DEFAULTS.glassMl;
+    s.weightUnit = s.weightUnit || 'kg';
+    s.profile = Object.assign({}, DEFAULTS.profile, s.profile || {});
+    s.caffeineMgPerDay = (s.caffeineMgPerDay != null) ? s.caffeineMgPerDay : DEFAULTS.caffeineMgPerDay;
+    s.substances = Array.isArray(s.substances) ? s.substances : [];
+    s.logs = (s.logs && typeof s.logs === 'object') ? s.logs : {};
+    return s;
+  }
+  function saveState() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+  let state = loadState();
+
+  function dateKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function todayKey() { return dateKey(new Date()); }
+  function todayCount() { return state.logs[todayKey()] || 0; }
+  function setTodayCount(n) {
+    const k = todayKey();
+    if (n <= 0) delete state.logs[k]; else state.logs[k] = n;
+    saveState();
+  }
+
+  function computeTargetMl() {
+    const p = state.profile;
+    const wKg = state.weightUnit === 'lb' ? p.weightKg / 2.20462 : p.weightKg;
+    const base = wKg * 35;
+    const exercise = (p.activityHrsPerWeek || 0) / 7 * 500;
+    const caffeine = Math.max(0, (state.caffeineMgPerDay || 0) - 200) * 1.5;
+    const subs = (state.substances || []).reduce((s, x) => s + subExtraMl(x), 0);
+    let adjust = 0;
+    if (p.sex === 'm') adjust += 200;
+    if ((p.age || 0) >= 50) adjust += 100;
+    return { base, exercise, caffeine, subs, adjust, total: base + exercise + caffeine + subs + adjust };
+  }
+
+  function unitVolMl() {
+    if (state.unit === 'bottle') return state.bottleMl || 500;
+    if (state.unit === 'glass')  return state.glassMl  || 250;
+    if (state.unit === 'oz')     return 30;
+    return 1;
+  }
+  function unitLabelPlural() {
+    if (state.unit === 'bottle') return 'bottles';
+    if (state.unit === 'glass')  return 'glasses';
+    if (state.unit === 'oz')     return 'oz';
+    return 'ml';
+  }
+  function unitLabelSingular() {
+    if (state.unit === 'bottle') return 'bottle';
+    if (state.unit === 'glass')  return 'glass';
+    if (state.unit === 'oz')     return 'oz';
+    return 'ml';
+  }
+  function fmtMl(ml) { if (ml >= 1000) return (ml / 1000).toFixed(1) + ' L'; return Math.round(ml) + ' ml'; }
+
+  function renderWater() {
+    const calc = computeTargetMl();
+    const targetUnits = Math.ceil(calc.total / unitVolMl());
+    const count = todayCount();
+
+    $('waterNum').textContent = count;
+    $('waterTarget').textContent = '/ ' + targetUnits;
+    $('waterHeadCount').textContent = count + '/' + targetUnits;
+    $('waterPlusLabel').textContent = 'Drank a ' + unitLabelSingular();
+
+    const pctRaw = (count / targetUnits) * 100;
+    const fillPct = Math.min(150, pctRaw) / 1.5;
+    const fill = $('waterBarFill');
+    fill.style.width = fillPct + '%';
+    fill.classList.toggle('over', pctRaw > 100);
+    $('waterBarMin').textContent = '0';
+    $('waterBarMax').textContent = (Math.ceil(targetUnits * 1.5)) + '+';
+    $('waterBarZoneStart').style.left = (65 / 1.5) + '%';
+    $('waterBarZoneEnd').style.left   = (100 / 1.5) + '%';
+
+    const helper = $('waterHelper');
+    if (count === 0) { helper.textContent = 'Start the day — first one in.'; helper.classList.remove('good'); }
+    else if (pctRaw < 50) { helper.textContent = 'Behind pace — drink one in the next hour.'; helper.classList.remove('good'); }
+    else if (pctRaw < 100) { helper.textContent = (targetUnits - count) + ' to go. Pacing well.'; helper.classList.remove('good'); }
+    else if (pctRaw < 130) { helper.textContent = '✓ Target hit — top up if you train this evening.'; helper.classList.add('good'); }
+    else { helper.textContent = 'Strong — way past target.'; helper.classList.add('good'); }
+
+    $('waterMinusBtn').disabled = count <= 0;
+
+    renderWhy(calc, targetUnits);
+    renderHistory();
+    renderSparkline(targetUnits);
+  }
+
+  function renderWhy(calc, targetUnits) {
+    const wrap = $('whyBody');
+    const u = state.weightUnit;
+    const wDisp = state.profile.weightKg.toFixed(0);
+    let html = '';
+    html += '<div class="why-row"><span class="why-label">Base (' + wDisp + ' ' + u + ' × 35 ml)</span><span class="why-val">' + fmtMl(calc.base) + '</span></div>';
+    if (calc.exercise > 0) html += '<div class="why-row"><span class="why-label">+ Exercise (' + state.profile.activityHrsPerWeek + ' h/wk)</span><span class="why-val">+ ' + fmtMl(calc.exercise) + '</span></div>';
+    if (calc.caffeine > 0) html += '<div class="why-row"><span class="why-label">+ Caffeine (' + state.caffeineMgPerDay + ' mg/day)</span><span class="why-val">+ ' + fmtMl(calc.caffeine) + '</span></div>';
+    (state.substances || []).forEach(s => {
+      html += '<div class="why-row"><span class="why-label">+ ' + escapeHtml(s.name) + ' (' + escapeHtml(subDoseLabel(s)) + ')</span><span class="why-val">+ ' + fmtMl(subExtraMl(s)) + '</span></div>';
+    });
+    if (calc.adjust > 0) html += '<div class="why-row"><span class="why-label">+ Sex / age adjustment</span><span class="why-val">+ ' + fmtMl(calc.adjust) + '</span></div>';
+    html += '<div class="why-row total"><span class="why-label">Daily target</span><span class="why-val">' + fmtMl(calc.total) + ' ≈ ' + targetUnits + ' ' + unitLabelPlural() + '</span></div>';
+    wrap.innerHTML = html;
+  }
+
+  function renderHistory() {
+    const list = $('histList');
+    const target = Math.ceil(computeTargetMl().total / unitVolMl());
+    const days = [];
+    for (let i = 6; i >= 1; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = dateKey(d);
+      days.push({ date: d, key: k, count: state.logs[k] || 0 });
+    }
+    list.innerHTML = days.map(({date, count}) => {
+      const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const lbl = dows[date.getDay()] + ' ' + (date.getMonth()+1) + '/' + date.getDate();
+      const pct = Math.min(100, (count / target) * 100);
+      const cls = (count >= target) ? '' : 'miss';
+      return '<div class="hist-row"><span class="hist-date">' + lbl + '</span>' +
+        '<div class="hist-bar-wrap"><div class="hist-bar-fill ' + cls + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="hist-count">' + count + '/' + target + '</span></div>';
+    }).join('') || '<div style="text-align:center;font-size:12px;color:var(--faint);padding:12px 0">No logs yet.</div>';
+  }
+
+  function renderSparkline(target) {
+    const svg = $('sparkSvg');
+    const W = 280, H = 70, pad = 4;
+    const days = 14;
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      data.push(state.logs[dateKey(d)] || 0);
+    }
+    const maxVal = Math.max(target, Math.max.apply(null, data)) || 1;
+    const colW = (W - pad * 2) / data.length;
+    const barW = colW * 0.7;
+    let html = '';
+    const targetY = H - pad - (target / maxVal) * (H - pad * 2);
+    html += '<line class="spark-target" x1="0" x2="' + W + '" y1="' + targetY.toFixed(1) + '" y2="' + targetY.toFixed(1) + '"/>';
+    data.forEach((v, i) => {
+      const x = pad + i * colW + (colW - barW) / 2;
+      const h = (v / maxVal) * (H - pad * 2);
+      const y = H - pad - h;
+      const cls = (v >= target) ? 'spark-bar' : 'spark-bar miss';
+      html += '<rect class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="2"/>';
+    });
+    svg.innerHTML = html;
+  }
+
+  $('waterPlusBtn').addEventListener('click', () => {
+    setTodayCount(todayCount() + 1);
+    renderWater();
+    const btn = $('waterPlusBtn');
+    btn.style.transform = 'scale(0.97)';
+    setTimeout(() => { btn.style.transform = ''; }, 120);
+  });
+  $('waterMinusBtn').addEventListener('click', () => { setTodayCount(Math.max(0, todayCount() - 1)); renderWater(); });
+
+  $('whyToggle').addEventListener('click', () => {
+    const body = $('whyBody');
+    const open = body.classList.contains('show');
+    body.classList.toggle('show');
+    $('whyToggle').setAttribute('aria-expanded', open ? 'false' : 'true');
+  });
+
+  function renderSettings() {
+    $('setWeight').value = state.profile.weightKg;
+    $('setAge').value = state.profile.age;
+    $('setActivity').value = state.profile.activityHrsPerWeek;
+    $('setCaffeine').value = state.caffeineMgPerDay;
+    $('setBottleMl').value = state.bottleMl;
+    $('setGlassMl').value = state.glassMl;
+    setSegActive('setUnit', state.unit);
+    setSegActive('setWeightUnit', state.weightUnit);
+    setSegActive('setSex', state.profile.sex);
+    renderSubsList();
+  }
+  function setSegActive(segId, value) {
+    $(segId).querySelectorAll('button').forEach(b => {
+      const v = b.dataset.u || b.dataset.s;
+      b.classList.toggle('active', v === value);
+    });
+  }
+  function bindSeg(segId, attr, onPick) {
+    $(segId).querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        const v = b.dataset[attr];
+        $(segId).querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        onPick(v);
+      });
+    });
+  }
+  bindSeg('setUnit', 'u', (v) => { state.unit = v; saveState(); renderWater(); });
+  bindSeg('setWeightUnit', 'u', (v) => { state.weightUnit = v; saveState(); renderWater(); });
+  bindSeg('setSex', 's', (v) => { state.profile.sex = v; saveState(); renderWater(); });
+
+  ['setWeight','setAge','setActivity','setCaffeine','setBottleMl','setGlassMl'].forEach(id => {
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (id === 'setWeight') state.profile.weightKg = v || 0;
+      else if (id === 'setAge') state.profile.age = v || 0;
+      else if (id === 'setActivity') state.profile.activityHrsPerWeek = v || 0;
+      else if (id === 'setCaffeine') state.caffeineMgPerDay = v || 0;
+      else if (id === 'setBottleMl') state.bottleMl = v || 500;
+      else if (id === 'setGlassMl') state.glassMl = v || 250;
+      saveState(); renderWater();
+    });
+  });
+
+  function renderSubsList() {
+    const list = $('subsList');
+    if (!state.substances || !state.substances.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--faint);text-align:center;padding:14px 0;font-style:italic;">No substances added.</div>';
+      return;
+    }
+    list.innerHTML = state.substances.map((s, i) =>
+      '<div class="sub-row" data-i="' + i + '">' +
+      '<div class="sub-row-info"><div class="sub-row-name">' + escapeHtml(s.name) + '</div>' +
+      '<div class="sub-row-meta">+ ' + fmtMl(subExtraMl(s)) + ' / day · ' + escapeHtml(s.cat || '') + '</div></div>' +
+      '<div class="sub-row-dose"><input type="number" class="sub-dose-input" data-i="' + i + '" min="0" step="0.5" value="' + (s.dose != null ? s.dose : s.defaultDose) + '">' +
+      '<span class="sub-dose-unit">' + escapeHtml(s.unit || '') + '</span></div>' +
+      '<button class="sub-row-del" data-i="' + i + '" aria-label="Remove">×</button></div>'
+    ).join('');
+    list.querySelectorAll('.sub-dose-input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = parseInt(inp.dataset.i, 10);
+        state.substances[i].dose = parseFloat(inp.value) || 0;
+        saveState();
+        const row = inp.closest('.sub-row');
+        row.querySelector('.sub-row-meta').textContent = '+ ' + fmtMl(subExtraMl(state.substances[i])) + ' / day · ' + (state.substances[i].cat || '');
+        renderWater();
+      });
+    });
+    list.querySelectorAll('.sub-row-del').forEach(b => {
+      b.addEventListener('click', () => {
+        state.substances.splice(parseInt(b.dataset.i, 10), 1);
+        saveState(); renderSubsList(); renderWater();
+      });
+    });
+  }
+
+  $('subSearch').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const results = $('subResults');
+    if (!q) { results.classList.remove('show'); results.innerHTML = ''; return; }
+    const matches = SUBSTANCE_DB.filter(s => s.name.toLowerCase().includes(q) || s.cat.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) {
+      results.innerHTML = '<div class="search-result"><span class="search-result-name">No matches</span><span class="search-result-meta">Try a different name or category</span></div>';
+      results.classList.add('show');
+      return;
+    }
+    results.innerHTML = matches.map(s => {
+      const defaultExtra = (s.defaultDose || 0) * (s.mlPerUnit || 0);
+      return '<div class="search-result" data-id="' + s.id + '">' +
+        '<span class="search-result-name">' + escapeHtml(s.name) + ' <span class="search-result-add">+</span></span>' +
+        '<span class="search-result-meta">' + escapeHtml(s.cat) + ' · ' + s.defaultDose + ' ' + escapeHtml(s.unit) + ' default → adds ~' + fmtMl(defaultExtra) + '/day · ' + escapeHtml(s.note) + '</span></div>';
+    }).join('');
+    results.classList.add('show');
+    results.querySelectorAll('.search-result').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        const sub = SUBSTANCE_DB.find(x => x.id === id);
+        if (!sub) return;
+        if ((state.substances || []).find(x => x.id === id)) { alert('Already added — edit the dose below.'); return; }
+        state.substances.push({ id: sub.id, name: sub.name, cat: sub.cat, unit: sub.unit, mlPerUnit: sub.mlPerUnit, defaultDose: sub.defaultDose, dose: sub.defaultDose });
+        saveState();
+        $('subSearch').value = '';
+        results.classList.remove('show');
+        renderSubsList(); renderWater();
+      });
+    });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) $('subResults').classList.remove('show'); });
+
+  $('waterSettingsBtn').addEventListener('click', () => { renderSettings(); $('setModalBg').classList.add('show'); });
+  $('setClose').addEventListener('click', () => $('setModalBg').classList.remove('show'));
+
+  $('setExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'water-coach-data-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click(); URL.revokeObjectURL(url);
+  });
+  $('setImport').addEventListener('click', () => $('setImportFile').click());
+  $('setImportFile').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        if (!confirm('Replace ALL current data with the imported file?')) return;
+        state = normalize(parsed);
+        saveState(); renderSettings(); renderWater();
+      } catch (err) { alert('Import failed: ' + err.message); }
+    };
+    r.readAsText(f);
+  });
+  $('setReset').addEventListener('click', () => {
+    if (!confirm('Wipe ALL water logs and settings? This cannot be undone.')) return;
+    localStorage.removeItem(LS_KEY);
+    state = loadState();
+    $('setModalBg').classList.remove('show');
+    renderWater();
+  });
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  renderWater();
+  window._bodyWaterRender = renderWater;
+})();
+</script>
+```
+
+- [ ] **Step 5: Manual verification**
+
+Open `body.html`. Confirm the water tile shows `0 / <target>` with a sensible default target (~65-75 for default 75kg profile → roughly 4-5 bottles). Click "Drank a bottle" a few times — confirm the number/bar/helper text update, and the minus button un-does one. Click the gear icon — confirm the Settings modal opens with Profile/Display/Caffeine/Stimulants/Data sections; change weight to `90`, close, confirm the target recalculates higher. Search "creatine" in Stimulants & meds — confirm it appears in results, add it, confirm the daily target bumps and it shows in the "Why this target?" breakdown. Open `health.html` (which iframes `po-water.html`) in another tab — confirm the same water count for today appears there too (shared `po_water_v1` key).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Add interactive Water tracker tile to body.html
+
+Ports po-water.html's tracker (hero/bar/why-breakdown/history/
+sparkline) plus its full Settings modal into body.html's grid,
+restyled to Sunpath. Reads/writes po_water_v1, same key
+health.html/po-water.html use.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 7: Cross-tile refresh wiring
+
+**Files:**
+- Modify: `body.html` — the existing final `<script>` block (Sunpath boot script)
+
+**Interfaces:**
+- Consumes: `window._bodyWtRender`, `window._bodyHvRender`, `window._bodySvRender`, `window._bodyStackRender`, `window._bodyWaterRender` (all produced by Tasks 2–6; defined by the time this script runs since it's the last script tag on the page).
+
+This wires the existing `S.pull({...}, render)` call (already in `body.html`'s final script) so that when data changes arrive from another tab/device (via `sync.js`'s storage-event mechanism), all five new tiles refresh — not just the Today card.
+
+- [ ] **Step 1: Extend the S.pull key groups and render callback**
+
+Find the existing code near the end of `body.html`'s final `<script>` block:
+
+```js
+    S.injectDock('body');
+    render();
+    S.pull({
+      'goals':    { keys: ['goal_streak_v1'] },
+      'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
+      'health':   { keys: ['stack:items', 'po_water_v1'], prefixes: ['stack:taken:'] }
+    }, render);
+```
+
+Replace it with:
+
+```js
+    S.injectDock('body');
+    render();
+    S.pull({
+      'goals':    { keys: ['goal_streak_v1'] },
+      'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
+      'health':   { keys: ['stack:items', 'stack:low', 'po_water_v1'], prefixes: ['stack:taken:'] },
+      'fitness-sync': { keys: [
+        'hevy_api_key', 'hevy_workouts_cache',
+        'strava_client_id', 'strava_client_secret', 'strava_tokens', 'strava_cache'
+      ] }
+    }, function () {
+      render();
+      if (typeof window._bodyWtRender === 'function') window._bodyWtRender();
+      if (typeof window._bodyHvRender === 'function') window._bodyHvRender();
+      if (typeof window._bodySvRender === 'function') window._bodySvRender();
+      if (typeof window._bodyStackRender === 'function') window._bodyStackRender();
+      if (typeof window._bodyWaterRender === 'function') window._bodyWaterRender();
+    });
+```
+
+- [ ] **Step 2: Manual verification**
+
+Open `body.html` in two browser tabs side by side. In tab A, change the weight input and Save. In tab B (same origin, so `storage` events fire across tabs for plain `localStorage.setItem` calls), confirm the Weight tile's number updates without a manual reload (this relies on the browser's native `storage` event, which `sync.js`/`S.pull`'s polling already listens for — same mechanism already proven by the existing Today card updating cross-tab today). Repeat for a supplement checkbox toggle and a water +1 click.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add body.html
+git commit -m "$(cat <<'EOF'
+Wire new body.html tiles into the existing S.pull refresh cycle
+
+Extends the localStorage key groups S.pull watches to cover the
+new Weight/Hevy/Strava/Stack/Water tiles, and calls each tile's
+render function on every refresh so cross-tab/cross-device changes
+show up without a manual reload.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+### Task 8: Widen mind.html and money.html to match Today's width
+
+**Files:**
+- Modify: `mind.html:17-18`
+- Modify: `money.html:17-18`
+
+**Interfaces:** None — pure CSS width change, no new elements or behavior.
+
+- [ ] **Step 1: Widen mind.html**
+
+Current (`mind.html` lines 17-18):
+```html
+<body>
+<div class="shellwrap">
+```
+
+Add a page-scoped style block in `<head>` (same placement pattern as `today.html`/`body.html`) right after the `sunpath.css`/`sunpath.js` links, and add the class to `<body>`:
+
+```html
+<style>
+@media (min-width: 1024px) {
+  .mind-page .shellwrap { max-width: 1100px; }
+}
+</style>
+```
+
+```html
+<body class="mind-page">
+<div class="shellwrap">
+```
+
+- [ ] **Step 2: Widen money.html**
+
+Same pattern in `money.html`:
+
+```html
+<style>
+@media (min-width: 1024px) {
+  .money-page .shellwrap { max-width: 1100px; }
+}
+</style>
+```
+
+```html
+<body class="money-page">
+<div class="shellwrap">
+```
+
+- [ ] **Step 3: Manual verification**
+
+Open `mind.html` and `money.html` at a desktop width (≥1024px). Confirm their content column is now as wide as `today.html`'s/`body.html`'s (1100px max-width) instead of the default 560px. Their internal layout doesn't change (no grid reflow — content just has more horizontal room, so single-column sections will look wider but not rearranged). This is intentionally the only change; grid restructuring for these two pages is a follow-up once their tile screenshots are provided (per spec).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add mind.html money.html
+git commit -m "$(cat <<'EOF'
+Widen mind.html and money.html to match Today/Body's max-width
+
+Applies the same max-width:1100px desktop treatment used by
+today.html and body.html, without restructuring their layout.
+Grid restructuring for these pages is a follow-up once their
+tile designs are provided.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+EOF
+)"
+```
