@@ -263,6 +263,10 @@
       g += '<a class="mod glassy" href="library.html"><span class="k">Mind — Library</span>' +
         '<span class="v num">' + reading.length + ' <small>book' + (reading.length === 1 ? '' : 's') + ' open</small></span>' +
         '<span class="d">' + (reading[0] ? S.esc(String(reading[0].title).slice(0, 24)) : 'shelf is empty') + '</span></a>';
+      const mentorReady = !!(localStorage.getItem('mentor_api_key') || '').trim();
+      g += '<a class="mod glassy" href="mentor.html"><span class="k">Today — Mentor</span>' +
+        '<span class="v num">' + (mentorReady ? 'Nova' : '—') + ' <small>' + (mentorReady ? 'ready' : 'not set up') + '</small></span>' +
+        '<span class="d">' + (mentorReady ? 'ask Nova about your day' : 'tap to add your Claude key') + '</span></a>';
       const nwPath = M ? S.sparkPath(M.hist.slice(-40).map(e => e.v), 320, 34) : '';
       g += '<a class="glassy card" style="grid-column:1/-1" href="finance.html">' +
         '<span class="k">Money</span>' +

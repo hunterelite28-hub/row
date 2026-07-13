@@ -252,6 +252,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   function shouldShowChrome() { return !isFinancePage() && !isEmbedded(); }
   function currentPageKey() {
     const p = (window.location.pathname || '').toLowerCase();
+    if (p.endsWith('mentor.html')) return 'mentor';
     if (p.endsWith('habits.html')) return 'habits';
     if (p.endsWith('learning.html')) return 'learning';
     if (p.endsWith('library.html')) return 'library';
@@ -264,7 +265,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   // Which Sunpath hub owns each classic page (for the dock lens)
   function currentHub() {
     const map = {
-      goals: 'today', habits: 'today',
+      goals: 'today', habits: 'today', mentor: 'today',
       health: 'body', fitness: 'body',
       learning: 'mind', library: 'mind', growth: 'mind'
     };
@@ -274,7 +275,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   function pageDisplayName() {
     const map = {
       goals: 'GOALS', habits: 'HABITS', learning: 'LEARN', library: 'LIBRARY',
-      health: 'HEALTH', fitness: 'FITNESS', growth: 'GROWTH'
+      health: 'HEALTH', fitness: 'FITNESS', growth: 'GROWTH', mentor: 'MENTOR'
     };
     return map[currentPageKey()] || 'GOALS';
   }
