@@ -208,6 +208,107 @@
   .stack-add-row .stack-add-btn, .stack-add-row .stack-select { grid-column: 1 / -1; }
   .stack-search-results { width: 100%; }
 }
+
+/* ===== Water tile ===== */
+.water-settings-btn { margin-left: auto; background: transparent; border: none; color: var(--faint); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+.water-settings-btn:hover { color: var(--ink); }
+.water-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.water-num { font-size: 44px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+.water-target { font-size: 15px; color: var(--faint); }
+
+.water-bar-wrap { position: relative; margin: 12px 0 18px; }
+.water-bar-track { position: relative; height: 26px; border-radius: 13px; background: rgba(255,255,255,0.05); overflow: hidden; }
+.water-bar-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 13px; background: linear-gradient(90deg, var(--sun), var(--leaf)); transition: width 0.4s ease; }
+.water-bar-fill.over { background: linear-gradient(90deg, var(--leaf), var(--sun)); }
+.water-bar-zone { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.18); }
+.water-bar-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 9.5px; color: var(--faint); }
+.water-bar-labels .water-zone-name { color: var(--leaf); font-weight: 700; letter-spacing: 0.1em; text-transform: lowercase; }
+
+.water-actions { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: stretch; }
+.water-minus-btn { background: rgba(255,255,255,0.06); border: none; border-radius: 14px; color: var(--ink); font-size: 20px; font-weight: 700; cursor: pointer; }
+.water-minus-btn:hover { background: rgba(255,255,255,0.10); }
+.water-minus-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.water-plus-btn { background: var(--sun); color: #0A0B0E; border: none; border-radius: 14px; font-family: var(--display); font-size: 15px; font-weight: 700; cursor: pointer; padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.water-plus-btn:active { transform: scale(0.98); }
+.water-helper { text-align: center; font-size: 11.5px; color: var(--faint); margin-top: 10px; font-style: italic; }
+.water-helper.good { color: var(--leaf); font-style: normal; }
+
+.why-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 10px; padding: 10px 13px; cursor: pointer; margin-top: 14px; font-family: var(--display); font-size: 12px; font-weight: 600; }
+.why-toggle:hover { background: rgba(255,255,255,0.04); color: var(--ink); }
+.why-arrow { transition: transform 0.2s; font-size: 13px; }
+.why-toggle[aria-expanded="true"] .why-arrow { transform: rotate(180deg); }
+.why-body { margin-top: 8px; padding: 13px 15px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; display: none; }
+.why-body.show { display: block; }
+.why-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; padding: 4px 0; }
+.why-row .why-label { color: var(--muted); }
+.why-row .why-val { color: var(--ink); font-weight: 600; font-family: var(--mono); }
+.why-row.total { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+.why-row.total .why-label { color: var(--leaf); font-weight: 700; }
+.why-row.total .why-val { color: var(--leaf); }
+
+.water-divider { display: flex; align-items: center; gap: 14px; margin: 18px 0 12px; }
+.water-divider::before, .water-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.water-divider span { font-size: 9.5px; letter-spacing: 0.2em; font-weight: 700; color: var(--faint); }
+
+.hist-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 10px; padding: 8px 0; align-items: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-date { font-size: 10.5px; color: var(--faint); }
+.hist-bar-wrap { height: 7px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.hist-bar-fill { height: 100%; background: linear-gradient(90deg, var(--sun), var(--leaf)); border-radius: 4px; }
+.hist-bar-fill.miss { background: rgba(228,87,46,0.4); }
+.hist-count { font-size: 11px; color: var(--muted); }
+
+.spark-wrap { padding: 4px 0; }
+.spark-svg { width: 100%; height: 66px; display: block; }
+.spark-bar { fill: var(--leaf); }
+.spark-bar.miss { fill: rgba(228,87,46,0.5); }
+.spark-target { stroke: var(--glass-border); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+/* Settings modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.show { display: flex; }
+.modal { width: 100%; max-width: 480px; background: #14151c; border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; max-height: 88vh; overflow-y: auto; font-family: var(--display); color: var(--muted); }
+.modal h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; color: var(--ink); }
+.set-section { margin-bottom: 22px; }
+.set-section h4 { margin: 0 0 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.field label { font-size: 10.5px; color: var(--faint); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.field input[type="number"], .field input[type="text"], .field select { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink); font-family: var(--display); font-size: 13px; padding: 9px 11px; border-radius: 10px; outline: none; width: 100%; }
+.field input:focus, .field select:focus { border-color: rgba(158,217,160,0.4); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-hint { font-size: 10.5px; color: var(--faint); margin-top: 4px; line-height: 1.4; }
+.seg { display: flex; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.seg button { flex: 1; padding: 8px; border: none; background: transparent; color: var(--faint); border-radius: 7px; font-family: var(--display); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.seg button.active { background: var(--sun); color: #0A0B0E; }
+
+.search-wrap { position: relative; }
+.search-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink); font-family: var(--display); font-size: 13px; padding: 10px 13px; border-radius: 10px; outline: none; }
+.search-input:focus { border-color: rgba(158,217,160,0.4); }
+.search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #1a1b23; border: 1px solid var(--glass-border); border-radius: 10px; padding: 4px; max-height: 220px; overflow-y: auto; z-index: 5; display: none; }
+.search-results.show { display: block; }
+.search-result { display: flex; flex-direction: column; gap: 2px; padding: 8px 11px; border-radius: 7px; cursor: pointer; font-size: 12.5px; }
+.search-result:hover { background: rgba(255,255,255,0.06); }
+.search-result-name { color: var(--ink); font-weight: 600; }
+.search-result-meta { font-size: 10px; color: var(--faint); }
+.search-result-add { color: var(--leaf); }
+
+.subs-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.sub-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.sub-row-info { flex: 1; min-width: 140px; }
+.sub-row-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.sub-row-meta { font-size: 10.5px; color: var(--faint); margin-top: 2px; }
+.sub-row-dose { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.sub-row-dose .sub-dose-input { width: 52px; background: transparent; border: none; outline: none; color: var(--ink); font-family: var(--display); font-size: 12.5px; font-weight: 600; text-align: center; }
+.sub-row-dose .sub-dose-unit { font-size: 10.5px; color: var(--faint); white-space: nowrap; }
+.sub-row-del { background: transparent; border: none; color: var(--faint); font-size: 15px; cursor: pointer; padding: 4px 8px; }
+.sub-row-del:hover { color: var(--ember); }
+
+.btn-primary { width: 100%; padding: 12px; border: none; background: var(--sun); color: #0A0B0E; border-radius: 12px; font-family: var(--display); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.btn-secondary { padding: 10px 15px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--ink); border-radius: 10px; font-family: var(--display); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn-secondary:hover { background: rgba(255,255,255,0.09); }
+.btn-danger { color: var(--ember); border-color: rgba(228,87,46,0.3); }
+.data-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 </style>
 </head>
 <body class="body-page">
@@ -1398,7 +1499,45 @@
 </script>
 
   <div class="section" id="secWater">
-    <!-- Task 6 fills this in -->
+    <div class="sec-head">Water<span class="more num" id="waterHeadCount"></span>
+      <button class="water-settings-btn" id="waterSettingsBtn" type="button" aria-label="Water settings">⚙</button>
+    </div>
+    <div class="glassy card">
+      <div class="water-row">
+        <span class="water-num num" id="waterNum">0</span>
+        <span class="water-target num" id="waterTarget">/ 9</span>
+      </div>
+      <div class="water-bar-wrap">
+        <div class="water-bar-track">
+          <div class="water-bar-fill" id="waterBarFill" style="width:0%"></div>
+          <div class="water-bar-zone" id="waterBarZoneStart" style="left:55%"></div>
+          <div class="water-bar-zone" id="waterBarZoneEnd" style="left:80%"></div>
+        </div>
+        <div class="water-bar-labels">
+          <span id="waterBarMin" class="num">0</span>
+          <span class="water-zone-name">healthy zone</span>
+          <span id="waterBarMax" class="num">12+</span>
+        </div>
+      </div>
+      <div class="water-actions">
+        <button class="water-minus-btn" id="waterMinusBtn" type="button" aria-label="Undo last">−</button>
+        <button class="water-plus-btn" id="waterPlusBtn" type="button">
+          <span id="waterPlusLabel">Drank a bottle</span><span>↑</span>
+        </button>
+      </div>
+      <div class="water-helper" id="waterHelper">Start the day — first one in.</div>
+
+      <button class="why-toggle" id="whyToggle" type="button" aria-expanded="false">
+        <span>Why this target?</span><span class="why-arrow">▾</span>
+      </button>
+      <div class="why-body" id="whyBody"></div>
+
+      <div class="water-divider"><span>LAST 7 DAYS</span></div>
+      <div id="histList"></div>
+
+      <div class="water-divider"><span>LAST 14 DAYS</span></div>
+      <div class="spark-wrap"><svg class="spark-svg" id="sparkSvg" viewBox="0 0 280 70" preserveAspectRatio="none"></svg></div>
+    </div>
   </div>
 
   <div class="section" id="secSessions">
@@ -1406,7 +1545,433 @@
     <div class="glassy card"><div class="rows" id="spSessions"></div></div>
     <div class="chiprow" id="spChips"></div>
   </div>
+
+  <div class="modal-bg" id="setModalBg">
+    <div class="modal">
+      <h3>Water settings</h3>
+      <div class="set-section">
+        <h4>Profile</h4>
+        <div class="field-row">
+          <div class="field"><label>Weight</label><input type="number" id="setWeight" step="0.5" min="20" max="300"></div>
+          <div class="field"><label>Weight unit</label>
+            <div class="seg" id="setWeightUnit"><button data-u="kg" type="button">kg</button><button data-u="lb" type="button">lb</button></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Age</label><input type="number" id="setAge" min="13" max="100"></div>
+          <div class="field"><label>Sex</label>
+            <div class="seg" id="setSex"><button data-s="m" type="button">Male</button><button data-s="f" type="button">Female</button><button data-s="o" type="button">Other</button></div>
+          </div>
+        </div>
+        <div class="field"><label>Activity (training hours per week)</label><input type="number" id="setActivity" min="0" max="40" step="0.5"></div>
+      </div>
+      <div class="set-section">
+        <h4>Display</h4>
+        <div class="field"><label>Show water as</label>
+          <div class="seg" id="setUnit"><button data-u="bottle" type="button">Bottles</button><button data-u="glass" type="button">Glasses</button><button data-u="oz" type="button">oz</button><button data-u="ml" type="button">ml</button></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Bottle size (ml)</label><input type="number" id="setBottleMl" min="100" max="2000" step="50"></div>
+          <div class="field"><label>Glass size (ml)</label><input type="number" id="setGlassMl" min="100" max="500" step="10"></div>
+        </div>
+      </div>
+      <div class="set-section">
+        <h4>Caffeine</h4>
+        <div class="field"><label>Average caffeine per day (mg)</label><input type="number" id="setCaffeine" min="0" max="1000" step="10">
+          <div class="field-hint">~1 cup of coffee = 95mg · espresso shot = 75mg · energy drink = 160mg. Above 200mg/day starts to add a small water requirement.</div>
+        </div>
+      </div>
+      <div class="set-section">
+        <h4>Stimulants &amp; meds</h4>
+        <div class="field"><label>Search to add</label>
+          <div class="search-wrap">
+            <input type="text" class="search-input" id="subSearch" placeholder="Type a name (Adderall, Concerta, Lithium…)" autocomplete="off">
+            <div class="search-results" id="subResults"></div>
+          </div>
+          <div class="field-hint">Each substance bumps your daily water target. Includes ADHD stims, diuretics, decongestants, nicotine, alcohol, and a few others.</div>
+        </div>
+        <div class="subs-list" id="subsList"></div>
+      </div>
+      <div class="set-section">
+        <h4>Data</h4>
+        <div class="data-btn-row">
+          <button class="btn-secondary" id="setExport" type="button">Export JSON</button>
+          <button class="btn-secondary" id="setImport" type="button">Import JSON</button>
+          <button class="btn-secondary btn-danger" id="setReset" type="button">Reset all</button>
+        </div>
+        <input type="file" id="setImportFile" accept=".json" style="display:none">
+      </div>
+      <div class="modal-actions"><button class="btn-primary" id="setClose" type="button">Done</button></div>
+    </div>
+  </div>
 </div>
+
+<script>
+(function() {
+  const $ = (id) => document.getElementById(id);
+
+  const SUBSTANCE_DB = [
+    { id: 'adderall',    name: 'Adderall (mixed amphetamine salts)', cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 25,    note: 'Stim · reduces thirst signal · dries you out' },
+    { id: 'concerta',    name: 'Concerta (methylphenidate ER)',      cat: 'ADHD stim',    unit: 'mg',           defaultDose: 36,   mlPerUnit: 13.9,  note: 'Stim · reduces thirst signal' },
+    { id: 'vyvanse',     name: 'Vyvanse (lisdexamfetamine)',         cat: 'ADHD stim',    unit: 'mg',           defaultDose: 50,   mlPerUnit: 10,    note: 'Stim prodrug · long acting' },
+    { id: 'ritalin',     name: 'Ritalin IR (methylphenidate)',       cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 20,    note: 'Short-acting stim' },
+    { id: 'focalin',     name: 'Focalin / Focalin XR',               cat: 'ADHD stim',    unit: 'mg',           defaultDose: 20,   mlPerUnit: 20,    note: 'Methylphenidate isomer' },
+    { id: 'modafinil',   name: 'Modafinil',                          cat: 'Wakefulness',  unit: 'mg',           defaultDose: 200,  mlPerUnit: 1.75,  note: 'Mild dehydrating effect' },
+    { id: 'lithium',     name: 'Lithium',                            cat: 'Mood',         unit: 'mg',           defaultDose: 600,  mlPerUnit: 1.67,  note: 'Critical — narrow therapeutic window, dehydration → toxicity' },
+    { id: 'hctz',        name: 'Hydrochlorothiazide (HCTZ)',         cat: 'Diuretic',     unit: 'mg',           defaultDose: 25,   mlPerUnit: 40,    note: 'Direct diuretic — drink to compensate' },
+    { id: 'lasix',       name: 'Furosemide (Lasix)',                 cat: 'Diuretic',     unit: 'mg',           defaultDose: 40,   mlPerUnit: 30,    note: 'Loop diuretic · talk to your doctor about target' },
+    { id: 'spironol',    name: 'Spironolactone',                     cat: 'Diuretic',     unit: 'mg',           defaultDose: 50,   mlPerUnit: 12,    note: 'K-sparing diuretic' },
+    { id: 'sudafed',     name: 'Pseudoephedrine (Sudafed)',          cat: 'Decongestant', unit: 'mg',           defaultDose: 60,   mlPerUnit: 4.17,  note: 'Sympathomimetic · dries mucous membranes' },
+    { id: 'phenyl',      name: 'Phenylephrine',                      cat: 'Decongestant', unit: 'mg',           defaultDose: 10,   mlPerUnit: 20,    note: 'Vasoconstrictor — mild' },
+    { id: 'nicotine',    name: 'Nicotine pouch (Velo / Zyn)',        cat: 'Stim',         unit: 'pouches/day',  defaultDose: 4,    mlPerUnit: 62.5,  note: 'Vasoconstriction + dry mouth' },
+    { id: 'nicpatch',    name: 'Nicotine patch',                     cat: 'Stim',         unit: 'mg',           defaultDose: 14,   mlPerUnit: 18,    note: '24-h transdermal · sustained release' },
+    { id: 'alcohol',     name: 'Alcohol',                            cat: 'Depressant',   unit: 'drinks/day',   defaultDose: 1,    mlPerUnit: 400,   note: '~10ml urine per gram ethanol — adds up fast' },
+    { id: 'cannabis',    name: 'Cannabis / THC',                     cat: 'Other',        unit: 'sessions/day', defaultDose: 1,    mlPerUnit: 250,   note: 'Cottonmouth — saliva gland inhibition' },
+    { id: 'creatine',    name: 'Creatine monohydrate',               cat: 'Supplement',   unit: 'g/day',        defaultDose: 5,    mlPerUnit: 80,    note: 'Pulls water into muscle cells — drink more' },
+    { id: 'preworkout',  name: 'Pre-workout (caffeine + others)',    cat: 'Stim',         unit: 'servings/day', defaultDose: 1,    mlPerUnit: 300,   note: 'High-stim formula on top of caffeine' },
+    { id: 'metformin',   name: 'Metformin',                          cat: 'Glucose',      unit: 'mg',           defaultDose: 1000, mlPerUnit: 0.3,   note: 'Mild GI fluid loss' },
+    { id: 'sertraline',  name: 'SSRI (sertraline / escitalopram / fluoxetine)', cat: 'SSRI', unit: 'mg',         defaultDose: 50,   mlPerUnit: 4,     note: 'Mild dry mouth in some users' },
+    { id: 'wellbutrin',  name: 'Bupropion (Wellbutrin)',             cat: 'NDRI',         unit: 'mg',           defaultDose: 300,  mlPerUnit: 1.17,  note: 'Stim-like profile' }
+  ];
+
+  function subExtraMl(s) {
+    const dose = (s.dose != null ? s.dose : s.defaultDose) || 0;
+    return Math.max(0, dose * (s.mlPerUnit || 0));
+  }
+  function subDoseLabel(s) {
+    const dose = (s.dose != null ? s.dose : s.defaultDose);
+    return dose + ' ' + (s.unit || '');
+  }
+
+  const LS_KEY = 'po_water_v1';
+  const DEFAULTS = { unit: 'bottle', bottleMl: 500, glassMl: 250, caffeineMgPerDay: 200,
+    profile: { weightKg: 75, age: 25, sex: 'm', activityHrsPerWeek: 5 } };
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) return normalize(JSON.parse(raw));
+    } catch (e) {}
+    return normalize({});
+  }
+  function normalize(s) {
+    s = s || {};
+    s.unit = s.unit || DEFAULTS.unit;
+    s.bottleMl = s.bottleMl || DEFAULTS.bottleMl;
+    s.glassMl  = s.glassMl  || DEFAULTS.glassMl;
+    s.weightUnit = s.weightUnit || 'kg';
+    s.profile = Object.assign({}, DEFAULTS.profile, s.profile || {});
+    s.caffeineMgPerDay = (s.caffeineMgPerDay != null) ? s.caffeineMgPerDay : DEFAULTS.caffeineMgPerDay;
+    s.substances = Array.isArray(s.substances) ? s.substances : [];
+    s.logs = (s.logs && typeof s.logs === 'object') ? s.logs : {};
+    return s;
+  }
+  function saveState() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+  let state = loadState();
+
+  function dateKey(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function todayKey() { return dateKey(new Date()); }
+  function todayCount() { return state.logs[todayKey()] || 0; }
+  function setTodayCount(n) {
+    const k = todayKey();
+    if (n <= 0) delete state.logs[k]; else state.logs[k] = n;
+    saveState();
+  }
+
+  function computeTargetMl() {
+    const p = state.profile;
+    const wKg = state.weightUnit === 'lb' ? p.weightKg / 2.20462 : p.weightKg;
+    const base = wKg * 35;
+    const exercise = (p.activityHrsPerWeek || 0) / 7 * 500;
+    const caffeine = Math.max(0, (state.caffeineMgPerDay || 0) - 200) * 1.5;
+    const subs = (state.substances || []).reduce((s, x) => s + subExtraMl(x), 0);
+    let adjust = 0;
+    if (p.sex === 'm') adjust += 200;
+    if ((p.age || 0) >= 50) adjust += 100;
+    return { base, exercise, caffeine, subs, adjust, total: base + exercise + caffeine + subs + adjust };
+  }
+
+  function unitVolMl() {
+    if (state.unit === 'bottle') return state.bottleMl || 500;
+    if (state.unit === 'glass')  return state.glassMl  || 250;
+    if (state.unit === 'oz')     return 30;
+    return 1;
+  }
+  function unitLabelPlural() {
+    if (state.unit === 'bottle') return 'bottles';
+    if (state.unit === 'glass')  return 'glasses';
+    if (state.unit === 'oz')     return 'oz';
+    return 'ml';
+  }
+  function unitLabelSingular() {
+    if (state.unit === 'bottle') return 'bottle';
+    if (state.unit === 'glass')  return 'glass';
+    if (state.unit === 'oz')     return 'oz';
+    return 'ml';
+  }
+  function fmtMl(ml) { if (ml >= 1000) return (ml / 1000).toFixed(1) + ' L'; return Math.round(ml) + ' ml'; }
+
+  function renderWater() {
+    const calc = computeTargetMl();
+    const targetUnits = Math.ceil(calc.total / unitVolMl());
+    const count = todayCount();
+
+    $('waterNum').textContent = count;
+    $('waterTarget').textContent = '/ ' + targetUnits;
+    $('waterHeadCount').textContent = count + '/' + targetUnits;
+    $('waterPlusLabel').textContent = 'Drank a ' + unitLabelSingular();
+
+    const pctRaw = (count / targetUnits) * 100;
+    const fillPct = Math.min(150, pctRaw) / 1.5;
+    const fill = $('waterBarFill');
+    fill.style.width = fillPct + '%';
+    fill.classList.toggle('over', pctRaw > 100);
+    $('waterBarMin').textContent = '0';
+    $('waterBarMax').textContent = (Math.ceil(targetUnits * 1.5)) + '+';
+    $('waterBarZoneStart').style.left = (65 / 1.5) + '%';
+    $('waterBarZoneEnd').style.left   = (100 / 1.5) + '%';
+
+    const helper = $('waterHelper');
+    if (count === 0) { helper.textContent = 'Start the day — first one in.'; helper.classList.remove('good'); }
+    else if (pctRaw < 50) { helper.textContent = 'Behind pace — drink one in the next hour.'; helper.classList.remove('good'); }
+    else if (pctRaw < 100) { helper.textContent = (targetUnits - count) + ' to go. Pacing well.'; helper.classList.remove('good'); }
+    else if (pctRaw < 130) { helper.textContent = '✓ Target hit — top up if you train this evening.'; helper.classList.add('good'); }
+    else { helper.textContent = 'Strong — way past target.'; helper.classList.add('good'); }
+
+    $('waterMinusBtn').disabled = count <= 0;
+
+    renderWhy(calc, targetUnits);
+    renderHistory();
+    renderSparkline(targetUnits);
+  }
+
+  function renderWhy(calc, targetUnits) {
+    const wrap = $('whyBody');
+    const u = state.weightUnit;
+    const wDisp = state.profile.weightKg.toFixed(0);
+    let html = '';
+    html += '<div class="why-row"><span class="why-label">Base (' + wDisp + ' ' + u + ' × 35 ml)</span><span class="why-val">' + fmtMl(calc.base) + '</span></div>';
+    if (calc.exercise > 0) html += '<div class="why-row"><span class="why-label">+ Exercise (' + state.profile.activityHrsPerWeek + ' h/wk)</span><span class="why-val">+ ' + fmtMl(calc.exercise) + '</span></div>';
+    if (calc.caffeine > 0) html += '<div class="why-row"><span class="why-label">+ Caffeine (' + state.caffeineMgPerDay + ' mg/day)</span><span class="why-val">+ ' + fmtMl(calc.caffeine) + '</span></div>';
+    (state.substances || []).forEach(s => {
+      html += '<div class="why-row"><span class="why-label">+ ' + escapeHtml(s.name) + ' (' + escapeHtml(subDoseLabel(s)) + ')</span><span class="why-val">+ ' + fmtMl(subExtraMl(s)) + '</span></div>';
+    });
+    if (calc.adjust > 0) html += '<div class="why-row"><span class="why-label">+ Sex / age adjustment</span><span class="why-val">+ ' + fmtMl(calc.adjust) + '</span></div>';
+    html += '<div class="why-row total"><span class="why-label">Daily target</span><span class="why-val">' + fmtMl(calc.total) + ' ≈ ' + targetUnits + ' ' + unitLabelPlural() + '</span></div>';
+    wrap.innerHTML = html;
+  }
+
+  function renderHistory() {
+    const list = $('histList');
+    const target = Math.ceil(computeTargetMl().total / unitVolMl());
+    const days = [];
+    for (let i = 6; i >= 1; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = dateKey(d);
+      days.push({ date: d, key: k, count: state.logs[k] || 0 });
+    }
+    list.innerHTML = days.map(({date, count}) => {
+      const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const lbl = dows[date.getDay()] + ' ' + (date.getMonth()+1) + '/' + date.getDate();
+      const pct = Math.min(100, (count / target) * 100);
+      const cls = (count >= target) ? '' : 'miss';
+      return '<div class="hist-row"><span class="hist-date">' + lbl + '</span>' +
+        '<div class="hist-bar-wrap"><div class="hist-bar-fill ' + cls + '" style="width:' + pct + '%"></div></div>' +
+        '<span class="hist-count">' + count + '/' + target + '</span></div>';
+    }).join('') || '<div style="text-align:center;font-size:12px;color:var(--faint);padding:12px 0">No logs yet.</div>';
+  }
+
+  function renderSparkline(target) {
+    const svg = $('sparkSvg');
+    const W = 280, H = 70, pad = 4;
+    const days = 14;
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      data.push(state.logs[dateKey(d)] || 0);
+    }
+    const maxVal = Math.max(target, Math.max.apply(null, data)) || 1;
+    const colW = (W - pad * 2) / data.length;
+    const barW = colW * 0.7;
+    let html = '';
+    const targetY = H - pad - (target / maxVal) * (H - pad * 2);
+    html += '<line class="spark-target" x1="0" x2="' + W + '" y1="' + targetY.toFixed(1) + '" y2="' + targetY.toFixed(1) + '"/>';
+    data.forEach((v, i) => {
+      const x = pad + i * colW + (colW - barW) / 2;
+      const h = (v / maxVal) * (H - pad * 2);
+      const y = H - pad - h;
+      const cls = (v >= target) ? 'spark-bar' : 'spark-bar miss';
+      html += '<rect class="' + cls + '" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="2"/>';
+    });
+    svg.innerHTML = html;
+  }
+
+  $('waterPlusBtn').addEventListener('click', () => {
+    setTodayCount(todayCount() + 1);
+    renderWater();
+    const btn = $('waterPlusBtn');
+    btn.style.transform = 'scale(0.97)';
+    setTimeout(() => { btn.style.transform = ''; }, 120);
+  });
+  $('waterMinusBtn').addEventListener('click', () => { setTodayCount(Math.max(0, todayCount() - 1)); renderWater(); });
+
+  $('whyToggle').addEventListener('click', () => {
+    const body = $('whyBody');
+    const open = body.classList.contains('show');
+    body.classList.toggle('show');
+    $('whyToggle').setAttribute('aria-expanded', open ? 'false' : 'true');
+  });
+
+  function renderSettings() {
+    $('setWeight').value = state.profile.weightKg;
+    $('setAge').value = state.profile.age;
+    $('setActivity').value = state.profile.activityHrsPerWeek;
+    $('setCaffeine').value = state.caffeineMgPerDay;
+    $('setBottleMl').value = state.bottleMl;
+    $('setGlassMl').value = state.glassMl;
+    setSegActive('setUnit', state.unit);
+    setSegActive('setWeightUnit', state.weightUnit);
+    setSegActive('setSex', state.profile.sex);
+    renderSubsList();
+  }
+  function setSegActive(segId, value) {
+    $(segId).querySelectorAll('button').forEach(b => {
+      const v = b.dataset.u || b.dataset.s;
+      b.classList.toggle('active', v === value);
+    });
+  }
+  function bindSeg(segId, attr, onPick) {
+    $(segId).querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => {
+        const v = b.dataset[attr];
+        $(segId).querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        onPick(v);
+      });
+    });
+  }
+  bindSeg('setUnit', 'u', (v) => { state.unit = v; saveState(); renderWater(); });
+  bindSeg('setWeightUnit', 'u', (v) => { state.weightUnit = v; saveState(); renderWater(); });
+  bindSeg('setSex', 's', (v) => { state.profile.sex = v; saveState(); renderWater(); });
+
+  ['setWeight','setAge','setActivity','setCaffeine','setBottleMl','setGlassMl'].forEach(id => {
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (id === 'setWeight') state.profile.weightKg = v || 0;
+      else if (id === 'setAge') state.profile.age = v || 0;
+      else if (id === 'setActivity') state.profile.activityHrsPerWeek = v || 0;
+      else if (id === 'setCaffeine') state.caffeineMgPerDay = v || 0;
+      else if (id === 'setBottleMl') state.bottleMl = v || 500;
+      else if (id === 'setGlassMl') state.glassMl = v || 250;
+      saveState(); renderWater();
+    });
+  });
+
+  function renderSubsList() {
+    const list = $('subsList');
+    if (!state.substances || !state.substances.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--faint);text-align:center;padding:14px 0;font-style:italic;">No substances added.</div>';
+      return;
+    }
+    list.innerHTML = state.substances.map((s, i) =>
+      '<div class="sub-row" data-i="' + i + '">' +
+      '<div class="sub-row-info"><div class="sub-row-name">' + escapeHtml(s.name) + '</div>' +
+      '<div class="sub-row-meta">+ ' + fmtMl(subExtraMl(s)) + ' / day · ' + escapeHtml(s.cat || '') + '</div></div>' +
+      '<div class="sub-row-dose"><input type="number" class="sub-dose-input" data-i="' + i + '" min="0" step="0.5" value="' + (s.dose != null ? s.dose : s.defaultDose) + '">' +
+      '<span class="sub-dose-unit">' + escapeHtml(s.unit || '') + '</span></div>' +
+      '<button class="sub-row-del" data-i="' + i + '" aria-label="Remove">×</button></div>'
+    ).join('');
+    list.querySelectorAll('.sub-dose-input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = parseInt(inp.dataset.i, 10);
+        state.substances[i].dose = parseFloat(inp.value) || 0;
+        saveState();
+        const row = inp.closest('.sub-row');
+        row.querySelector('.sub-row-meta').textContent = '+ ' + fmtMl(subExtraMl(state.substances[i])) + ' / day · ' + (state.substances[i].cat || '');
+        renderWater();
+      });
+    });
+    list.querySelectorAll('.sub-row-del').forEach(b => {
+      b.addEventListener('click', () => {
+        state.substances.splice(parseInt(b.dataset.i, 10), 1);
+        saveState(); renderSubsList(); renderWater();
+      });
+    });
+  }
+
+  $('subSearch').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const results = $('subResults');
+    if (!q) { results.classList.remove('show'); results.innerHTML = ''; return; }
+    const matches = SUBSTANCE_DB.filter(s => s.name.toLowerCase().includes(q) || s.cat.toLowerCase().includes(q)).slice(0, 8);
+    if (!matches.length) {
+      results.innerHTML = '<div class="search-result"><span class="search-result-name">No matches</span><span class="search-result-meta">Try a different name or category</span></div>';
+      results.classList.add('show');
+      return;
+    }
+    results.innerHTML = matches.map(s => {
+      const defaultExtra = (s.defaultDose || 0) * (s.mlPerUnit || 0);
+      return '<div class="search-result" data-id="' + s.id + '">' +
+        '<span class="search-result-name">' + escapeHtml(s.name) + ' <span class="search-result-add">+</span></span>' +
+        '<span class="search-result-meta">' + escapeHtml(s.cat) + ' · ' + s.defaultDose + ' ' + escapeHtml(s.unit) + ' default → adds ~' + fmtMl(defaultExtra) + '/day · ' + escapeHtml(s.note) + '</span></div>';
+    }).join('');
+    results.classList.add('show');
+    results.querySelectorAll('.search-result').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        const sub = SUBSTANCE_DB.find(x => x.id === id);
+        if (!sub) return;
+        if ((state.substances || []).find(x => x.id === id)) { alert('Already added — edit the dose below.'); return; }
+        state.substances.push({ id: sub.id, name: sub.name, cat: sub.cat, unit: sub.unit, mlPerUnit: sub.mlPerUnit, defaultDose: sub.defaultDose, dose: sub.defaultDose });
+        saveState();
+        $('subSearch').value = '';
+        results.classList.remove('show');
+        renderSubsList(); renderWater();
+      });
+    });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) $('subResults').classList.remove('show'); });
+
+  $('waterSettingsBtn').addEventListener('click', () => { renderSettings(); $('setModalBg').classList.add('show'); });
+  $('setClose').addEventListener('click', () => $('setModalBg').classList.remove('show'));
+
+  $('setExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'water-coach-data-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click(); URL.revokeObjectURL(url);
+  });
+  $('setImport').addEventListener('click', () => $('setImportFile').click());
+  $('setImportFile').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const parsed = JSON.parse(r.result);
+        if (!confirm('Replace ALL current data with the imported file?')) return;
+        state = normalize(parsed);
+        saveState(); renderSettings(); renderWater();
+      } catch (err) { alert('Import failed: ' + err.message); }
+    };
+    r.readAsText(f);
+  });
+  $('setReset').addEventListener('click', () => {
+    if (!confirm('Wipe ALL water logs and settings? This cannot be undone.')) return;
+    localStorage.removeItem(LS_KEY);
+    state = loadState();
+    $('setModalBg').classList.remove('show');
+    renderWater();
+  });
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  renderWater();
+  window._bodyWaterRender = renderWater;
+})();
+</script>
 
 <script>
 (function () {
