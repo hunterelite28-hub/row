@@ -629,8 +629,187 @@
 </script>
 
   <div class="section" id="secRuns">
-    <!-- Task 4 fills this in -->
+  <div class="sec-head">Runs<span class="more num" id="svSub">synced from Strava</span></div>
+  <div class="glassy card">
+    <div class="hv-header">
+      <button class="hv-refresh" id="svRefresh" type="button">↻ Sync</button>
+    </div>
+    <div class="hv-connect" id="svConnect" style="display:none">
+      <div class="hv-connect-title">Connect Strava</div>
+      <p class="hv-connect-p">One-time setup: at strava.com/settings/api create an API application, then paste its Client ID and Client Secret below. Both stay on this device only. You'll be sent to Strava once to approve read access.</p>
+      <p class="hv-connect-p">Set its <b>Authorization Callback Domain</b> to exactly: <b id="svDomain" style="color:var(--sun)"></b> (no https://, no path).</p>
+      <div class="hv-key-row" style="margin-bottom:8px">
+        <input type="text" id="svIdInput" placeholder="Client ID" autocomplete="off" inputmode="numeric">
+      </div>
+      <div class="hv-key-row">
+        <input type="password" id="svSecretInput" placeholder="Client Secret" autocomplete="off">
+        <button id="svGo" type="button">Connect</button>
+      </div>
+      <div class="hv-err" id="svErr"></div>
+    </div>
+    <div id="svBody" style="display:none">
+      <div class="hv-stats">
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatRuns">0</span><span class="hv-stat-l">Runs / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatKm">0</span><span class="hv-stat-l">km / wk</span></div>
+        <div class="hv-stat"><span class="hv-stat-v num" id="svStatLast">—</span><span class="hv-stat-l">Last run</span></div>
+      </div>
+      <div class="hv-err" id="svErr2"></div>
+      <div class="hv-list" id="svList"></div>
+      <button class="hv-disconnect" id="svDisconnect" type="button">disconnect strava</button>
+    </div>
   </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const S = window.Sunpath;
+  const $ = id => document.getElementById(id);
+  const ID_K = 'strava_client_id', SEC_K = 'strava_client_secret';
+  const TOK_K = 'strava_tokens', CACHE_K = 'strava_cache';
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad2 = n => String(n).padStart(2, '0');
+  const dkey = ms => { const d = new Date(ms); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); };
+
+  function creds() { return { id: localStorage.getItem(ID_K) || '', secret: localStorage.getItem(SEC_K) || '' }; }
+  function tokens() { return S.readJSON(TOK_K, null); }
+  function saveTokens(t) {
+    localStorage.setItem(TOK_K, JSON.stringify({ access_token: t.access_token, refresh_token: t.refresh_token, expires_at: t.expires_at }));
+  }
+  function connected() { const c = creds(); return !!(c.id && c.secret && tokens()); }
+
+  async function tokenPost(params) {
+    const c = creds();
+    const body = new URLSearchParams(Object.assign({ client_id: c.id, client_secret: c.secret }, params));
+    const res = await fetch('https://www.strava.com/oauth/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString()
+    });
+    if (!res.ok) throw new Error('Strava auth failed (' + res.status + ') — check ID/secret.');
+    return res.json();
+  }
+  async function accessToken() {
+    let t = tokens();
+    if (!t) throw new Error('Not connected.');
+    if (t.expires_at * 1000 < Date.now() + 5 * 60 * 1000) {
+      t = await tokenPost({ grant_type: 'refresh_token', refresh_token: t.refresh_token });
+      saveTokens(t);
+    }
+    return t.access_token;
+  }
+
+  const RUN_TYPES = { Run: 1, TrailRun: 1, VirtualRun: 1 };
+  async function fetchRuns() {
+    const at = await accessToken();
+    const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=20', {
+      headers: { 'Authorization': 'Bearer ' + at }
+    });
+    if (res.status === 401) throw new Error('Strava rejected the token — reconnect.');
+    if (!res.ok) throw new Error('Strava error ' + res.status);
+    const acts = await res.json();
+    return (acts || []).filter(a => a && RUN_TYPES[a.sport_type || a.type])
+      .map(a => ({ id: String(a.id), name: a.name || 'Run', start: Date.parse(a.start_date),
+        km: Math.round((a.distance || 0) / 10) / 100, mins: Math.max(1, Math.round((a.moving_time || 0) / 60)) }))
+      .filter(a => a.start);
+  }
+
+  function bridge(runs) {
+    let sessions = S.readJSON('fitness_sessions', []);
+    if (!Array.isArray(sessions)) sessions = [];
+    let added = 0;
+    runs.forEach(r => {
+      const marker = '_sv' + r.id;
+      if (sessions.some(s => s && String(s.id || '').indexOf(marker) !== -1)) return;
+      sessions.unshift({ id: 'ft' + r.start + marker, type: 'run', date: dkey(r.start), km: r.km, duration: r.mins, notes: r.name });
+      added++;
+    });
+    if (added) {
+      sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      localStorage.setItem('fitness_sessions', JSON.stringify(sessions));
+    }
+  }
+
+  function pace(r) {
+    if (!r.km || !r.mins) return '';
+    const p = r.mins / r.km;
+    return Math.floor(p) + ':' + pad2(Math.round((p % 1) * 60)) + ' /km';
+  }
+
+  function render(runs) {
+    $('svConnect').style.display = connected() ? 'none' : '';
+    $('svBody').style.display = connected() ? '' : 'none';
+    if (!connected()) return;
+    const weekAgo = Date.now() - 7 * 864e5;
+    const wk = runs.filter(r => r.start >= weekAgo);
+    $('svStatRuns').textContent = wk.length;
+    $('svStatKm').textContent = (Math.round(wk.reduce((t, r) => t + r.km, 0) * 10) / 10) || 0;
+    $('svStatLast').textContent = runs[0] ? new Date(runs[0].start).getDate() + ' ' + MONS[new Date(runs[0].start).getMonth()] : '—';
+    $('svList').innerHTML = runs.length ? runs.slice(0, 6).map(r => {
+      const d = new Date(r.start);
+      return '<div class="hv-item">' +
+        '<div class="hv-wo-head"><span class="hv-wo-title">' + S.esc(r.name) + '</span>' +
+        '<span class="hv-wo-date">' + d.getDate() + ' ' + MONS[d.getMonth()] + '</span></div>' +
+        '<div class="hv-wo-meta">' + [r.km ? r.km + ' km' : '', r.mins ? r.mins + ' min' : '', pace(r)].filter(Boolean).join(' · ') + '</div></div>';
+    }).join('') : '<div class="hv-empty">No runs yet — lace up.</div>';
+  }
+
+  function cached() { return S.readJSON(CACHE_K, []); }
+
+  async function sync(showErr) {
+    const btn = $('svRefresh');
+    btn.disabled = true; btn.textContent = '↻ …';
+    try {
+      const runs = await fetchRuns();
+      localStorage.setItem(CACHE_K, JSON.stringify(runs));
+      bridge(runs);
+      render(runs);
+      $('svErr2').textContent = '';
+    } catch (e) {
+      if (showErr) $(connected() ? 'svErr2' : 'svErr').textContent = e.message;
+      render(cached());
+    } finally {
+      btn.disabled = false; btn.textContent = '↻ Sync';
+    }
+  }
+
+  function redirectUri() { return window.location.origin + window.location.pathname; }
+
+  $('svGo').addEventListener('click', () => {
+    const id = $('svIdInput').value.trim(), sec = $('svSecretInput').value.trim();
+    if (!id || !sec) { $('svErr').textContent = 'Both Client ID and Secret are needed.'; return; }
+    localStorage.setItem(ID_K, id);
+    localStorage.setItem(SEC_K, sec);
+    window.location.href = 'https://www.strava.com/oauth/authorize' +
+      '?client_id=' + encodeURIComponent(id) + '&response_type=code' +
+      '&redirect_uri=' + encodeURIComponent(redirectUri()) + '&approval_prompt=auto&scope=activity:read_all';
+  });
+  $('svRefresh').addEventListener('click', () => { connected() ? sync(true) : $('svErr').textContent = 'Connect Strava first.'; });
+  $('svDisconnect').addEventListener('click', () => {
+    if (!confirm('Disconnect Strava on this device? Bridged runs stay.')) return;
+    [ID_K, SEC_K, TOK_K, CACHE_K].forEach(k => localStorage.removeItem(k));
+    render([]);
+  });
+
+  (async function handleCallback() {
+    const q = new URLSearchParams(window.location.search);
+    const code = q.get('code');
+    if (!code) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    try {
+      const t = await tokenPost({ grant_type: 'authorization_code', code: code });
+      saveTokens(t);
+      render([]);
+      sync(true);
+    } catch (e) { $('svErr').textContent = e.message; }
+  })();
+
+  const domEl = $('svDomain');
+  if (domEl) domEl.textContent = window.location.hostname || '(open this page on your deployed site, not a local file)';
+
+  render(cached());
+  if (connected()) sync(false);
+  window._bodySvRender = () => render(cached());
+})();
+</script>
 
   <div class="section" id="secStack">
     <!-- Task 5 fills this in -->
