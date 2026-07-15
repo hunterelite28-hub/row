@@ -2051,8 +2051,19 @@
     S.pull({
       'goals':    { keys: ['goal_streak_v1'] },
       'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
-      'health':   { keys: ['stack:items', 'po_water_v1'], prefixes: ['stack:taken:'] }
-    }, render);
+      'health':   { keys: ['stack:items', 'stack:low', 'po_water_v1'], prefixes: ['stack:taken:'] },
+      'fitness-sync': { keys: [
+        'hevy_api_key', 'hevy_workouts_cache',
+        'strava_client_id', 'strava_client_secret', 'strava_tokens', 'strava_cache'
+      ] }
+    }, function () {
+      render();
+      if (typeof window._bodyWtRender === 'function') window._bodyWtRender();
+      if (typeof window._bodyHvRender === 'function') window._bodyHvRender();
+      if (typeof window._bodySvRender === 'function') window._bodySvRender();
+      if (typeof window._bodyStackRender === 'function') window._bodyStackRender();
+      if (typeof window._bodyWaterRender === 'function') window._bodyWaterRender();
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
