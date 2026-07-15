@@ -396,7 +396,7 @@
 <script>
 (function () {
   'use strict';
-  const S = window.Sunpath;
+  let S;
   const $ = id => document.getElementById(id);
   const WT_KEY = 'po_coach_weights';
   const COACH_KEY = 'po_coach_v1';
@@ -643,7 +643,13 @@
     $('wtInput').focus(); $('wtInput').select();
   });
 
-  wtRender();
+  function init() {
+    S = window.Sunpath;
+    wtRender();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
   window._bodyWtRender = wtRender;
 })();
 </script>
@@ -679,7 +685,7 @@
 <script>
 (function () {
   'use strict';
-  const S = window.Sunpath;
+  let S;
   const $ = id => document.getElementById(id);
   const KEY_K = 'hevy_api_key';
   const CACHE_K = 'hevy_workouts_cache';
@@ -807,8 +813,14 @@
     render([]);
   });
 
-  render(cached());
-  if (getKey()) sync(false);
+  function init() {
+    S = window.Sunpath;
+    render(cached());
+    if (getKey()) sync(false);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
   window._bodyHvRender = () => render(cached());
 })();
 </script>
@@ -848,7 +860,7 @@
 <script>
 (function () {
   'use strict';
-  const S = window.Sunpath;
+  let S;
   const $ = id => document.getElementById(id);
   const ID_K = 'strava_client_id', SEC_K = 'strava_client_secret';
   const TOK_K = 'strava_tokens', CACHE_K = 'strava_cache';
@@ -990,8 +1002,14 @@
   const domEl = $('svDomain');
   if (domEl) domEl.textContent = window.location.hostname || '(open this page on your deployed site, not a local file)';
 
-  render(cached());
-  if (connected()) sync(false);
+  function init() {
+    S = window.Sunpath;
+    render(cached());
+    if (connected()) sync(false);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
   window._bodySvRender = () => render(cached());
 })();
 </script>
@@ -1154,6 +1172,7 @@
     if (storedVersion != null) return Array.isArray(stored) ? stored : [];
     const fresh = JSON.parse(JSON.stringify(STACK_DEFAULTS));
     storeSet('stack:items', fresh);
+    // Keep in sync with health.html's TEMPLATE_VERSION constant.
     storeSet('stack:version', 5);
     return fresh;
   }
@@ -1877,7 +1896,7 @@
       '<div class="sub-row" data-i="' + i + '">' +
       '<div class="sub-row-info"><div class="sub-row-name">' + escapeHtml(s.name) + '</div>' +
       '<div class="sub-row-meta">+ ' + fmtMl(subExtraMl(s)) + ' / day · ' + escapeHtml(s.cat || '') + '</div></div>' +
-      '<div class="sub-row-dose"><input type="number" class="sub-dose-input" data-i="' + i + '" min="0" step="0.5" value="' + (s.dose != null ? s.dose : s.defaultDose) + '">' +
+      '<div class="sub-row-dose"><input type="number" class="sub-dose-input" data-i="' + i + '" min="0" step="0.5" value="' + escapeHtml(s.dose != null ? s.dose : s.defaultDose) + '">' +
       '<span class="sub-dose-unit">' + escapeHtml(s.unit || '') + '</span></div>' +
       '<button class="sub-row-del" data-i="' + i + '" aria-label="Remove">×</button></div>'
     ).join('');
@@ -1985,7 +2004,6 @@
       const F = S.fitness();
       const st = S.stackToday();
       const W = S.waterProgress();
-      const wt = S.weight();
       const split = S.splitToday();
       const splitNice = split ? split.charAt(0).toUpperCase() + split.slice(1) : '';
       const isRest = split.toLowerCase() === 'rest';
