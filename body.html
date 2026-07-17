@@ -422,7 +422,7 @@
   }
   function estimate1RM(w, r) { if (r < 2) return w; return w * (1 + r / 30); }
 
-  let wtEntries = wtLoad();
+  let wtEntries = [];
   function units() { return (S.readJSON(COACH_KEY, {}) || {}).units || 'kg'; }
 
   function wtSaveEntry(weight) {
