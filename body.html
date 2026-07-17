@@ -94,10 +94,15 @@
 .wt-save-btn { background: var(--sun); color: #0A0B0E; border: none; border-radius: 10px; padding: 11px 18px; font-family: var(--display); font-size: 13px; font-weight: 700; cursor: pointer; }
 
 /* ===== Hevy / Strava tiles (shared classes) ===== */
-.hv-header { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.hv-header { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
 .hv-refresh { background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 12px; font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
 .hv-refresh:hover { background: rgba(255,255,255,0.09); color: var(--ink); }
 .hv-refresh:disabled { opacity: 0.5; cursor: default; }
+.hv-collapse { width: 34px; padding: 6px 0; text-align: center; }
+.hv-collapse span { display: inline-block; transition: transform 0.2s; }
+.section.hv-collapsed .hv-collapse span { transform: rotate(-90deg); }
+.section.hv-collapsed .hv-disconnect,
+.section.hv-collapsed .hv-list > .hv-item:not(:first-child) { display: none; }
 
 .hv-connect-title { font-size: 15px; font-weight: 650; margin-bottom: 8px; }
 .hv-connect-p { font-size: 12px; line-height: 1.5; color: var(--muted); margin-bottom: 12px; }
@@ -659,6 +664,7 @@
     <div class="glassy card">
       <div class="hv-header">
         <button class="hv-refresh" id="hvRefresh" type="button">↻ Sync</button>
+        <button class="hv-refresh hv-collapse" id="hvToggle" type="button" aria-label="Collapse"><span>⌄</span></button>
       </div>
       <div class="hv-connect" id="hvConnect" style="display:none">
         <div class="hv-connect-title">Connect Hevy</div>
@@ -830,6 +836,7 @@
   <div class="glassy card">
     <div class="hv-header">
       <button class="hv-refresh" id="svRefresh" type="button">↻ Sync</button>
+      <button class="hv-refresh hv-collapse" id="svToggle" type="button" aria-label="Collapse"><span>⌄</span></button>
     </div>
     <div class="hv-connect" id="svConnect" style="display:none">
       <div class="hv-connect-title">Connect Strava</div>
@@ -2086,6 +2093,29 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else { boot(); }
+})();
+</script>
+
+<script>
+// Collapse toggles for the Workouts/Runs tiles — collapsed shows only
+// the most recent entry. Preference remembered per device.
+(function () {
+  'use strict';
+  [['secWorkouts', 'hvToggle', 'body_hv_collapsed'],
+   ['secRuns', 'svToggle', 'body_sv_collapsed']].forEach(function (cfg) {
+    const sec = document.getElementById(cfg[0]);
+    const btn = document.getElementById(cfg[1]);
+    const key = cfg[2];
+    if (!sec || !btn) return;
+    const stored = localStorage.getItem(key);
+    const apply = on => sec.classList.toggle('hv-collapsed', on);
+    apply(stored === null ? true : stored === '1'); // default: collapsed
+    btn.addEventListener('click', () => {
+      const on = !sec.classList.contains('hv-collapsed');
+      apply(on);
+      try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) {}
+    });
+  });
 })();
 </script>
 </body>
