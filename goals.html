@@ -100,75 +100,8 @@ body::after {
   color: #000; background: #6ee7b7;
   border-radius: 999px; padding: 4px 11px;
 }
-/* ===== Dashboard stat bubbles ===== */
-.dash-stats {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  margin: 14px 0 18px;
-}
-.dash-stat-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px; padding: 16px 12px;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-}
-.dash-stat-val {
-  font-size: 28px; font-weight: 700;
-  font-variant-numeric: tabular-nums; line-height: 1;
-}
-.dash-stat-label {
-  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
-}
 @media (max-width: 480px) {
   .dash-title-text { font-size: 20px; }
-  .dash-stat-val { font-size: 24px; }
-}
-/* ===== Recent activity card ===== */
-.dash-activity {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
-  padding: 14px 14px 8px;
-  margin-bottom: 18px;
-}
-.dash-activity-header {
-  font-size: 10px; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
-  margin-bottom: 10px;
-}
-.dash-activity-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0;
-  border-top: 1px solid rgba(255,255,255,0.05);
-}
-.dash-act-icon {
-  width: 34px; height: 34px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; flex-shrink: 0;
-}
-.dash-act-icon.run  { background: rgba(249,115,22,0.18); }
-.dash-act-icon.gym  { background: rgba(249,115,22,0.12); }
-.dash-act-icon.muay { background: rgba(167,139,250,0.15); }
-.dash-act-pr { color: #6EE7B7; font-weight: 700; width: 14px; flex-shrink: 0; }
-.dash-activity-row:first-child { border-top: 0; }
-.dash-act-body { flex: 1; min-width: 0; }
-.dash-act-type {
-  font-size: 12px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase; color: #FAFAFA;
-}
-.dash-act-detail {
-  font-size: 11px; color: rgba(255,255,255,0.4);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 1px;
-}
-.dash-act-date {
-  font-size: 11px; color: rgba(255,255,255,0.3);
-  flex-shrink: 0;
-}
-.dash-activity-empty {
-  font-size: 12px; color: rgba(255,255,255,0.3);
-  text-align: center; padding: 10px 0 6px;
 }
 
 /* ===== Component 2: Goal Ticker ===== */
@@ -259,75 +192,6 @@ body::after {
   .goal-ticker-label { font-size: 9px; letter-spacing: 0.14em; }
   .goal-ticker-row { font-size: 12px; }
   .goal-ticker-meta { font-size: 10px; padding: 2px 7px; }
-}
-
-/* ===== Component 3: Day Ring ===== */
-.day-ring-wrap {
-  display: flex; flex-wrap: wrap;
-  align-items: center; justify-content: center;
-  gap: 26px;
-  padding: 22px;
-  margin-bottom: 22px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
-}
-.day-ring {
-  position: relative;
-  width: 168px; height: 168px;
-  flex-shrink: 0;
-}
-.day-ring svg { width: 100%; height: 100%; display: block; }
-.day-ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
-.day-ring-fill {
-  fill: none;
-  stroke-width: 8;
-  stroke-linecap: round;
-  transform: rotate(-90deg);
-  transform-origin: 60px 60px;
-  transition: stroke 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-              stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.day-ring-overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  pointer-events: none;
-}
-.day-ring-percent {
-  font-size: 40px; font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
-  line-height: 1;
-}
-.day-ring-phase {
-  margin-top: 5px;
-  font-family: var(--font-mono);
-  font-size: 9.5px; font-weight: 800;
-  letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-.day-ring-clock {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-}
-.day-ring-text {
-  display: flex; flex-direction: column;
-  gap: 6px;
-  max-width: 280px;
-}
-.day-ring-status { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.day-ring-remaining { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
-.day-ring-hours { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
-@media (max-width: 480px) {
-  .day-ring { width: 144px; height: 144px; }
-  .day-ring-percent { font-size: 32px; }
-  .day-ring-status { font-size: 13px; }
 }
 
 /* ===== Component 4: section + To Do List ===== */
@@ -680,6 +544,44 @@ body::after {
 }
 .gm-status.gm-status-error { color: var(--danger); }
 
+/* ===== Component 5: Personal Goals ===== */
+.pg-tag {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pg-tag[data-cat="career"]        { background: rgba(123,140,222,0.15); color: #7B8CDE; }
+.pg-tag[data-cat="health"]        { background: rgba(107,227,164,0.15); color: #6BE3A4; }
+.pg-tag[data-cat="relationships"] { background: rgba(242,192,99,0.15);  color: #F2C063; }
+.pg-tag[data-cat="growth"]        { background: rgba(167,139,250,0.15); color: #A78BFA; }
+.pg-tag[data-cat="financial"]     { background: rgba(249,115,22,0.15);  color: #F97316; }
+.pg-tag[data-cat="adventure"]     { background: rgba(94,200,216,0.15);  color: #5EC8D8; }
+
+.pg-target {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pg-select {
+  padding: 11px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.28);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pg-select:focus { border-color: rgba(255,255,255,0.28); background: rgba(0,0,0,0.36); }
+
+.pg-target-input { width: 108px; flex: 0 0 auto; }
+
 @media (max-width: 480px) {
   body { padding: 0 14px 50px; }
   .gm-card { padding: 16px; }
@@ -692,23 +594,8 @@ body::after {
    ============================================================ */
 .dash-title-text { text-shadow: 0 0 20px rgba(110,231,183,0.22); }
 .dash-title-dot  { text-shadow: 0 0 14px rgba(110,231,183,0.75); }
-.dash-stat-card, .dash-activity {
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.028));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 26px rgba(0,0,0,0.42);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.dash-stat-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.16);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 30px rgba(0,0,0,0.5);
-}
-.dash-stat-val   { text-shadow: 0 0 14px currentColor; }
-.day-ring-percent { text-shadow: 0 0 24px rgba(255,180,120,0.35); }
 .gm-progress-num { text-shadow: 0 0 18px rgba(255,255,255,0.16); }
 .gm-card {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 16px 46px rgba(0,0,0,0.5);
-}
-.day-ring-wrap {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 16px 46px rgba(0,0,0,0.5);
 }
 .goal-ticker-led-dot { box-shadow: 0 0 12px rgba(107,227,164,0.85); }
@@ -743,55 +630,30 @@ body::after {
     </div>
   </div>
 
-  <div class="os-sect">SYS.STATUS</div>
-  <div class="day-ring-wrap">
-    <div class="day-ring">
-      <svg viewBox="0 0 120 120">
-        <defs>
-          <filter id="dayRingGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.4" result="b" />
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <circle class="day-ring-track" cx="60" cy="60" r="52" />
-        <circle class="day-ring-fill"  cx="60" cy="60" r="52" id="dayRingFill" filter="url(#dayRingGlow)" />
-      </svg>
-      <div class="day-ring-overlay">
-        <div class="day-ring-percent" id="dayRingPercent">—</div>
-        <div class="day-ring-phase"   id="dayRingPhase">—</div>
-        <div class="day-ring-clock"   id="dayRingClock">—</div>
+  <div class="section">
+    <div class="os-sect">PERSONAL.GOALS</div>
+    <div class="gm-card" id="gmCardPersonal">
+      <div class="gm-header">
+        <div class="gm-header-left">
+          <div class="gm-eyebrow">All-time — things I'm working toward</div>
+        </div>
+      </div>
+      <ul id="personalGoalList" class="goal-list gm-list"></ul>
+      <div id="personalEmptyState" class="empty-state">No personal goals yet — add one below.</div>
+      <div class="goal-input-wrap gm-input-wrap">
+        <input id="personalGoalInput" class="gm-input" type="text" placeholder="A goal to work toward…" autocomplete="off">
+        <select id="personalGoalCategory" class="pg-select">
+          <option value="career">Career</option>
+          <option value="health">Health</option>
+          <option value="relationships">Relationships</option>
+          <option value="growth">Growth</option>
+          <option value="financial">Financial</option>
+          <option value="adventure">Adventure</option>
+        </select>
+        <input id="personalGoalTarget" class="gm-input pg-target-input" type="text" placeholder="Target (optional)" autocomplete="off">
+        <button type="button" id="personalGoalAddBtn" class="gm-add">+ Add</button>
       </div>
     </div>
-    <div class="day-ring-text">
-      <div class="day-ring-status"    id="dayRingStatus">Loading…</div>
-      <div class="day-ring-remaining" id="dayRingRemaining">—</div>
-      <div class="day-ring-hours">5:00 AM – 11:00 PM</div>
-    </div>
-  </div>
-
-  <div class="os-sect">FITNESS.TOTALS</div>
-  <div class="dash-stats">
-    <div class="dash-stat-card">
-      <span class="dash-stat-val" id="dashStatKm" style="color:#6EE7B7">0</span>
-      <span class="dash-stat-label">TOTAL KM</span>
-    </div>
-    <div class="dash-stat-card">
-      <span class="dash-stat-val" id="dashStatRuns" style="color:#6EE7B7">0</span>
-      <span class="dash-stat-label">TOTAL RUNS</span>
-    </div>
-    <div class="dash-stat-card">
-      <span class="dash-stat-val" id="dashStatGym" style="color:#6EE7B7">0</span>
-      <span class="dash-stat-label">TOTAL GYM</span>
-    </div>
-    <div class="dash-stat-card">
-      <span class="dash-stat-val" id="dashStatMuay" style="color:#6EE7B7">0</span>
-      <span class="dash-stat-label">TOTAL MUAY</span>
-    </div>
-  </div>
-
-  <div class="os-sect">ACTIVITY.LOG</div>
-  <div class="dash-activity">
-    <div id="dashActivityList"></div>
   </div>
 
   <div class="section">
@@ -854,9 +716,6 @@ body::after {
 
   // Paste your Anthropic key here to enable ✨ Polish. Empty = falls back to plain add.
   const ANTHROPIC_API_KEY = '';
-
-  const WAKE_HOUR  = 5;
-  const SLEEP_HOUR = 23;
 
   // ---------- storage helpers ----------
   function storeGet(key) {
@@ -1026,104 +885,6 @@ body::after {
     cycleIdx = 0;
     tick();
   });
-
-  // ---------- Day Ring ----------
-  const PALETTE = [
-    [0,    [255, 216, 158]],
-    [12.5, [255, 205, 121]],
-    [25,   [255, 227, 143]],
-    [37.5, [255, 183, 106]],
-    [50,   [255, 149,  89]],
-    [62.5, [243, 111,  79]],
-    [75,   [226,  93, 122]],
-    [87.5, [123,  91, 176]],
-    [100,  [ 47,  58, 102]]
-  ];
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function paletteAt(p) {
-    if (p <= PALETTE[0][0]) return PALETTE[0][1];
-    if (p >= PALETTE[PALETTE.length - 1][0]) return PALETTE[PALETTE.length - 1][1];
-    for (let i = 0; i < PALETTE.length - 1; i++) {
-      const [p0, c0] = PALETTE[i];
-      const [p1, c1] = PALETTE[i + 1];
-      if (p >= p0 && p <= p1) {
-        const t = (p - p0) / (p1 - p0);
-        return [lerp(c0[0], c1[0], t), lerp(c0[1], c1[1], t), lerp(c0[2], c1[2], t)];
-      }
-    }
-    return [255,255,255];
-  }
-  function rgb(c) { return 'rgb(' + Math.round(c[0]) + ',' + Math.round(c[1]) + ',' + Math.round(c[2]) + ')'; }
-
-  function formatClock(d) {
-    let h = d.getHours();
-    const m = d.getMinutes();
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    if (h === 0) h = 12;
-    return h + ':' + pad2(m) + ' ' + ampm;
-  }
-  function formatRemaining(totalMin) {
-    const h = Math.floor(totalMin / 60);
-    const m = Math.floor(totalMin % 60);
-    return h + 'h ' + m + 'm';
-  }
-
-  const C = 2 * Math.PI * 52;
-  const fillEl = document.getElementById('dayRingFill');
-  fillEl.setAttribute('stroke-dasharray', C);
-  fillEl.setAttribute('stroke-dashoffset', C);
-
-  function updateDayRing() {
-    const now = new Date();
-    const hours = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-    const percentEl   = document.getElementById('dayRingPercent');
-    const phaseEl     = document.getElementById('dayRingPhase');
-    const clockEl     = document.getElementById('dayRingClock');
-    const statusEl    = document.getElementById('dayRingStatus');
-    const remainingEl = document.getElementById('dayRingRemaining');
-
-    clockEl.textContent = formatClock(now);
-
-    if (hours < WAKE_HOUR) {
-      fillEl.setAttribute('stroke-dashoffset', C);
-      fillEl.style.stroke = '#4D4B47';
-      percentEl.textContent = '—';
-      phaseEl.textContent   = 'SLEEPING';
-      statusEl.textContent  = '😴 Still sleeping';
-      const minsUntil = (WAKE_HOUR - hours) * 60;
-      remainingEl.textContent = formatRemaining(minsUntil) + ' until wake-up';
-      return;
-    }
-
-    if (hours >= SLEEP_HOUR) {
-      fillEl.setAttribute('stroke-dashoffset', 0);
-      fillEl.style.stroke = '#E25D7A';
-      percentEl.textContent = '100%';
-      phaseEl.textContent   = 'PAST BEDTIME';
-      statusEl.textContent  = '⚠️ Past bedtime';
-      remainingEl.textContent = 'Sleep!';
-      return;
-    }
-
-    const span = SLEEP_HOUR - WAKE_HOUR;
-    const percent = (hours - WAKE_HOUR) / span * 100;
-    fillEl.setAttribute('stroke-dashoffset', C * (1 - percent / 100));
-    fillEl.style.stroke = rgb(paletteAt(percent));
-    percentEl.textContent = Math.floor(percent) + '%';
-
-    let phase, status;
-    if (percent < 25)      { phase = 'MORNING';   status = '☀️ Morning — fresh start'; }
-    else if (percent < 50) { phase = 'MIDDAY';    status = '⚡ Midday — keep moving'; }
-    else if (percent < 75) { phase = 'AFTERNOON'; status = '🔥 Afternoon — push it'; }
-    else if (percent < 90) { phase = 'EVENING';   status = '⏳ Evening — wrap up'; }
-    else                   { phase = 'BEDTIME';   status = '🌙 Bedtime soon'; }
-    phaseEl.textContent  = phase;
-    statusEl.textContent = status;
-
-    const minsLeft = (SLEEP_HOUR - hours) * 60;
-    remainingEl.textContent = formatRemaining(minsLeft) + ' awake time left';
-  }
 
   // ---------- Row building ----------
   function makeInlineEdit(textEl, goals, idx, key, reload) {
@@ -1446,20 +1207,115 @@ body::after {
     loadTomorrow
   );
 
+  // ---- Personal / All-time Goals ----
+  const PERSONAL_KEY = 'personal_goals_v1';
+  const PG_CATEGORY_LABEL = {
+    career: 'Career', health: 'Health', relationships: 'Relationships',
+    growth: 'Growth', financial: 'Financial', adventure: 'Adventure'
+  };
+
+  function getPersonalGoals() {
+    const g = storeGet(PERSONAL_KEY);
+    return Array.isArray(g) ? g : [];
+  }
+  function setPersonalGoals(list) { storeSet(PERSONAL_KEY, list); }
+
+  function buildPersonalRow(goal, idx) {
+    const li = document.createElement('li');
+    li.className = 'gm-row';
+    if (goal.done) li.classList.add('gm-row-done');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'gm-check';
+    cb.checked = !!goal.done;
+    cb.addEventListener('change', () => {
+      const list = getPersonalGoals();
+      if (!list[idx]) return;
+      list[idx].done = cb.checked;
+      if (cb.checked) list[idx].doneAt = Date.now();
+      else delete list[idx].doneAt;
+      setPersonalGoals(list);
+      loadPersonal();
+    });
+    li.appendChild(cb);
+
+    const text = document.createElement('span');
+    text.className = 'gm-text';
+    text.style.cursor = 'default';
+    text.textContent = goal.text;
+    li.appendChild(text);
+
+    if (goal.category) {
+      const tag = document.createElement('span');
+      tag.className = 'pg-tag';
+      tag.dataset.cat = goal.category;
+      tag.textContent = PG_CATEGORY_LABEL[goal.category] || goal.category;
+      li.appendChild(tag);
+    }
+
+    if (goal.target) {
+      const target = document.createElement('span');
+      target.className = 'pg-target';
+      target.textContent = goal.target;
+      li.appendChild(target);
+    }
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'goal-delete';
+    del.setAttribute('aria-label', 'Delete goal');
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      const list = getPersonalGoals();
+      list.splice(idx, 1);
+      setPersonalGoals(list);
+      loadPersonal();
+    });
+    li.appendChild(del);
+
+    return li;
+  }
+
+  function loadPersonal() {
+    const goals = getPersonalGoals();
+    const listEl = document.getElementById('personalGoalList');
+    const emptyEl = document.getElementById('personalEmptyState');
+    listEl.innerHTML = '';
+    emptyEl.style.display = goals.length === 0 ? 'block' : 'none';
+    goals.forEach((g, i) => listEl.appendChild(buildPersonalRow(g, i)));
+  }
+
+  document.getElementById('personalGoalAddBtn').addEventListener('click', () => {
+    const input = document.getElementById('personalGoalInput');
+    const catSel = document.getElementById('personalGoalCategory');
+    const targetInput = document.getElementById('personalGoalTarget');
+    const text = input.value.trim();
+    if (!text) return;
+    const list = getPersonalGoals();
+    list.push({ text, category: catSel.value, target: targetInput.value.trim(), done: false });
+    setPersonalGoals(list);
+    input.value = '';
+    targetInput.value = '';
+    loadPersonal();
+  });
+  document.getElementById('personalGoalInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('personalGoalAddBtn').click(); }
+  });
+
   // ---------- Boot ----------
   rollover();
   processStreak();
   loadToday();
   loadTomorrow();
+  loadPersonal();
   renderStreak();
-  updateDayRing();
-  setInterval(updateDayRing, 60 * 1000);
   startTicker();
 
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
     loadToday(); loadTomorrow(); renderStreak();
-    renderDashStats();
+    loadPersonal();
   });
 
   // ---- Header labels ----
@@ -1476,55 +1332,6 @@ body::after {
       wkEl.textContent = 'WK OF ' + ws.getDate() + ' ' + MONS[ws.getMonth()];
     }
   })();
-
-  // ---- Dashboard fitness stats (reads fitness_sessions) ----
-  function renderDashStats() {
-    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    let sessions = [];
-    try { sessions = JSON.parse(localStorage.getItem('fitness_sessions') || '[]'); } catch {}
-    const km = sessions.filter(s => s && s.type === 'run').reduce((t, s) => t + (parseFloat(s.km) || 0), 0);
-    const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-    el('dashStatKm',   km % 1 === 0 ? km : km.toFixed(1));
-    el('dashStatRuns', sessions.filter(s => s && s.type === 'run').length);
-    el('dashStatGym',  sessions.filter(s => s && s.type === 'gym').length);
-    el('dashStatMuay', sessions.filter(s => s && s.type === 'muay').length);
-
-    // Recent activity list
-    const listEl = document.getElementById('dashActivityList');
-    if (!listEl) return;
-    if (!sessions.length) {
-      listEl.innerHTML = '<div class="dash-activity-empty">No sessions logged yet.</div>';
-      return;
-    }
-    function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-    function fmtDate(ds) {
-      const [,m,d] = ds.split('-').map(Number);
-      return d + ' ' + MONS[m-1];
-    }
-    listEl.innerHTML = sessions.slice(0, 5).map(s => {
-      const icon = s.type === 'run' ? '▶▶' : s.type === 'gym' ? '[+]' : '✦';
-      const cls  = s.type === 'run' ? 'run' : s.type === 'gym' ? 'gym' : 'muay';
-      const label = s.type === 'run' ? 'RUN' : s.type === 'gym' ? 'GYM' : 'MUAY THAI';
-      let detail = '';
-      if (s.type === 'run') {
-        detail = (s.km ? s.km + 'km' : '') + (s.km && s.duration ? ' in ' + s.duration + 'min' : s.duration ? s.duration + 'min' : '');
-        if (s.notes) detail += (detail ? ' · ' : '') + s.notes;
-      } else if (s.type === 'gym') {
-        detail = s.split || s.notes || '';
-      } else {
-        detail = (s.duration ? s.duration + 'min' : '') + (s.duration && s.notes ? ' · ' : '') + (s.notes || '');
-      }
-      return '<div class="dash-activity-row">' +
-        '<span class="dash-act-pr">&gt;</span>' +
-        '<div class="dash-act-body">' +
-          '<div class="dash-act-type">' + label + '</div>' +
-          (detail ? '<div class="dash-act-detail">' + escH(detail) + '</div>' : '') +
-        '</div>' +
-        '<div class="dash-act-date">' + fmtDate(s.date) + '</div>' +
-      '</div>';
-    }).join('');
-  }
-  renderDashStats();
 })();
 </script>
 <script>
@@ -1532,38 +1339,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'goals',
-    syncedPrefixes: ['goals:'],
+    syncedPrefixes: ['goals:', 'personal_goals_v1'],
     onApplied: function () {
       window.dispatchEvent(new CustomEvent('goals-changed'));
       window.dispatchEvent(new Event('storage'));
     }
   });
-
-  // Pull fitness_sessions from gym's Supabase key (read-only — never writes back)
-  if (!window.supabase) return;
-  const supa = window.supabase.createClient(
-    'https://pdropxqcdyppbjkaxgpo.supabase.co',
-    'sb_publishable_7y8hvL8HV-X2YLHora2EKw_jhdTI7UH'
-  );
-  function applyFitnessSessions(data) {
-    if (!data || !Array.isArray(data.fitness_sessions)) return;
-    try {
-      const incoming = JSON.stringify(data.fitness_sessions);
-      if (localStorage.getItem('fitness_sessions') === incoming) return;
-      localStorage.setItem('fitness_sessions', incoming);
-      window.dispatchEvent(new Event('storage'));
-    } catch (e) {}
-  }
-  supa.from('app_state').select('data').eq('key', 'po-coach').maybeSingle()
-    .then(function(res) { if (!res.error && res.data) applyFitnessSessions(res.data.data); })
-    .catch(function() {});
-  supa.channel('dash_fitness_sync')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'app_state', filter: 'key=eq.po-coach'
-    }, function(payload) {
-      if (payload.new && payload.new.data) applyFitnessSessions(payload.new.data);
-    })
-    .subscribe();
 });
 </script>
 </body>
