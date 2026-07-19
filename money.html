@@ -15,6 +15,19 @@
 <script src="sunpath.js" defer></script>
 <script src="sync.js" defer></script>
 <style>
+/* ===== Compat aliases: leftover finance.html tokens used in inline
+   style="..." attributes and JS-generated style strings, mapped onto
+   sunpath.css's actual custom properties (same mapping Task 2 used
+   when remapping this <style> block's own rules). ===== */
+:root {
+  --text-primary: var(--ink);
+  --text-tertiary: var(--faint);
+  --bg-card: var(--glass-fill);
+  --border: var(--line);
+  --radius-md: 12px;
+  --font-mono: var(--mono);
+}
+
 @media (min-width: 1024px) {
   .money-page .shellwrap { max-width: 1100px; }
 }
