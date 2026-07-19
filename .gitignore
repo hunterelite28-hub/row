@@ -6,3 +6,6 @@
 
 # secrets
 .env
+
+# superpowers subagent-driven-development scratch state
+.superpowers/

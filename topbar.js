@@ -4,8 +4,8 @@
 //     <script src="topbar.js" defer></script>
 // It self-injects HTML + CSS, reads progress from localStorage,
 // and renders the water +1 button in the top bar plus the
-// Main/Health/Fitness bottom tabs. Skips chrome on finance.html
-// and inside iframes (so the water tracker can embed cleanly).
+// Main/Health/Fitness bottom tabs. Skips chrome inside iframes
+// (so the water tracker can embed cleanly).
 // =============================================================
 (function () {
   'use strict';
@@ -217,7 +217,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     </a>
     <button class="topbar-water-add" id="topbarWaterAdd" aria-label="Log one drink" type="button">+</button>
   </div>
-  <a href="finance.html" class="topbar-finance-btn" id="topbarFinance" aria-label="Finance">
+  <a href="money.html" class="topbar-finance-btn" id="topbarFinance" aria-label="Finance">
     <span class="topbar-finance-icon">📊</span>
   </a>
   <span class="topbar-sync" id="topbarSync" title="Sync status">
@@ -242,14 +242,10 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   </a>
 </nav>`;
 
-  function isFinancePage() {
-    const p = (window.location.pathname || '').toLowerCase();
-    return p.endsWith('/finance.html') || p.endsWith('finance.html');
-  }
   function isEmbedded() {
     try { return window.self !== window.top; } catch (e) { return true; }
   }
-  function shouldShowChrome() { return !isFinancePage() && !isEmbedded(); }
+  function shouldShowChrome() { return !isEmbedded(); }
   function currentPageKey() {
     const p = (window.location.pathname || '').toLowerCase();
     if (p.endsWith('mentor.html')) return 'mentor';
