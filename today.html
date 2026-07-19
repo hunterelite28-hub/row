@@ -44,7 +44,7 @@
   .today-page a.mod[href="learning.html"] { grid-area: learning; }
   .today-page a.mod[href="library.html"]  { grid-area: library; }
   .today-page a.mod[href="mentor.html"]   { display: none; }
-  .today-page a.card[href="finance.html"] { grid-area: money; }
+  .today-page a.card[href="money.html"] { grid-area: money; }
   .today-page a.card[href="growth.html"]  { grid-area: growth; }
 
   .mentor-fab {
@@ -317,7 +317,7 @@
         '<span class="v num">' + (mentorReady ? 'Nova' : '—') + ' <small>' + (mentorReady ? 'ready' : 'not set up') + '</small></span>' +
         '<span class="d">' + (mentorReady ? 'ask Nova about your day' : 'tap to add your Claude key') + '</span></a>';
       const nwPath = M ? S.sparkPath(M.hist.slice(-40).map(e => e.v), 320, 34) : '';
-      g += '<a class="glassy card" style="grid-column:1/-1" href="finance.html">' +
+      g += '<a class="glassy card" style="grid-column:1/-1" href="money.html">' +
         '<span class="k">Money</span>' +
         '<div style="display:flex;align-items:baseline;gap:10px">' +
         '<span class="v num" style="font-size:21px;font-weight:650;margin-top:7px;display:inline-block">' +
