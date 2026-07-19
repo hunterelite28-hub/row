@@ -13,10 +13,193 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="sunpath.css">
 <script src="sunpath.js" defer></script>
+<script src="sync.js" defer></script>
 <style>
 @media (min-width: 1024px) {
-  .mind-page .shellwrap { max-width: 1100px; }
+  .mind-page .shellwrap {
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    grid-template-areas:
+      "date   date"
+      "head   head"
+      "learn  lib"
+      "growth gratitude";
+  }
+  .mind-page .daterow     { grid-area: date; }
+  .mind-page .pagehead    { grid-area: head; }
+  .mind-page #secLearning  { grid-area: learn; }
+  .mind-page #secLibrary   { grid-area: lib; }
+  .mind-page #secGrowth    { grid-area: growth; }
+  .mind-page #secGratitude { grid-area: gratitude; }
 }
+
+/* ===== shared modal + form components (Learning / Library) ===== */
+.modal-bg { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); align-items:flex-end; justify-content:center; }
+.modal-bg.show { display:flex; }
+.modal { width:100%; max-width:480px; background:#14151c; border:1px solid var(--glass-border); border-radius:20px 20px 0 0; padding:20px 18px calc(28px + env(safe-area-inset-bottom)); max-height:92vh; overflow-y:auto; overscroll-behavior:contain; font-family:var(--display); color:var(--muted); }
+.modal-title { font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink); margin-bottom:18px; font-family:var(--mono); }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; }
+.field input, .field select, .field textarea { width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:10px; color:var(--ink); font-family:var(--display); font-size:14px; padding:11px 13px; outline:none; transition:border-color 0.15s; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(158,217,160,0.4); }
+.field textarea { resize:none; min-height:76px; line-height:1.5; }
+.field select { appearance:none; -webkit-appearance:none; cursor:pointer; }
+.field select option { background:#14151c; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.modal-actions { display:flex; gap:10px; margin-top:18px; }
+.btn-cancel { flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:10px; color:var(--muted); font-family:var(--display); font-size:13px; font-weight:650; padding:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.btn-save { flex:2; background:var(--sun); border:none; border-radius:10px; color:#0A0B0E; font-family:var(--display); font-size:13px; font-weight:700; letter-spacing:0.02em; padding:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.btn-save:active { transform:scale(0.98); }
+.btn-danger { width:100%; margin-top:12px; background:rgba(228,87,46,0.10); border:1px solid rgba(228,87,46,0.28); border-radius:10px; color:var(--ember); font-family:var(--display); font-size:12px; font-weight:650; padding:12px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.icon-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+.icon-opt { height:40px; background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:9px; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color:transparent; color:var(--ink); }
+.icon-opt.active { background:rgba(158,217,160,0.16); border-color:rgba(158,217,160,0.45); }
+.resource-list { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.resource-row { display:flex; gap:6px; align-items:center; }
+.resource-row input { flex:1; }
+.resource-del { background:none; border:none; color:var(--faint); font-size:18px; cursor:pointer; padding:0 4px; }
+.resource-add { background:none; border:1px dashed var(--glass-border); border-radius:8px; color:var(--faint); font-family:var(--display); font-size:12px; padding:8px; width:100%; cursor:pointer; transition:border-color 0.15s,color 0.15s; }
+.resource-add:hover { border-color:rgba(255,255,255,0.3); color:var(--ink); }
+
+/* ===== Learning tile ===== */
+.ln-tabs { display:flex; align-items:center; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; margin-bottom:14px; }
+.ln-tabs::-webkit-scrollbar { display:none; }
+.ln-tab { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--line); border-radius:999px; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:var(--display); font-size:12px; font-weight:650; letter-spacing:0.02em; color:var(--muted); }
+.ln-tab.active { background:rgba(158,217,160,0.14); border-color:rgba(158,217,160,0.45); color:var(--leaf); }
+.ln-tab-icon { font-size:14px; }
+.ln-add-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; flex-shrink:0; background:rgba(255,255,255,0.04); border:1px dashed var(--glass-border); border-radius:999px; font-size:17px; color:var(--faint); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.ln-add-btn:hover { background:rgba(255,255,255,0.08); color:var(--ink); }
+
+.ln-subj-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:4px; }
+.ln-subj-title { font-size:18px; font-weight:650; letter-spacing:0.01em; }
+.ln-subj-title-icon { margin-right:6px; }
+.ln-subj-sub { font-size:10.5px; color:var(--faint); margin-bottom:14px; font-family:var(--mono); letter-spacing:0.03em; }
+.ln-log-btn { background:var(--leaf); color:#0A0B0E; border:none; border-radius:10px; padding:9px 14px; font-family:var(--display); font-size:11.5px; font-weight:700; letter-spacing:0.01em; cursor:pointer; white-space:nowrap; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+.ln-log-btn:active { transform:scale(0.96); }
+
+.ln-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.ln-stat { background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:12px; padding:12px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.ln-stat-v { font-size:21px; font-weight:650; font-family:var(--mono); color:var(--leaf); line-height:1; }
+.ln-stat-l { font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--faint); }
+
+.ln-log-card { background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:12px; padding:14px; }
+.ln-log-head { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--faint); margin-bottom:10px; }
+.ln-session { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px dashed var(--line); }
+.ln-session:first-child { border-top:0; padding-top:0; }
+.ln-session-icon { width:32px; height:32px; border-radius:10px; flex-shrink:0; background:rgba(158,217,160,0.13); display:flex; align-items:center; justify-content:center; font-size:14px; }
+.ln-session-body { flex:1; min-width:0; }
+.ln-session-topic { font-size:12.5px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ln-session-meta { font-size:11px; color:var(--faint); margin-top:2px; font-family:var(--mono); }
+.ln-session-notes { font-size:11px; color:var(--muted); margin-top:3px; white-space:pre-wrap; }
+.ln-session-right { flex-shrink:0; text-align:right; }
+.ln-session-date { font-size:10.5px; color:var(--faint); margin-bottom:4px; font-family:var(--mono); }
+.ln-session-edit, .ln-session-del { background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:6px; font-family:var(--mono); font-size:10px; font-weight:700; padding:3px 7px; cursor:pointer; margin-left:5px; color:var(--muted); -webkit-tap-highlight-color:transparent; }
+.ln-session-del:hover { color:var(--ember); border-color:rgba(228,87,46,0.35); }
+.ln-empty, .ln-no-subj { text-align:center; padding:26px 0 16px; color:var(--faint); font-size:11.5px; letter-spacing:0.03em; }
+.ln-empty-icon { font-size:28px; opacity:0.25; margin-bottom:10px; }
+
+/* ===== Library tile ===== */
+.lb-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.lb-filter-row { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; flex:1; }
+.lb-filter-row::-webkit-scrollbar { display:none; }
+.lb-filter-chip { flex-shrink:0; background:rgba(255,255,255,0.04); border:1px solid var(--line); border-radius:999px; padding:7px 12px; color:var(--muted); font-family:var(--display); font-size:11px; font-weight:650; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lb-filter-chip.active { background:rgba(242,166,90,0.16); border-color:rgba(242,166,90,0.45); color:var(--sun); }
+.lb-add-btn { flex-shrink:0; background:var(--sun); color:#0A0B0E; border:none; border-radius:10px; padding:8px 13px; font-family:var(--display); font-size:12px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lb-add-btn:active { transform:scale(0.96); }
+
+.lb-book-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); align-items:start; gap:14px 10px; }
+.lb-book-card { background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform 0.15s ease, border-color 0.15s ease; }
+.lb-book-card:active { transform:scale(0.99); }
+.lb-book-card:hover { border-color:var(--glass-border); }
+.lb-book-cover-wrap { width:100%; line-height:0; }
+.lb-book-cover { width:100%; height:auto; display:block; }
+.lb-book-cover-ph { width:100%; aspect-ratio:2/3; background:linear-gradient(160deg, rgba(242,166,90,0.16), rgba(255,255,255,0.04)); display:flex; align-items:center; justify-content:center; font-size:30px; opacity:0.7; }
+.lb-book-body { padding:9px 10px 11px; }
+.lb-book-title { font-size:12px; font-weight:650; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--ink); }
+.lb-book-author { font-size:10px; color:var(--faint); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb-status-pill { display:inline-flex; align-items:center; gap:5px; margin-top:8px; font-size:9px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-radius:999px; padding:3px 8px; }
+.lb-status-pill .dot { width:6px; height:6px; border-radius:50%; }
+.lb-status-pill.reading { background:rgba(242,166,90,0.14); color:var(--sun); }
+.lb-status-pill.reading .dot { background:var(--sun); }
+.lb-status-pill.finished { background:rgba(158,217,160,0.14); color:var(--leaf); }
+.lb-status-pill.finished .dot { background:var(--leaf); }
+.lb-status-pill.toread { background:rgba(255,255,255,0.06); color:var(--muted); }
+.lb-status-pill.toread .dot { background:var(--faint); }
+.lb-progress-row { display:flex; align-items:center; gap:7px; margin-top:8px; }
+.lb-progress-pct { font-size:10px; font-weight:650; color:var(--ink); font-family:var(--mono); min-width:28px; }
+.lb-progress-track { flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden; }
+.lb-progress-fill { height:100%; background:linear-gradient(90deg, var(--sun), var(--ember)); border-radius:4px; }
+.lb-note-count { font-size:9px; color:var(--faint); margin-top:6px; }
+.lb-empty { text-align:center; padding:40px 0; color:var(--faint); font-size:11.5px; letter-spacing:0.04em; line-height:1.8; }
+.lb-empty .ico { font-size:32px; opacity:0.25; display:block; margin-bottom:10px; }
+
+.lb-detail-back { display:inline-flex; align-items:center; gap:6px; background:none; border:none; color:var(--muted); font-family:var(--display); font-size:12px; cursor:pointer; padding:4px 0; margin-bottom:14px; -webkit-tap-highlight-color:transparent; }
+.lb-detail-back:hover { color:var(--ink); }
+.lb-detail-top { display:flex; gap:14px; margin-bottom:16px; }
+.lb-detail-cover { width:96px; flex-shrink:0; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5); align-self:flex-start; }
+.lb-detail-cover-ph { width:96px; height:138px; flex-shrink:0; border-radius:8px; background:linear-gradient(160deg, rgba(242,166,90,0.16), rgba(255,255,255,0.04)); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:28px; opacity:0.7; }
+.lb-detail-info { flex:1; min-width:0; }
+.lb-detail-title { font-size:17px; font-weight:650; line-height:1.2; color:var(--ink); }
+.lb-detail-author { font-size:12px; color:var(--muted); margin-top:5px; }
+.lb-detail-stars { margin-top:10px; font-size:16px; letter-spacing:2px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+.lb-detail-star { color:var(--faint); }
+.lb-detail-star.on { color:var(--sun); }
+.lb-detail-edit { background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:8px; color:var(--muted); font-family:var(--display); font-size:11px; padding:6px 11px; cursor:pointer; margin-top:12px; -webkit-tap-highlight-color:transparent; }
+.lb-detail-edit:hover { color:var(--ink); }
+.lb-detail-progress { margin-bottom:18px; }
+.lb-page-update { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; color:var(--muted); }
+.lb-page-update input { width:66px; background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:8px; color:var(--ink); font-family:var(--display); font-size:13px; padding:7px 9px; outline:none; }
+.lb-page-update input:focus { border-color:rgba(242,166,90,0.5); }
+
+.lb-notes-head { font-size:10.5px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--faint); margin-bottom:10px; }
+.lb-note-compose { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:12px; padding:11px 13px; margin-bottom:14px; }
+.lb-note-compose textarea { width:100%; background:transparent; border:none; outline:none; resize:none; color:var(--ink); font-family:var(--display); font-size:13.5px; line-height:1.55; min-height:58px; }
+.lb-note-compose textarea::placeholder { color:var(--faint); }
+.lb-note-compose-footer { display:flex; align-items:center; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+.lb-note-page-input { width:74px; background:rgba(0,0,0,0.28); border:1px solid var(--glass-border); border-radius:8px; color:var(--ink); font-family:var(--display); font-size:12px; padding:7px 9px; outline:none; }
+.lb-note-page-input:focus { border-color:rgba(242,166,90,0.5); }
+.lb-note-add-btn { margin-left:auto; background:var(--sun); color:#0A0B0E; border:none; border-radius:8px; padding:7px 14px; font-family:var(--display); font-size:11.5px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lb-note-add-btn:disabled { opacity:0.35; cursor:default; }
+.lb-note-list { display:flex; flex-direction:column; gap:9px; }
+.lb-note-item { background:rgba(255,255,255,0.03); border:1px solid var(--line); border-radius:11px; padding:11px 13px; }
+.lb-note-item-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.lb-note-item-page { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--sun); opacity:0.9; }
+.lb-note-item-date { font-size:10px; color:var(--faint); }
+.lb-note-item-actions { display:flex; gap:6px; }
+.lb-note-del, .lb-note-edit { background:none; border:none; cursor:pointer; padding:2px 4px; border-radius:6px; font-family:var(--display); font-size:11px; -webkit-tap-highlight-color:transparent; color:var(--faint); }
+.lb-note-edit:hover { color:var(--ink); }
+.lb-note-del:hover { color:var(--ember); }
+.lb-note-item-text { font-size:13px; line-height:1.55; color:var(--ink); white-space:pre-wrap; word-break:break-word; }
+.lb-note-item-text strong { font-weight:700; color:#fff; }
+.lb-note-item-text em { font-style:italic; }
+.lb-note-item-text code { background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; font-size:0.92em; }
+.lb-note-item-text del { opacity:0.55; }
+.lb-note-fmt-bar { display:flex; gap:6px; margin-bottom:9px; }
+.lb-fmt-btn { background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:7px; color:var(--muted); font-family:var(--display); font-size:12px; font-weight:700; min-width:28px; height:26px; padding:0 7px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lb-fmt-btn:hover { color:var(--ink); border-color:var(--glass-border); }
+.lb-fmt-btn.i { font-style:italic; }
+.lb-note-empty { text-align:center; padding:26px 0; color:var(--faint); font-size:11px; letter-spacing:0.04em; }
+
+.lb-cover-pick { display:flex; align-items:center; justify-content:center; gap:10px; height:140px; border:1px dashed var(--glass-border); border-radius:10px; cursor:pointer; color:var(--faint); font-size:12px; background:rgba(255,255,255,0.02); overflow:hidden; -webkit-tap-highlight-color:transparent; }
+.lb-cover-pick img { height:100%; border-radius:6px; }
+.lb-cover-pick:hover { border-color:rgba(242,166,90,0.5); color:var(--ink); }
+.lb-cover-clear { display:none; margin-top:8px; background:none; border:none; color:var(--faint); font-family:var(--display); font-size:11px; cursor:pointer; text-decoration:underline; -webkit-tap-highlight-color:transparent; }
+.lb-modal-stars { font-size:22px; letter-spacing:4px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+.lb-modal-star { color:var(--faint); }
+.lb-modal-star.on { color:var(--sun); }
+
+/* ===== Gratitude tile ===== */
+.gr-list { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
+.gr-entry { display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px dashed var(--line); }
+.gr-entry:first-child { border-top:0; padding-top:0; }
+.gr-entry-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.gr-entry-text { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gr-entry-date { font-size:10px; color:var(--faint); font-family:var(--mono); }
+.gr-entry-del { background:none; border:none; color:var(--faint); font-size:16px; line-height:1; cursor:pointer; padding:2px 6px; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
+.gr-entry-del:hover { color:var(--ember); }
 </style>
 </head>
 <body class="mind-page">
@@ -28,21 +211,941 @@
     <div class="sub" id="spSub"></div>
   </div>
 
-  <div class="section">
+  <div class="section" id="secLearning">
     <div class="sec-head">Learning<span class="more num" id="spLearnLbl"></span></div>
-    <a class="glassy card" href="learning.html" id="spLearn"></a>
+    <div class="glassy card">
+      <div class="ln-tabs" id="lnTabs"></div>
+      <div id="lnContent"></div>
+    </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="secLibrary">
     <div class="sec-head">Library<span class="more num" id="spLibLbl"></span></div>
-    <a class="glassy card" href="library.html" id="spLib"></a>
+    <div class="glassy card">
+      <div id="lbListView">
+        <div class="lb-toolbar">
+          <div class="lb-filter-row" id="lbFilterRow"></div>
+          <button class="lb-add-btn" id="lbAddBookBtn" type="button">+ Add</button>
+        </div>
+        <div class="lb-empty" id="lbEmptyState" style="display:none">
+          <span class="ico">📚</span>No books yet<br>
+          <span style="font-size:10px;opacity:0.7">tap + add to start your shelf</span>
+        </div>
+        <div class="lb-book-list" id="lbBookList"></div>
+      </div>
+      <div id="lbDetailView" style="display:none"></div>
+    </div>
   </div>
 
-  <div class="section">
+  <div class="section" id="secGrowth">
     <div class="sec-head">Growth<span class="more num" id="spGrowLbl"></span></div>
     <a class="glassy card" href="growth.html" id="spGrow"></a>
   </div>
+
+  <div class="section" id="secGratitude">
+    <div class="sec-head">Gratitude<span class="more num" id="grLbl"></span></div>
+    <div class="glassy card" id="grCard"></div>
+  </div>
 </div>
+
+<!-- Gratitude: Write Modal -->
+<div class="modal-bg" id="grModalBg">
+  <div class="modal">
+    <div class="modal-title">// Gratitude</div>
+    <div class="field"><label>What are you grateful for today?</label><textarea id="grText" placeholder="Big or small — write it down..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="grCancel" type="button">Cancel</button>
+      <button class="btn-save" id="grSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Learning: Log Session Modal -->
+<div class="modal-bg" id="logModalBg">
+  <div class="modal">
+    <div class="modal-title">// New Session</div>
+    <div class="field"><label>Date</label><input type="date" id="logDate"></div>
+    <div class="field"><label>Hours Spent</label><input type="number" id="logHours" placeholder="e.g. 1.5" step="0.25" min="0" inputmode="decimal"></div>
+    <div class="field"><label>Topic / Chapter</label><input type="text" id="logTopic" placeholder="e.g. Lists & Dicts, Functions, OOP..." maxlength="100"></div>
+    <div class="field"><label>Topics / Chapters Learnt</label><input type="number" id="logTopicsCount" placeholder="e.g. 3" step="1" min="0" inputmode="numeric"></div>
+    <div class="field">
+      <label>Resource</label>
+      <select id="logResource"></select>
+      <div class="resource-row" id="newResourceRow" style="display:none; margin-top:8px;">
+        <input type="text" id="newResourceInput" placeholder="New resource name…" maxlength="60">
+        <button class="btn-save" id="newResourceAdd" type="button" style="flex:0 0 auto; padding:11px 14px;">Add</button>
+      </div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="logNotes" placeholder="Key concepts, things to revisit..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="logCancel" type="button">Cancel</button>
+      <button class="btn-save" id="logSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Learning: Add Subject Modal -->
+<div class="modal-bg" id="addSubjectBg">
+  <div class="modal">
+    <div class="modal-title">// New Subject</div>
+    <div class="field"><label>Subject Name</label><input type="text" id="subjName" placeholder="e.g. Python, SQL, Spanish..." maxlength="40"></div>
+    <div class="field"><label>Icon</label><div class="icon-grid" id="iconGrid"></div></div>
+    <div class="field"><label>Resources</label><div class="resource-list" id="resourceList"></div><button class="resource-add" id="resourceAddBtn" type="button">+ Add Resource</button></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="subjCancel" type="button">Cancel</button>
+      <button class="btn-save" id="subjSave" type="button">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Learning: Edit Subject Modal -->
+<div class="modal-bg" id="editSubjectBg">
+  <div class="modal">
+    <div class="modal-title">// Edit Subject</div>
+    <div class="field"><label>Subject Name</label><input type="text" id="editSubjName" maxlength="40"></div>
+    <div class="field"><label>Icon</label><div class="icon-grid" id="editIconGrid"></div></div>
+    <div class="field"><label>Resources</label><div class="resource-list" id="editResourceList"></div><button class="resource-add" id="editResourceAddBtn" type="button">+ Add Resource</button></div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="editSubjDelete" type="button">Delete</button>
+      <button class="btn-cancel" id="editSubjCancel" type="button">Cancel</button>
+      <button class="btn-save" id="editSubjSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Library: Add/Edit Book Modal -->
+<div class="modal-bg" id="bookModalBg">
+  <div class="modal">
+    <div class="modal-title" id="bookModalTitle">// New Book</div>
+    <div class="field">
+      <label>Cover (title page)</label>
+      <div class="lb-cover-pick" id="coverPick"><span id="coverPickLabel">📷 Tap to add cover</span></div>
+      <button class="lb-cover-clear" id="coverClear" type="button">Remove cover</button>
+      <input type="file" id="coverFile" accept="image/*" style="display:none">
+    </div>
+    <div class="field"><label>Title</label><input type="text" id="bookTitle" placeholder="e.g. Atomic Habits" maxlength="120"></div>
+    <div class="field"><label>Author</label><input type="text" id="bookAuthor" placeholder="e.g. James Clear" maxlength="80"></div>
+    <div class="field">
+      <label>Status</label>
+      <select id="bookStatus">
+        <option value="reading">Reading</option>
+        <option value="finished">Finished</option>
+        <option value="toread">To Read</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Current Page</label><input type="number" id="bookCurrent" placeholder="0" min="0" inputmode="numeric"></div>
+      <div class="field"><label>Total Pages</label><input type="number" id="bookTotal" placeholder="0" min="0" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>Tags (comma separated, optional)</label><input type="text" id="bookTags" placeholder="e.g. habits, psychology" maxlength="80"></div>
+    <div class="field"><label>Rating</label><div class="lb-modal-stars" id="modalStars"></div></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="bookCancel" type="button">Cancel</button>
+      <button class="btn-save" id="bookSave" type="button">Save</button>
+    </div>
+    <button class="btn-danger" id="bookDelete" type="button" style="display:none">Delete Book</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  let S;
+  const SUBJ_KEY = 'learning_subjects';
+  const SESS_KEY = 'learning_sessions';
+  const ICONS = ['λ','◎','∑','⊕','△','⬡','⟨⟩','✦','◈','⌘','∞','⚡'];
+  const DEFAULT_SUBJECTS = [{
+    id: 'py_default', name: 'Python', icon: 'λ',
+    resources: ['CS50P (Harvard)', 'Python.org Docs', 'Automate the Boring Stuff', 'Real Python']
+  }];
+
+  function loadSubjects() {
+    const s = S.readJSON(SUBJ_KEY, null);
+    return Array.isArray(s) && s.length ? s : JSON.parse(JSON.stringify(DEFAULT_SUBJECTS));
+  }
+  function saveSubjects(arr) { localStorage.setItem(SUBJ_KEY, JSON.stringify(arr)); }
+  function loadSessions() { return S.readJSON(SESS_KEY, []); }
+  function saveSessions(arr) { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); }
+
+  let subjects = [];
+  let activeId = null;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function todayStr() { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtDate(ds) { const p = ds.split('-').map(Number); return p[2] + ' ' + MONS[p[1]-1]; }
+  function uid() { return 'l' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+  function renderTabs() {
+    subjects = loadSubjects();
+    if (!subjects.find(s => s.id === activeId)) activeId = subjects[0] ? subjects[0].id : null;
+    const wrap = document.getElementById('lnTabs');
+    wrap.innerHTML = subjects.map(s =>
+      '<button class="ln-tab' + (s.id === activeId ? ' active' : '') + '" type="button" data-id="' + s.id + '">' +
+        '<span class="ln-tab-icon">' + s.icon + '</span>' + S.esc(s.name) +
+      '</button>'
+    ).join('') + '<button class="ln-add-btn" id="lnOpenAddSubject" type="button" title="Add subject">+</button>';
+
+    wrap.querySelectorAll('.ln-tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeId = btn.dataset.id; renderAll(); });
+      let t;
+      btn.addEventListener('pointerdown', () => { t = setTimeout(() => openEditSubject(btn.dataset.id), 600); });
+      btn.addEventListener('pointerup', () => clearTimeout(t));
+      btn.addEventListener('pointerleave', () => clearTimeout(t));
+    });
+    document.getElementById('lnOpenAddSubject').addEventListener('click', openAddSubject);
+  }
+
+  function renderContent() {
+    subjects = loadSubjects();
+    const content = document.getElementById('lnContent');
+    if (!subjects.length) {
+      content.innerHTML = '<div class="ln-no-subj">No subjects yet.<br>Tap + to add your first.</div>';
+      return;
+    }
+    const subj = subjects.find(s => s.id === activeId) || subjects[0];
+    activeId = subj.id;
+
+    const sessions = loadSessions().filter(s => s.subjectId === subj.id);
+    const totalHrs = sessions.reduce((t, s) => t + (parseFloat(s.hours)||0), 0);
+    const uniqueTopics = sessions.reduce((t, s) =>
+      t + (s.topicsCount != null ? (parseInt(s.topicsCount) || 0) : (s.topic ? 1 : 0)), 0);
+    const hrsDisplay = totalHrs % 1 === 0 ? totalHrs + '.0H' : totalHrs.toFixed(1) + 'H';
+
+    content.innerHTML =
+      '<div class="ln-subj-header">' +
+        '<div><div class="ln-subj-title"><span class="ln-subj-title-icon">' + subj.icon + '</span>' + S.esc(subj.name) + '</div></div>' +
+        '<button class="ln-log-btn" id="lnOpenLogBtn" type="button">+ Log Session</button>' +
+      '</div>' +
+      '<div class="ln-subj-sub">// track topics, hours &amp; resources</div>' +
+      '<div class="ln-stats">' +
+        '<div class="ln-stat"><span class="ln-stat-v">' + hrsDisplay + '</span><span class="ln-stat-l">Total Hours</span></div>' +
+        '<div class="ln-stat"><span class="ln-stat-v">' + sessions.length + '</span><span class="ln-stat-l">Sessions</span></div>' +
+        '<div class="ln-stat"><span class="ln-stat-v">' + uniqueTopics + '</span><span class="ln-stat-l">Topics</span></div>' +
+      '</div>' +
+      '<div class="ln-log-card">' +
+        '<div class="ln-log-head">// Session Log</div>' +
+        '<div id="lnSessionList">' + renderSessionList(sessions, subj) + '</div>' +
+      '</div>';
+
+    document.getElementById('lnOpenLogBtn').addEventListener('click', () => openLogModal(subj));
+    content.querySelectorAll('.ln-session-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sess = loadSessions().find(s => s.id === btn.dataset.id);
+        if (sess) openLogModal(subj, sess);
+      });
+    });
+    content.querySelectorAll('.ln-session-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        saveSessions(loadSessions().filter(s => s.id !== btn.dataset.id));
+        renderAll();
+      });
+    });
+  }
+
+  function renderSessionList(sessions, subj) {
+    if (!sessions.length) {
+      return '<div class="ln-empty"><div class="ln-empty-icon">' + subj.icon + '</div>No sessions yet — log your first.</div>';
+    }
+    return sessions.slice(0, 30).map(s =>
+      '<div class="ln-session">' +
+        '<div class="ln-session-icon">' + subj.icon + '</div>' +
+        '<div class="ln-session-body">' +
+          '<div class="ln-session-topic">' + S.esc(s.topic || '—') + '</div>' +
+          '<div class="ln-session-meta">' + [
+            s.hours ? s.hours + 'h' : '',
+            (s.topicsCount != null && s.topicsCount !== '') ? s.topicsCount + (parseInt(s.topicsCount) === 1 ? ' topic' : ' topics') : '',
+            S.esc(s.resource || '')
+          ].filter(Boolean).join(' · ') + '</div>' +
+          (s.notes ? '<div class="ln-session-notes">' + S.esc(s.notes) + '</div>' : '') +
+        '</div>' +
+        '<div class="ln-session-right">' +
+          '<div class="ln-session-date">' + fmtDate(s.date) + '</div>' +
+          '<button class="ln-session-edit" type="button" data-id="' + s.id + '">Edit</button>' +
+          '<button class="ln-session-del" type="button" data-id="' + s.id + '">Del</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  function renderAll() {
+    renderTabs();
+    renderContent();
+    if (typeof window._mindHeaderRender === 'function') window._mindHeaderRender();
+  }
+
+  // ---- Log Session Modal ----
+  const ADD_RESOURCE_VALUE = '__add_resource__';
+  function populateResourceSelect(subj, selected) {
+    const sel = document.getElementById('logResource');
+    const resources = (Array.isArray(subj.resources) ? subj.resources : []).slice();
+    if (selected && !resources.includes(selected)) resources.unshift(selected);
+    sel.innerHTML =
+      resources.map(r => '<option value="' + S.esc(r) + '"' + (r === selected ? ' selected' : '') + '>' + S.esc(r) + '</option>').join('') +
+      '<option value="' + ADD_RESOURCE_VALUE + '">+ Add new resource…</option>';
+  }
+  let lastResource = '';
+  function hideNewResourceRow() {
+    document.getElementById('newResourceRow').style.display = 'none';
+    document.getElementById('newResourceInput').value = '';
+  }
+  let editingSessionId = null;
+  function openLogModal(subj, session) {
+    editingSessionId = session ? session.id : null;
+    document.querySelector('#logModalBg .modal-title').textContent = session ? '// Edit Session' : '// New Session';
+    document.getElementById('logSave').textContent = session ? 'Update' : 'Save';
+    document.getElementById('logDate').value = session ? session.date : todayStr();
+    document.getElementById('logHours').value = session && session.hours ? session.hours : '';
+    document.getElementById('logTopic').value = session ? (session.topic || '') : '';
+    document.getElementById('logTopicsCount').value = session && session.topicsCount != null ? session.topicsCount : '';
+    document.getElementById('logNotes').value = session ? (session.notes || '') : '';
+    lastResource = session ? (session.resource || '') : ((Array.isArray(subj.resources) && subj.resources[0]) || '');
+    populateResourceSelect(subj, lastResource);
+    hideNewResourceRow();
+    document.getElementById('logModalBg').classList.add('show');
+    setTimeout(() => document.getElementById('logTopic').focus(), 80);
+  }
+  document.getElementById('logResource').addEventListener('change', function () {
+    if (this.value !== ADD_RESOURCE_VALUE) { lastResource = this.value; hideNewResourceRow(); return; }
+    document.getElementById('newResourceRow').style.display = 'flex';
+    setTimeout(() => document.getElementById('newResourceInput').focus(), 50);
+  });
+  function commitNewResource() {
+    const subj = loadSubjects().find(s => s.id === activeId);
+    if (!subj) return;
+    const name = document.getElementById('newResourceInput').value.trim();
+    if (!name) { populateResourceSelect(subj, lastResource); hideNewResourceRow(); return; }
+    if (!Array.isArray(subj.resources)) subj.resources = [];
+    if (!subj.resources.includes(name)) {
+      subj.resources.push(name);
+      saveSubjects(loadSubjects().map(s => s.id === subj.id ? subj : s));
+    }
+    lastResource = name;
+    populateResourceSelect(subj, name);
+    hideNewResourceRow();
+  }
+  document.getElementById('newResourceAdd').addEventListener('click', commitNewResource);
+  document.getElementById('newResourceInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commitNewResource(); }
+  });
+  function closeLogModal() { editingSessionId = null; document.getElementById('logModalBg').classList.remove('show'); }
+  document.getElementById('logCancel').addEventListener('click', closeLogModal);
+  document.getElementById('logModalBg').addEventListener('click', e => { if (e.target === document.getElementById('logModalBg')) closeLogModal(); });
+  document.getElementById('logSave').addEventListener('click', () => {
+    const subj = loadSubjects().find(s => s.id === activeId);
+    if (!subj) return;
+    const hours = parseFloat(document.getElementById('logHours').value) || 0;
+    const topic = document.getElementById('logTopic').value.trim();
+    const topicsCountRaw = document.getElementById('logTopicsCount').value;
+    const topicsCount = topicsCountRaw === '' ? null : (parseInt(topicsCountRaw) || 0);
+    let resource = document.getElementById('logResource').value;
+    if (resource === ADD_RESOURCE_VALUE) resource = '';
+    const notes = document.getElementById('logNotes').value.trim();
+    const date = document.getElementById('logDate').value || todayStr();
+    if (!topic && !hours) return;
+    let sessions = loadSessions();
+    if (editingSessionId) {
+      sessions = sessions.map(s => s.id === editingSessionId
+        ? { ...s, date, hours, topic, topicsCount, resource, notes }
+        : s);
+    } else {
+      sessions.unshift({ id: uid(), subjectId: activeId, date, hours, topic, topicsCount, resource, notes, ts: Date.now() });
+    }
+    sessions.sort((a,b) => b.date.localeCompare(a.date));
+    saveSessions(sessions);
+    editingSessionId = null;
+    closeLogModal();
+    renderAll();
+  });
+
+  // ---- Add Subject Modal ----
+  let selectedIcon = ICONS[0];
+  let addResources = [''];
+  function buildIconGrid(gridId, currentIcon, onSelect) {
+    const grid = document.getElementById(gridId);
+    grid.innerHTML = ICONS.map(ic =>
+      '<button class="icon-opt' + (ic === currentIcon ? ' active' : '') + '" type="button" data-icon="' + ic + '">' + ic + '</button>'
+    ).join('');
+    grid.querySelectorAll('.icon-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        onSelect(btn.dataset.icon);
+        grid.querySelectorAll('.icon-opt').forEach(b => b.classList.toggle('active', b.dataset.icon === btn.dataset.icon));
+      });
+    });
+  }
+  function buildResourceList(listId, resources, addBtnId) {
+    const list = document.getElementById(listId);
+    list.innerHTML = resources.map((r, i) =>
+      '<div class="resource-row" data-idx="' + i + '">' +
+        '<input type="text" placeholder="e.g. CS50P (Harvard)" value="' + S.esc(r) + '" maxlength="60">' +
+        '<button class="resource-del" type="button" data-idx="' + i + '">×</button>' +
+      '</div>'
+    ).join('');
+    list.querySelectorAll('.resource-del').forEach(btn => {
+      btn.addEventListener('click', () => { resources.splice(parseInt(btn.dataset.idx), 1); buildResourceList(listId, resources, addBtnId); });
+    });
+    list.querySelectorAll('input').forEach((inp, i) => {
+      inp.addEventListener('input', () => { resources[i] = inp.value; });
+    });
+    document.getElementById(addBtnId).onclick = () => {
+      resources.push('');
+      buildResourceList(listId, resources, addBtnId);
+      const inputs = document.getElementById(listId).querySelectorAll('input');
+      if (inputs.length) inputs[inputs.length-1].focus();
+    };
+  }
+  function openAddSubject() {
+    selectedIcon = ICONS[0];
+    addResources = [''];
+    document.getElementById('subjName').value = '';
+    buildIconGrid('iconGrid', selectedIcon, ic => { selectedIcon = ic; });
+    buildResourceList('resourceList', addResources, 'resourceAddBtn');
+    document.getElementById('addSubjectBg').classList.add('show');
+    setTimeout(() => document.getElementById('subjName').focus(), 80);
+  }
+  function closeAddSubject() { document.getElementById('addSubjectBg').classList.remove('show'); }
+  document.getElementById('subjCancel').addEventListener('click', closeAddSubject);
+  document.getElementById('addSubjectBg').addEventListener('click', e => { if (e.target === document.getElementById('addSubjectBg')) closeAddSubject(); });
+  document.getElementById('subjSave').addEventListener('click', () => {
+    const name = document.getElementById('subjName').value.trim();
+    if (!name) { document.getElementById('subjName').focus(); return; }
+    const resources = addResources.filter(r => r.trim());
+    const subjs = loadSubjects();
+    const newSubj = { id: uid(), name, icon: selectedIcon, resources };
+    subjs.push(newSubj);
+    saveSubjects(subjs);
+    activeId = newSubj.id;
+    closeAddSubject();
+    renderAll();
+  });
+
+  // ---- Edit Subject Modal ----
+  let editId = null;
+  let editIcon = ICONS[0];
+  let editResources = [];
+  function openEditSubject(id) {
+    const subj = loadSubjects().find(s => s.id === id);
+    if (!subj) return;
+    editId = id;
+    editIcon = subj.icon;
+    editResources = [...(subj.resources || [])];
+    document.getElementById('editSubjName').value = subj.name;
+    buildIconGrid('editIconGrid', editIcon, ic => { editIcon = ic; });
+    buildResourceList('editResourceList', editResources, 'editResourceAddBtn');
+    document.getElementById('editSubjectBg').classList.add('show');
+  }
+  function closeEditSubject() { document.getElementById('editSubjectBg').classList.remove('show'); editId = null; }
+  document.getElementById('editSubjCancel').addEventListener('click', closeEditSubject);
+  document.getElementById('editSubjectBg').addEventListener('click', e => { if (e.target === document.getElementById('editSubjectBg')) closeEditSubject(); });
+  document.getElementById('editSubjSave').addEventListener('click', () => {
+    const name = document.getElementById('editSubjName').value.trim();
+    if (!name || !editId) return;
+    const resources = editResources.filter(r => r.trim());
+    saveSubjects(loadSubjects().map(s => s.id === editId ? { ...s, name, icon: editIcon, resources } : s));
+    closeEditSubject();
+    renderAll();
+  });
+  document.getElementById('editSubjDelete').addEventListener('click', () => {
+    if (!editId) return;
+    if (!confirm('Delete this subject and all its sessions?')) return;
+    saveSubjects(loadSubjects().filter(s => s.id !== editId));
+    saveSessions(loadSessions().filter(s => s.subjectId !== editId));
+    activeId = null;
+    closeEditSubject();
+    renderAll();
+  });
+
+  function init() { S = window.Sunpath; renderAll(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
+  window._mindLnRenderAll = () => { if (S) renderAll(); };
+})();
+</script>
+
+<script>
+(function () {
+  'use strict';
+  let S;
+  const BOOK_KEY = 'library_books';
+  const NOTE_KEY = 'library_notes';
+  const STATUS = { reading: 'Reading', finished: 'Finished', toread: 'To Read' };
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let activeBookId = null;
+  let filter = 'all';
+  let editingId = null;
+  let draftCover = '';
+  let draftRating = 0;
+
+  function loadBooks() { return S.readJSON(BOOK_KEY, []); }
+  function saveBooks(a) { localStorage.setItem(BOOK_KEY, JSON.stringify(a)); }
+  function loadNotes() { return S.readJSON(NOTE_KEY, []); }
+  function saveNotes(a) { localStorage.setItem(NOTE_KEY, JSON.stringify(a)); }
+
+  function uid() { return 'b' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+  function fmtDate(ts) { const d = new Date(ts); return d.getDate() + ' ' + MONS[d.getMonth()] + ' ' + d.getFullYear(); }
+
+  function mdInline(s) {
+    return s
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      .replace(/~~([^~\n]+)~~/g, '<del>$1</del>')
+      .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+  }
+  function renderMd(text) { return mdInline(S.esc(text)); }
+
+  function surround(ta, pre, post) {
+    const s = ta.selectionStart, e = ta.selectionEnd, val = ta.value;
+    const sel = val.slice(s, e);
+    ta.value = val.slice(0, s) + pre + sel + post + val.slice(e);
+    ta.focus();
+    if (sel) { ta.selectionStart = s + pre.length; ta.selectionEnd = e + pre.length; }
+    else { ta.selectionStart = ta.selectionEnd = s + pre.length; }
+    ta.dispatchEvent(new Event('input'));
+  }
+  function linePrefix(ta, prefix) {
+    const s = ta.selectionStart, e = ta.selectionEnd, val = ta.value;
+    const ls = val.lastIndexOf('\n', s - 1) + 1;
+    const block = val.slice(ls, e);
+    const newBlock = block ? block.split('\n').map(l => (l ? prefix + l : l)).join('\n') : prefix;
+    ta.value = val.slice(0, ls) + newBlock + val.slice(e);
+    ta.focus();
+    ta.selectionStart = ls; ta.selectionEnd = ls + newBlock.length;
+    ta.dispatchEvent(new Event('input'));
+  }
+  function applyFmt(ta, fmt) {
+    if (fmt === 'bold') surround(ta, '**', '**');
+    else if (fmt === 'italic') surround(ta, '*', '*');
+    else if (fmt === 'code') surround(ta, '`', '`');
+    else if (fmt === 'bullet') linePrefix(ta, '- ');
+  }
+  function bindFmtKeys(ta, onSubmit) {
+    ta.addEventListener('keydown', e => {
+      if (e.metaKey || e.ctrlKey) {
+        const k = e.key.toLowerCase();
+        if (k === 'b') { e.preventDefault(); applyFmt(ta, 'bold'); }
+        else if (k === 'i') { e.preventDefault(); applyFmt(ta, 'italic'); }
+        else if (k === 'enter' && onSubmit) { e.preventDefault(); onSubmit(); }
+      }
+    });
+  }
+
+  function pct(book) {
+    if (book.status === 'finished') return 100;
+    const t = parseInt(book.totalPages) || 0, c = parseInt(book.currentPage) || 0;
+    if (t > 0) return Math.max(0, Math.min(100, Math.round(c / t * 100)));
+    return null;
+  }
+  function showProgress(book) { return book.status !== 'toread' && pct(book) !== null; }
+
+  function processCover(file, cb) {
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 380;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  }
+
+  function render() {
+    if (activeBookId && loadBooks().some(b => b.id === activeBookId)) renderDetail();
+    else { activeBookId = null; renderList(); }
+    if (typeof window._mindHeaderRender === 'function') window._mindHeaderRender();
+  }
+
+  function renderList() {
+    document.getElementById('lbListView').style.display = '';
+    document.getElementById('lbDetailView').style.display = 'none';
+
+    const books = loadBooks();
+    const counts = { all: books.length, reading: 0, finished: 0, toread: 0 };
+    books.forEach(b => { counts[b.status] = (counts[b.status]||0) + 1; });
+    const filters = [['all','All'],['reading','Reading'],['finished','Finished'],['toread','To Read']];
+    document.getElementById('lbFilterRow').innerHTML = filters.map(([k,label]) =>
+      '<button class="lb-filter-chip' + (filter===k?' active':'') + '" type="button" data-f="' + k + '">' + label + ' ' + (counts[k]||0) + '</button>'
+    ).join('');
+    document.querySelectorAll('.lb-filter-chip').forEach(c =>
+      c.addEventListener('click', () => { filter = c.dataset.f; renderList(); })
+    );
+
+    const shown = filter === 'all' ? books : books.filter(b => b.status === filter);
+    const listEl = document.getElementById('lbBookList');
+    const emptyEl = document.getElementById('lbEmptyState');
+    if (!books.length) { emptyEl.style.display = ''; listEl.innerHTML = ''; return; }
+    emptyEl.style.display = 'none';
+    if (!shown.length) { listEl.innerHTML = '<div class="lb-note-empty">No books in this shelf.</div>'; return; }
+
+    const notesAll = loadNotes();
+    listEl.innerHTML = shown.map(b => {
+      const cover = b.cover
+        ? '<img class="lb-book-cover" src="' + b.cover + '" alt="cover">'
+        : '<div class="lb-book-cover-ph">📖</div>';
+      let prog = '';
+      if (showProgress(b)) {
+        const p = pct(b);
+        prog = '<div class="lb-progress-row"><span class="lb-progress-pct">' + p + '%</span>' +
+               '<div class="lb-progress-track"><div class="lb-progress-fill" style="width:' + p + '%"></div></div></div>';
+      }
+      const noteN = notesAll.filter(n => n.bookId === b.id).length;
+      const noteLine = noteN ? '<div class="lb-note-count">📝 ' + noteN + (noteN===1?' note':' notes') + '</div>' : '';
+      return '<div class="lb-book-card" data-id="' + b.id + '">' +
+        '<div class="lb-book-cover-wrap">' + cover + '</div>' +
+        '<div class="lb-book-body">' +
+          '<div class="lb-book-title">' + S.esc(b.title) + '</div>' +
+          (b.author ? '<div class="lb-book-author">' + S.esc(b.author) + '</div>' : '') +
+          '<div><span class="lb-status-pill ' + b.status + '"><span class="dot"></span>' + STATUS[b.status] + '</span></div>' +
+          prog + noteLine +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    listEl.querySelectorAll('.lb-book-card').forEach(card =>
+      card.addEventListener('click', () => { activeBookId = card.dataset.id; render(); })
+    );
+  }
+
+  function renderDetail() {
+    document.getElementById('lbListView').style.display = 'none';
+    const view = document.getElementById('lbDetailView');
+    view.style.display = '';
+    const book = loadBooks().find(b => b.id === activeBookId);
+    if (!book) { activeBookId = null; renderList(); return; }
+    const notes = loadNotes().filter(n => n.bookId === book.id).sort((a,b) => b.ts - a.ts);
+
+    const cover = book.cover
+      ? '<img class="lb-detail-cover" src="' + book.cover + '" alt="cover">'
+      : '<div class="lb-detail-cover-ph">📖</div>';
+    const stars = [1,2,3,4,5].map(i =>
+      '<span class="lb-detail-star ' + (i <= (book.rating||0) ? 'on' : '') + '" data-r="' + i + '">★</span>'
+    ).join('');
+
+    let progBlock = '';
+    if (book.status !== 'toread') {
+      const p = pct(book);
+      const bar = (p !== null)
+        ? '<div class="lb-progress-row"><span class="lb-progress-pct">' + p + '%</span>' +
+          '<div class="lb-progress-track"><div class="lb-progress-fill" style="width:' + p + '%"></div></div></div>' : '';
+      const total = parseInt(book.totalPages) || 0;
+      const pageEditor = total > 0
+        ? '<div class="lb-page-update">Page <input type="number" id="curPageInput" value="' + (parseInt(book.currentPage)||0) + '" min="0" max="' + total + '" inputmode="numeric"> of ' + total + '</div>'
+        : '';
+      progBlock = '<div class="lb-detail-progress">' + bar + pageEditor + '</div>';
+    }
+
+    const noteCompose =
+      '<div class="lb-note-compose">' +
+        '<div class="lb-note-fmt-bar">' +
+          '<button class="lb-fmt-btn b" type="button" data-fmt="bold" title="Bold (⌘/Ctrl+B)">B</button>' +
+          '<button class="lb-fmt-btn i" type="button" data-fmt="italic" title="Italic (⌘/Ctrl+I)">I</button>' +
+          '<button class="lb-fmt-btn c" type="button" data-fmt="code" title="Code">&lt;/&gt;</button>' +
+          '<button class="lb-fmt-btn" type="button" data-fmt="bullet" title="Bullet">•</button>' +
+        '</div>' +
+        '<textarea id="noteText" placeholder="Add a note…  **bold**  *italic*  `code`"></textarea>' +
+        '<div class="lb-note-compose-footer">' +
+          '<input class="lb-note-page-input" id="notePage" type="number" placeholder="p. (opt)" min="0" inputmode="numeric">' +
+          '<button class="lb-note-add-btn" id="noteAdd" type="button" disabled>+ Note</button>' +
+        '</div>' +
+      '</div>';
+
+    const noteList = notes.length
+      ? notes.map(n =>
+          '<div class="lb-note-item" data-id="' + n.id + '">' +
+            '<div class="lb-note-item-meta">' +
+              '<span class="lb-note-item-page">' + (n.page ? 'p. ' + S.esc(n.page) : 'NOTE') + '</span>' +
+              '<span style="display:flex;align-items:center;gap:8px">' +
+                '<span class="lb-note-item-date">' + fmtDate(n.ts) + '</span>' +
+                '<span class="lb-note-item-actions">' +
+                  '<button class="lb-note-edit" type="button" data-id="' + n.id + '">edit</button>' +
+                  '<button class="lb-note-del" type="button" data-id="' + n.id + '">del</button>' +
+                '</span>' +
+              '</span>' +
+            '</div>' +
+            '<div class="lb-note-item-text">' + renderMd(n.text) + '</div>' +
+          '</div>'
+        ).join('')
+      : '<div class="lb-note-empty">No notes yet — add your first above.</div>';
+
+    view.innerHTML =
+      '<button class="lb-detail-back" id="lbDetailBack" type="button">← Library</button>' +
+      '<div class="lb-detail-top">' +
+        cover +
+        '<div class="lb-detail-info">' +
+          '<div class="lb-detail-title">' + S.esc(book.title) + '</div>' +
+          (book.author ? '<div class="lb-detail-author">' + S.esc(book.author) + '</div>' : '') +
+          '<div><span class="lb-status-pill ' + book.status + '" style="margin-top:10px"><span class="dot"></span>' + STATUS[book.status] + '</span></div>' +
+          '<div class="lb-detail-stars" id="lbDetailStars">' + stars + '</div>' +
+          '<button class="lb-detail-edit" id="lbDetailEdit" type="button">⚙ Edit book</button>' +
+        '</div>' +
+      '</div>' +
+      progBlock +
+      '<div class="lb-notes-head">// Notes</div>' +
+      noteCompose +
+      '<div class="lb-note-list">' + noteList + '</div>';
+
+    view.querySelector('#lbDetailBack').addEventListener('click', () => { activeBookId = null; render(); });
+    view.querySelector('#lbDetailEdit').addEventListener('click', () => openEditBook(book));
+
+    view.querySelectorAll('#lbDetailStars .lb-detail-star').forEach(st =>
+      st.addEventListener('click', () => {
+        let r = parseInt(st.dataset.r);
+        if (r === book.rating) r = 0;
+        saveBooks(loadBooks().map(b => b.id === book.id ? { ...b, rating: r } : b));
+        renderDetail();
+      })
+    );
+
+    const curInput = view.querySelector('#curPageInput');
+    if (curInput) {
+      curInput.addEventListener('change', () => {
+        let v = parseInt(curInput.value) || 0;
+        const total = parseInt(book.totalPages) || 0;
+        v = Math.max(0, Math.min(total, v));
+        saveBooks(loadBooks().map(b => b.id === book.id ? { ...b, currentPage: v } : b));
+        renderDetail();
+      });
+    }
+
+    const noteText = view.querySelector('#noteText');
+    const noteAdd = view.querySelector('#noteAdd');
+    const notePage = view.querySelector('#notePage');
+    noteText.addEventListener('input', () => { noteAdd.disabled = !noteText.value.trim(); });
+    view.querySelectorAll('.lb-note-fmt-bar .lb-fmt-btn').forEach(btn =>
+      btn.addEventListener('click', () => applyFmt(noteText, btn.dataset.fmt)));
+    function addNote() {
+      const text = noteText.value.trim();
+      if (!text) return;
+      const all = loadNotes();
+      const page = notePage.value.trim() ? (parseInt(notePage.value) || null) : null;
+      all.unshift({ id: uid(), bookId: book.id, text, page, ts: Date.now() });
+      saveNotes(all);
+      renderDetail();
+    }
+    noteAdd.addEventListener('click', addNote);
+    bindFmtKeys(noteText, addNote);
+
+    view.querySelectorAll('.lb-note-del').forEach(btn =>
+      btn.addEventListener('click', () => {
+        saveNotes(loadNotes().filter(n => n.id !== btn.dataset.id));
+        renderDetail();
+      })
+    );
+    view.querySelectorAll('.lb-note-edit').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const item = view.querySelector('.lb-note-item[data-id="' + btn.dataset.id + '"]');
+        const textEl = item.querySelector('.lb-note-item-text');
+        const current = loadNotes().find(n => n.id === btn.dataset.id);
+        if (!current) return;
+        const ta = document.createElement('textarea');
+        ta.value = current.text;
+        ta.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);border-radius:8px;color:var(--ink);font-family:var(--display);font-size:13.5px;line-height:1.55;padding:8px 10px;outline:none;min-height:56px';
+        textEl.replaceWith(ta);
+        ta.focus();
+        const save = () => {
+          const v = ta.value.trim();
+          saveNotes(loadNotes().map(n => n.id === btn.dataset.id ? { ...n, text: v || n.text } : n));
+          renderDetail();
+        };
+        ta.addEventListener('blur', save, { once: true });
+        bindFmtKeys(ta, () => ta.blur());
+      })
+    );
+  }
+
+  // ---- Book modal ----
+  function renderModalStars() {
+    document.getElementById('modalStars').innerHTML = [1,2,3,4,5].map(i =>
+      '<span class="lb-modal-star ' + (i <= draftRating ? 'on' : '') + '" data-r="' + i + '">★</span>'
+    ).join('');
+    document.querySelectorAll('#modalStars .lb-modal-star').forEach(st =>
+      st.addEventListener('click', () => {
+        const r = parseInt(st.dataset.r);
+        draftRating = (r === draftRating) ? 0 : r;
+        renderModalStars();
+      })
+    );
+  }
+  function setCoverPreview() {
+    const pick = document.getElementById('coverPick');
+    const clear = document.getElementById('coverClear');
+    if (draftCover) {
+      pick.innerHTML = '<img src="' + draftCover + '" alt="cover preview">';
+      clear.style.display = '';
+    } else {
+      pick.innerHTML = '<span id="coverPickLabel">📷 Tap to add cover</span>';
+      clear.style.display = 'none';
+    }
+  }
+  function openAddBook() {
+    editingId = null; draftCover = ''; draftRating = 0;
+    document.getElementById('bookModalTitle').textContent = '// New Book';
+    document.getElementById('bookTitle').value = '';
+    document.getElementById('bookAuthor').value = '';
+    document.getElementById('bookStatus').value = 'reading';
+    document.getElementById('bookCurrent').value = '';
+    document.getElementById('bookTotal').value = '';
+    document.getElementById('bookTags').value = '';
+    document.getElementById('bookDelete').style.display = 'none';
+    setCoverPreview(); renderModalStars();
+    openModal();
+    setTimeout(() => document.getElementById('bookTitle').focus(), 80);
+  }
+  function openEditBook(book) {
+    editingId = book.id; draftCover = book.cover || ''; draftRating = book.rating || 0;
+    document.getElementById('bookModalTitle').textContent = '// Edit Book';
+    document.getElementById('bookTitle').value = book.title || '';
+    document.getElementById('bookAuthor').value = book.author || '';
+    document.getElementById('bookStatus').value = book.status || 'reading';
+    document.getElementById('bookCurrent').value = book.currentPage || '';
+    document.getElementById('bookTotal').value = book.totalPages || '';
+    document.getElementById('bookTags').value = (book.tags || []).join(', ');
+    document.getElementById('bookDelete').style.display = '';
+    setCoverPreview(); renderModalStars();
+    openModal();
+  }
+  function openModal() { document.getElementById('bookModalBg').classList.add('show'); }
+  function closeModal() { document.getElementById('bookModalBg').classList.remove('show'); }
+
+  document.getElementById('lbAddBookBtn').addEventListener('click', openAddBook);
+  document.getElementById('bookCancel').addEventListener('click', closeModal);
+  document.getElementById('bookModalBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('bookModalBg')) closeModal();
+  });
+  document.getElementById('coverPick').addEventListener('click', () => document.getElementById('coverFile').click());
+  document.getElementById('coverFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) processCover(f, dataUrl => { draftCover = dataUrl; setCoverPreview(); });
+    e.target.value = '';
+  });
+  document.getElementById('coverClear').addEventListener('click', () => { draftCover = ''; setCoverPreview(); });
+
+  document.getElementById('bookSave').addEventListener('click', () => {
+    const title = document.getElementById('bookTitle').value.trim();
+    if (!title) { document.getElementById('bookTitle').focus(); return; }
+    const tags = document.getElementById('bookTags').value.split(',').map(t => t.trim()).filter(Boolean);
+    const data = {
+      title,
+      author: document.getElementById('bookAuthor').value.trim(),
+      status: document.getElementById('bookStatus').value,
+      currentPage: parseInt(document.getElementById('bookCurrent').value) || 0,
+      totalPages: parseInt(document.getElementById('bookTotal').value) || 0,
+      tags, rating: draftRating, cover: draftCover
+    };
+    const books = loadBooks();
+    if (editingId) {
+      const i = books.findIndex(b => b.id === editingId);
+      if (i >= 0) books[i] = { ...books[i], ...data };
+    } else {
+      books.unshift({ id: uid(), ...data, ts: Date.now() });
+    }
+    saveBooks(books);
+    closeModal();
+    render();
+  });
+  document.getElementById('bookDelete').addEventListener('click', () => {
+    if (!editingId) return;
+    if (!confirm('Delete this book and all its notes?')) return;
+    saveBooks(loadBooks().filter(b => b.id !== editingId));
+    saveNotes(loadNotes().filter(n => n.bookId !== editingId));
+    if (activeBookId === editingId) activeBookId = null;
+    closeModal();
+    render();
+  });
+
+  function init() { S = window.Sunpath; render(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
+  window._mindLbRenderAll = () => { if (S) render(); };
+})();
+</script>
+
+<script>
+(function () {
+  'use strict';
+  let S;
+  const NOTE_KEY = 'gratitude_notes';
+
+  function loadNotes() { return S.readJSON(NOTE_KEY, []); }
+  function saveNotes(a) { localStorage.setItem(NOTE_KEY, JSON.stringify(a)); }
+  function uid() { return 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+  function render() {
+    const notes = loadNotes();
+    document.getElementById('grLbl').textContent = notes.length ? notes.length + (notes.length === 1 ? ' entry' : ' entries') : '';
+
+    const last = notes[0];
+    let html = '';
+    if (last) {
+      const t = String(last.text || '');
+      html += '<div class="quote-q">“' + S.esc(t.length > 140 ? t.slice(0, 140) + '…' : t) + '”</div>';
+    }
+    html += '<div class="rows" style="margin-top:' + (last ? '8px' : '0') + '">' +
+      '<div class="rowi"><span class="ic">🙏</span>' +
+      '<span class="tx"><span class="t1" style="color:var(--muted);font-weight:400">What are you grateful for today?</span></span>' +
+      '<span class="end act" id="grWriteBtn">WRITE</span></div></div>';
+
+    const rest = notes.slice(1, 5);
+    if (rest.length) {
+      html += '<div class="gr-list">' + rest.map(n =>
+        '<div class="gr-entry" data-id="' + n.id + '">' +
+          '<div class="gr-entry-body">' +
+            '<span class="gr-entry-text">' + S.esc(String(n.text || '').slice(0, 80)) + '</span>' +
+            '<span class="gr-entry-date">' + S.fmtShort(n.ts) + '</span>' +
+          '</div>' +
+          '<button class="gr-entry-del" type="button" data-id="' + n.id + '">×</button>' +
+        '</div>'
+      ).join('') + '</div>';
+    }
+
+    const card = document.getElementById('grCard');
+    card.innerHTML = html;
+    document.getElementById('grWriteBtn').addEventListener('click', openGrModal);
+    card.querySelectorAll('.gr-entry-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        saveNotes(loadNotes().filter(n => n.id !== btn.dataset.id));
+        render();
+      });
+    });
+  }
+
+  function openGrModal() {
+    document.getElementById('grText').value = '';
+    document.getElementById('grModalBg').classList.add('show');
+    setTimeout(() => document.getElementById('grText').focus(), 80);
+  }
+  function closeGrModal() { document.getElementById('grModalBg').classList.remove('show'); }
+  document.getElementById('grCancel').addEventListener('click', closeGrModal);
+  document.getElementById('grModalBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('grModalBg')) closeGrModal();
+  });
+  document.getElementById('grSave').addEventListener('click', () => {
+    const text = document.getElementById('grText').value.trim();
+    if (!text) return;
+    const notes = loadNotes();
+    notes.unshift({ id: uid(), text, ts: Date.now() });
+    saveNotes(notes);
+    closeGrModal();
+    render();
+  });
+
+  function init() { S = window.Sunpath; render(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else { init(); }
+  window._mindGrRenderAll = () => { if (S) render(); };
+})();
+</script>
 
 <script>
 (function () {
@@ -64,7 +1167,6 @@
       const Gr = S.growth();
       const tk = S.todayKey();
 
-      // headline
       const todayH = L.sessions.filter(s => s && s.date === tk)
         .reduce((t, s) => t + (parseFloat(s.hours) || 0), 0);
       const wk = weekHours(L);
@@ -75,48 +1177,12 @@
         (wk > 0 ? '<b>' + (wk % 1 === 0 ? wk : wk.toFixed(1)) + 'h</b> this week' : 'nothing this week yet') +
         (Lib.books.some(b => b && b.status === 'reading') ? ' · a book is waiting.' : '.');
 
-      // learning card
-      const active = L.subjects[0];
-      document.getElementById('spLearnLbl').textContent = active ? active.icon + ' ' + active.name.toUpperCase() : '';
-      const recent = L.sessions.slice(0, 2).map(s =>
-        '<div class="rowi"><span class="ic">' + (S.subjectName(L, s.subjectId) ? 'λ' : 'λ') + '</span>' +
-        '<span class="tx"><span class="t1">' + S.esc((s.topic || 'Session').slice(0, 34)) + '</span>' +
-        '<span class="t2">' + [s.hours ? s.hours + 'h' : '', s.resource || ''].filter(Boolean).map(S.esc).join(' · ') + '</span></span>' +
-        '<span class="end num">' + (s.date === tk ? 'TODAY' : S.fmtDateStr(s.date)) + '</span></div>'
-      ).join('');
-      document.getElementById('spLearn').innerHTML =
-        '<div class="bigv num">' + (L.hours % 1 === 0 ? L.hours : L.hours.toFixed(1)) + ' <small>hours total</small></div>' +
-        (todayH > 0 ? '<div class="trend"><b>+' + todayH + 'h</b> today</div>' : '') +
-        (recent ? '<div class="rows" style="margin-top:10px">' + recent + '</div>'
-                : '<div class="trend">no sessions yet — log your first.</div>');
+      document.getElementById('spLearnLbl').textContent =
+        (L.hours % 1 === 0 ? L.hours : L.hours.toFixed(1)) + 'H LOGGED';
 
-      // library card
-      const reading = Lib.books.filter(b => b && b.status === 'reading').slice(0, 2);
-      document.getElementById('spLibLbl').textContent = reading.length + ' OPEN';
-      let lib = '';
-      if (reading.length) {
-        lib += '<div class="books">' + reading.map(b => {
-          const pct = S.bookPct(b);
-          const coverInner = b.cover
-            ? '<img src="' + b.cover + '" alt="">'
-            : S.esc(String(b.title).slice(0, 40));
-          return '<div class="book"><div class="cover">' + coverInner + '</div>' +
-            (pct != null
-              ? '<div class="bmeta"><span class="bbar"><i style="width:' + pct + '%"></i></span><span class="bpct num">' + pct + '%</span></div>'
-              : '<div class="bmeta"><span class="bpct">' + S.esc(String(b.title).slice(0, 18)) + '</span></div>') +
-            '</div>';
-        }).join('') + '</div>';
-      } else {
-        lib += '<div class="trend" style="margin-top:0">no open books — add one to the shelf.</div>';
-      }
-      const lastBookNote = Lib.notes.slice().sort((a, b) => b.ts - a.ts)[0];
-      if (lastBookNote) {
-        const t = String(lastBookNote.text || '').replace(/[*_`~#>-]/g, '');
-        lib += '<div class="trend" style="margin-top:12px">last note · ' +
-          (lastBookNote.page ? '<b class="warm">p.' + lastBookNote.page + '</b> — ' : '') +
-          '"' + S.esc(t.length > 60 ? t.slice(0, 60) + '…' : t) + '"</div>';
-      }
-      document.getElementById('spLib').innerHTML = lib;
+      const reading = Lib.books.filter(b => b && b.status === 'reading').length;
+      document.getElementById('spLibLbl').textContent =
+        Lib.books.length + ' BOOK' + (Lib.books.length === 1 ? '' : 'S') + (reading ? ' · ' + reading + ' OPEN' : '');
 
       // growth card
       const last = Gr.notes[0];
@@ -136,15 +1202,40 @@
         '<span class="end act">WRITE</span></div></div>';
       document.getElementById('spGrow').innerHTML = g;
     }
+    window._mindHeaderRender = render;
 
     S.injectDock('mind');
     render();
     S.pull({
-      'goals':    { keys: ['goal_streak_v1'] },
-      'learning': { keys: ['learning_subjects', 'learning_sessions'] },
-      'library':  { keys: ['library_books', 'library_notes'] },
-      'growth':   { keys: ['growth_notes', 'growth_lock_hash'] }
+      'goals':  { keys: ['goal_streak_v1'] },
+      'growth': { keys: ['growth_notes', 'growth_lock_hash'] }
     }, render);
+
+    if (typeof window.initCloudSync === 'function') {
+      window.initCloudSync({
+        appKey: 'learning',
+        syncedKeys: ['learning_subjects', 'learning_sessions'],
+        onApplied: function () {
+          render();
+          if (typeof window._mindLnRenderAll === 'function') window._mindLnRenderAll();
+        }
+      });
+      window.initCloudSync({
+        appKey: 'library',
+        syncedKeys: ['library_books', 'library_notes'],
+        onApplied: function () {
+          render();
+          if (typeof window._mindLbRenderAll === 'function') window._mindLbRenderAll();
+        }
+      });
+      window.initCloudSync({
+        appKey: 'gratitude',
+        syncedKeys: ['gratitude_notes'],
+        onApplied: function () {
+          if (typeof window._mindGrRenderAll === 'function') window._mindGrRenderAll();
+        }
+      });
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
