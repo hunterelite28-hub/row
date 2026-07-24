@@ -50,10 +50,10 @@ window.Sunpath = (function () {
   }
 
   // ---------- chrome ----------
-  function fillDaterow(label) {
+  function fillDaterow(label, date) {
     const el = document.getElementById('spDaterow');
     if (!el) return;
-    const d = new Date();
+    const d = date || new Date();
     const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
     const MONS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
     el.innerHTML =
@@ -133,10 +133,11 @@ window.Sunpath = (function () {
   }
 
   // ---------- domain helpers ----------
-  function waterProgress() {
+  function waterProgress(dateKey) {
     const state = readJSON('po_water_v1', null);
     if (!state) return { done: 0, total: 0 };
-    const done = (state.logs || {})[todayKey()] || 0;
+    const dk = dateKey || todayKey();
+    const done = (state.logs || {})[dk] || 0;
     const p = state.profile || { weightKg: 75 };
     const wKg = state.weightUnit === 'lb' ? (p.weightKg || 0) / 2.20462 : (p.weightKg || 0);
     const base = wKg * 35;
@@ -158,9 +159,10 @@ window.Sunpath = (function () {
     return { done, total: Math.max(1, Math.ceil(totalMl / unitVol)) };
   }
 
-  function stackToday() {
+  function stackToday(dateKey) {
     const items = readJSON('stack:items', []);
-    const taken = readJSON('stack:taken:' + activeDateKey(), {});
+    const dk = dateKey || activeDateKey();
+    const taken = readJSON('stack:taken:' + dk, {});
     const times = Object.keys(taken).map(k => taken[k]).filter(t => typeof t === 'number');
     return {
       total: Array.isArray(items) ? items.length : 0,
@@ -169,8 +171,9 @@ window.Sunpath = (function () {
     };
   }
 
-  function goalsToday() {
-    const list = readJSON('goals:' + activeDateKey(), []);
+  function goalsToday(dateKey) {
+    const dk = dateKey || activeDateKey();
+    const list = readJSON('goals:' + dk, []);
     const arr = Array.isArray(list) ? list : [];
     return {
       total: arr.length,
@@ -199,7 +202,7 @@ window.Sunpath = (function () {
     return m ? parseInt(m[1], 10) : null;
   }
 
-  function splitToday() {
+  function splitToday(dateKey) {
     const state = readJSON('po_coach_v1', null);
     let rotation = ['push', 'pull', 'legs', 'rest'];
     let anchorDate = '2026-05-12', anchorIndex = rotation.indexOf('rest');
@@ -211,7 +214,8 @@ window.Sunpath = (function () {
       }
     }
     const a = new Date(anchorDate + 'T00:00:00');
-    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const t = dateKey ? new Date(dateKey + 'T00:00:00') : new Date();
+    t.setHours(0, 0, 0, 0);
     const diff = Math.round((t - a) / 864e5);
     const idx = ((anchorIndex + diff) % rotation.length + rotation.length) % rotation.length;
     return String(rotation[idx] || '');
