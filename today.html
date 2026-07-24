@@ -363,47 +363,47 @@
       const dayReflection = Gr.notes.find(n => n && n.ts && S.calKey(new Date(n.ts)) === vk);
 
       let g = '';
-      g += '<a class=”mod glassy” href=”goals.html”><span class=”k”>' + (isToday ? 'Today' : 'Goals') + ' — Goals</span>' +
-        '<span class=”v num”>' + (G.total ? G.done + '/' + G.total : '—') + ' <small>done</small></span>' +
-        '<span class=”d”>' + (isToday
+      g += '<a class="mod glassy" href="goals.html"><span class="k">' + (isToday ? 'Today' : 'Goals') + ' — Goals</span>' +
+        '<span class="v num">' + (G.total ? G.done + '/' + G.total : '—') + ' <small>done</small></span>' +
+        '<span class="d">' + (isToday
           ? (streak > 0 ? '<b>🔥 ' + streak + '</b> day streak' : 'start a streak today')
           : (G.total ? 'goals for that day' : 'no goals set that day')) + '</span></a>';
-      g += '<a class=”mod glassy” href=”habits.html”><span class=”k”>' + (isToday ? 'Today' : 'Habits') + ' — Habits</span>' +
-        '<span class=”v num”>' + H.bestStreak + ' <small>day streak</small></span>' +
+      g += '<a class="mod glassy" href="habits.html"><span class="k">' + (isToday ? 'Today' : 'Habits') + ' — Habits</span>' +
+        '<span class="v num">' + H.bestStreak + ' <small>day streak</small></span>' +
         (H.list.length
-          ? '<span class=”dots”>' + H.list.slice(0, 7).map(h =>
-              '<i class=”' + ((H.log[vk] || []).indexOf(h.id) !== -1 ? 'on' : '') + '”></i>').join('') + '</span>'
-          : '<span class=”d”>no habits yet</span>') + '</a>';
-      g += '<a class=”mod glassy” href=”gym.html”><span class=”k”>Body — Fitness</span>' +
-        '<span class=”v num”>' + (daySessions.length || '—') + ' <small>session' + (daySessions.length === 1 ? '' : 's') + '</small></span>' +
-        '<span class=”d”>' + S.esc(sessDesc) + ' · ' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + 'km all-time</span></a>';
-      g += '<a class=”mod glassy” href=”health.html”><span class=”k”>Body — Health</span>' +
-        '<span class=”v num”>' + (st.total ? st.taken + '/' + st.total : '—') + ' <small>stack</small></span>' +
-        '<span class=”d”>water <b' + (W.done >= W.total ? '' : ' class=”warm”') + '>' + W.done + '/' + W.total + '</b></span></a>';
-      g += '<a class=”mod glassy” href=”learning.html”><span class=”k”>Mind — Learning</span>' +
-        '<span class=”v num”>' + (dayHours % 1 === 0 ? dayHours : dayHours.toFixed(1)) + ' <small>hours</small></span>' +
-        '<span class=”d”>' + learnDesc + '</span></a>';
-      g += '<a class=”mod glassy” href=”library.html”><span class=”k”>Mind — Library</span>' +
-        '<span class=”v num”>' + dayNotes.length + ' <small>note' + (dayNotes.length === 1 ? '' : 's') + '</small></span>' +
-        '<span class=”d”>' + libDesc + '</span></a>';
+          ? '<span class="dots">' + H.list.slice(0, 7).map(h =>
+              '<i class="' + ((H.log[vk] || []).indexOf(h.id) !== -1 ? 'on' : '') + '"></i>').join('') + '</span>'
+          : '<span class="d">no habits yet</span>') + '</a>';
+      g += '<a class="mod glassy" href="gym.html"><span class="k">Body — Fitness</span>' +
+        '<span class="v num">' + (daySessions.length || '—') + ' <small>session' + (daySessions.length === 1 ? '' : 's') + '</small></span>' +
+        '<span class="d">' + S.esc(sessDesc) + ' · ' + (F.km % 1 === 0 ? F.km : F.km.toFixed(1)) + 'km all-time</span></a>';
+      g += '<a class="mod glassy" href="health.html"><span class="k">Body — Health</span>' +
+        '<span class="v num">' + (st.total ? st.taken + '/' + st.total : '—') + ' <small>stack</small></span>' +
+        '<span class="d">water <b' + (W.done >= W.total ? '' : ' class="warm"') + '>' + W.done + '/' + W.total + '</b></span></a>';
+      g += '<a class="mod glassy" href="learning.html"><span class="k">Mind — Learning</span>' +
+        '<span class="v num">' + (dayHours % 1 === 0 ? dayHours : dayHours.toFixed(1)) + ' <small>hours</small></span>' +
+        '<span class="d">' + learnDesc + '</span></a>';
+      g += '<a class="mod glassy" href="library.html"><span class="k">Mind — Library</span>' +
+        '<span class="v num">' + dayNotes.length + ' <small>note' + (dayNotes.length === 1 ? '' : 's') + '</small></span>' +
+        '<span class="d">' + libDesc + '</span></a>';
       const mentorReady = !!(localStorage.getItem('mentor_api_key') || '').trim();
-      g += '<a class=”mod glassy” href=”mentor.html”><span class=”k”>Today — Mentor</span>' +
-        '<span class=”v num”>' + (mentorReady ? 'Nova' : '—') + ' <small>' + (mentorReady ? 'ready' : 'not set up') + '</small></span>' +
-        '<span class=”d”>' + (mentorReady ? 'ask Nova about your day' : 'tap to add your Claude key') + '</span></a>';
+      g += '<a class="mod glassy" href="mentor.html"><span class="k">Today — Mentor</span>' +
+        '<span class="v num">' + (mentorReady ? 'Nova' : '—') + ' <small>' + (mentorReady ? 'ready' : 'not set up') + '</small></span>' +
+        '<span class="d">' + (mentorReady ? 'ask Nova about your day' : 'tap to add your Claude key') + '</span></a>';
       let quote;
       if (Gr.locked) {
         quote = dayReflection
-          ? '<span class=”quote-q”>Locked · written that day — tap to unlock.</span>'
-          : '<span class=”quote-q”>Reflections are locked.</span>';
+          ? '<span class="quote-q">Locked · written that day — tap to unlock.</span>'
+          : '<span class="quote-q">Reflections are locked.</span>';
       } else if (dayReflection) {
         const t = String(dayReflection.text || '');
-        quote = '<span class=”quote-q”>”' + S.esc(t.length > 110 ? t.slice(0, 110) + '…' : t) + '”</span>';
+        quote = '<span class="quote-q">“' + S.esc(t.length > 110 ? t.slice(0, 110) + '…' : t) + '”</span>';
       } else {
-        quote = '<span class=”quote-q”>No reflection this day.</span>';
+        quote = '<span class="quote-q">No reflection this day.</span>';
       }
-      g += '<a class=”glassy card” style=”grid-column:1/-1” href=”growth.html”>' +
-        '<span class=”k”>Growth' + (dayReflection ? ' — that day' : '') + '</span>' +
-        '<div style=”margin-top:8px”>' + quote + '</div></a>';
+      g += '<a class="glassy card" style="grid-column:1/-1" href="growth.html">' +
+        '<span class="k">Growth' + (dayReflection ? ' — that day' : '') + '</span>' +
+        '<div style="margin-top:8px">' + quote + '</div></a>';
 
       document.getElementById('spGrid').innerHTML = g;
     }
