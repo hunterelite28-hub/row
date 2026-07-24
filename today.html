@@ -15,6 +15,27 @@
 <script src="sunpath.js" defer></script>
 <style>
 .mentor-fab { display: none; }
+.day-arrow {
+  appearance: none; border: none; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,0.08); color: var(--ink);
+  font-family: var(--display); font-size: 15px; line-height: 1;
+  transition: background .15s ease, transform .15s ease;
+}
+.day-arrow:hover { background: rgba(244,241,234,0.16); transform: scale(1.08); }
+.day-arrow:active { transform: scale(0.94); }
+.daterow-label {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.day-today-jump {
+  appearance: none; cursor: pointer; flex: 0 0 auto;
+  border: 1px solid rgba(242,166,90,0.4);
+  background: rgba(242,166,90,0.14); color: var(--sun);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+}
+.day-today-jump:hover { background: rgba(242,166,90,0.22); }
 @media (min-width: 1024px) {
   .today-page .shellwrap {
     max-width: 1100px;
@@ -63,7 +84,12 @@
 <body class="today-page">
 <a class="mentor-fab" href="mentor.html" title="Ask Nova" aria-label="Open Nova, your AI mentor">✨</a>
 <div class="shellwrap">
-  <div class="daterow" id="spDaterow"></div>
+  <div class="daterow" id="spDaterowNav">
+    <button class="day-arrow" id="spDayPrev" type="button" aria-label="Previous day">‹</button>
+    <span class="daterow-label" id="spDaterow"></span>
+    <button class="day-arrow" id="spDayNext" type="button" aria-label="Next day">›</button>
+    <button class="day-today-jump num" id="spDayToday" type="button" hidden>Today</button>
+  </div>
 
   <div class="hero">
     <h1 id="spGreeting">Hello,<br>Rame.</h1>
@@ -106,12 +132,17 @@
       return ['#161D36', '#33293E', '#A15A32'];
     }
 
-    function todaysEvents() {
+    const DAYS_TITLE = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONS_TITLE = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    function dayHeading(d) {
+      return DAYS_TITLE[d.getDay()] + ', ' + MONS_TITLE[d.getMonth()] + ' ' + d.getDate();
+    }
+
+    function dayEvents(dk) {
       const ev = [];
-      const tk = S.todayKey();
       const F = S.fitness();
       F.sessions.forEach(s => {
-        if (!s || s.date !== tk) return;
+        if (!s || s.date !== dk) return;
         const ts = S.sessionTime(s);
         if (!ts) return;
         const icon = s.type === 'run' ? '🏃' : s.type === 'gym' ? '🏋️' : '🥊';
@@ -121,29 +152,49 @@
           : (s.split || (s.duration ? s.duration + ' min' : '') || '');
         ev.push({ ts, icon, label, detail });
       });
-      const st = S.stackToday();
+      const st = S.stackToday(dk);
       if (st.lastTs && st.taken > 0) {
         ev.push({ ts: st.lastTs, icon: '💊', label: 'Stack', detail: st.taken + '/' + st.total + ' taken' });
       }
       const L = S.learning();
       L.sessions.forEach(s => {
-        if (!s || s.date !== tk || !s.ts) return;
+        if (!s || s.date !== dk || !s.ts) return;
         ev.push({ ts: s.ts, icon: 'λ', label: S.subjectName(L, s.subjectId) || 'Study', detail: (s.hours ? s.hours + ' h' : (s.topic || '')) });
       });
-      S.goalsToday().doneWithTs.forEach(g => {
+      S.goalsToday(dk).doneWithTs.forEach(g => {
         const t = String(g.text || '');
         ev.push({ ts: g.doneAt, icon: '✓', label: 'Done', detail: t.length > 22 ? t.slice(0, 22) + '…' : t });
       });
       return ev.sort((a, b) => a.ts - b.ts);
     }
 
-    function renderSky() {
-      const now = new Date();
-      const hr = now.getHours() + now.getMinutes() / 60;
-      const night = hr < 5 || hr >= 23;
-      const p = Math.max(0.015, Math.min(0.985, (hr - 5) / 18));
-      const stops = skyStops();
-      const ev = todaysEvents();
+    function renderSky(viewDate, isToday) {
+      const vk = S.calKey(viewDate);
+      const tk = S.todayKey();
+      const isPast = vk < tk;
+      const ev = dayEvents(vk);
+
+      let stops, arcP, showDisc, showEvents, emptyText, hr;
+      if (isToday) {
+        const now = new Date();
+        hr = now.getHours() + now.getMinutes() / 60;
+        const night = hr < 5 || hr >= 23;
+        stops = skyStops();
+        if (night) {
+          arcP = null; showDisc = false; showEvents = false;
+          emptyText = "sun's down — recharge";
+        } else {
+          arcP = Math.max(0.015, Math.min(0.985, (hr - 5) / 18));
+          showDisc = true; showEvents = true; emptyText = null;
+        }
+      } else if (isPast) {
+        stops = ['#1C2C50', '#39456A', '#B57C4A'];
+        arcP = 1; showDisc = false; showEvents = true; emptyText = null;
+      } else {
+        stops = ['#1C2C50', '#39456A', '#B57C4A'];
+        arcP = null; showDisc = false; showEvents = false;
+        emptyText = "this day hasn't happened yet";
+      }
 
       let s = '<svg class="sky" viewBox="0 -30 390 230">';
       s += '<defs><linearGradient id="skyfill" x1="0" y1="0" x2="0" y2="1">' +
@@ -161,36 +212,38 @@
       s += '<path d="M20 182 A175 175 0 0 1 370 182 Z" fill="url(#skyfill)"/>';
       s += '<path d="M20 182 A175 175 0 0 1 370 182" fill="none" stroke="rgba(244,241,234,0.14)" stroke-width="1.6" stroke-dasharray="2 6"/>';
 
-      if (!night) {
-        const sp = pos(p);
+      if (arcP != null) {
+        const sp = pos(arcP);
         s += '<path d="M20 182 A175 175 0 0 1 ' + sp.x.toFixed(1) + ' ' + sp.y.toFixed(1) +
              '" fill="none" stroke="url(#arcdone)" stroke-width="2.6" stroke-linecap="round"/>';
-        // Cluster events that sit close together on the arc so a busy
-        // day renders as a few clean markers instead of a pile-up.
-        const MIN_GAP = 0.05;
-        const clusters = [];
-        ev.forEach(e => {
-          const d = new Date(e.ts);
-          const ehr = d.getHours() + d.getMinutes() / 60;
-          const ep = Math.max(0.02, Math.min(0.98, (ehr - 5) / 18));
-          if (ep > p + 0.01) return;
-          const last = clusters[clusters.length - 1];
-          if (last && ep - last.p < MIN_GAP) { last.count++; return; }
-          clusters.push({ p: ep, icon: e.icon, count: 1 });
-        });
-        clusters.slice(0, 10).forEach(c => {
-          const m = pos(c.p);
-          s += '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="' +
-               (c.count > 1 ? 6 : 4.5) + '" fill="#F2A65A"/>';
-          s += '<text x="' + m.x.toFixed(1) + '" y="' + (m.y - 12).toFixed(1) +
-               '" text-anchor="middle" font-size="11" fill="#F4F1EA"' +
-               (c.count > 1 ? ' font-family="Spline Sans Mono, monospace"' : '') + '>' +
-               (c.count > 1 ? '×' + c.count : c.icon) + '</text>';
-        });
-        s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="26" fill="url(#sunglow)"/>';
-        s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="9" fill="#FFD9A0"/>';
-      } else {
-        s += '<text x="195" y="120" text-anchor="middle" font-size="12" fill="rgba(244,241,234,0.4)" font-family="Spline Sans Mono, monospace">sun\'s down — recharge</text>';
+        if (showEvents) {
+          const MIN_GAP = 0.05;
+          const clusters = [];
+          ev.forEach(e => {
+            const d = new Date(e.ts);
+            const ehr = d.getHours() + d.getMinutes() / 60;
+            const ep = Math.max(0.02, Math.min(0.98, (ehr - 5) / 18));
+            if (ep > arcP + 0.01) return;
+            const last = clusters[clusters.length - 1];
+            if (last && ep - last.p < MIN_GAP) { last.count++; return; }
+            clusters.push({ p: ep, icon: e.icon, count: 1 });
+          });
+          clusters.slice(0, 10).forEach(c => {
+            const m = pos(c.p);
+            s += '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="' +
+                 (c.count > 1 ? 6 : 4.5) + '" fill="#F2A65A"/>';
+            s += '<text x="' + m.x.toFixed(1) + '" y="' + (m.y - 12).toFixed(1) +
+                 '" text-anchor="middle" font-size="11" fill="#F4F1EA"' +
+                 (c.count > 1 ? ' font-family="Spline Sans Mono, monospace"' : '') + '>' +
+                 (c.count > 1 ? '×' + c.count : c.icon) + '</text>';
+          });
+        }
+        if (showDisc) {
+          s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="26" fill="url(#sunglow)"/>';
+          s += '<circle cx="' + sp.x.toFixed(1) + '" cy="' + sp.y.toFixed(1) + '" r="9" fill="#FFD9A0"/>';
+        }
+      } else if (emptyText) {
+        s += '<text x="195" y="120" text-anchor="middle" font-size="12" fill="rgba(244,241,234,0.4)" font-family="Spline Sans Mono, monospace">' + emptyText + '</text>';
       }
       s += '<line x1="0" y1="182" x2="390" y2="182" stroke="rgba(244,241,234,0.14)" stroke-width="1"/>';
       s += '<circle cx="20" cy="182" r="3" fill="rgba(244,241,234,0.35)"/>';
@@ -198,28 +251,42 @@
       s += '</svg>';
       document.getElementById('spSky').innerHTML = s;
 
-      // greeting + sub
-      const h = now.getHours();
-      const name = h < 5 ? 'Rest up,' : h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : h < 23 ? 'Good evening,' : 'Rest up,';
-      document.getElementById('spGreeting').innerHTML = name + '<br>Rame.';
-      const subEl = document.getElementById('spDaySub');
-      if (night) {
-        subEl.innerHTML = 'Your day runs 5:00 — 23:00. See you at sunrise.';
+      if (isToday) {
+        const h = Math.floor(hr);
+        const name = h < 5 ? 'Rest up,' : h < 12 ? 'Good morning,' : h < 17 ? 'Good afternoon,' : h < 23 ? 'Good evening,' : 'Rest up,';
+        document.getElementById('spGreeting').innerHTML = name + '<br>Rame.';
       } else {
-        const minsLeft = Math.max(0, (23 - hr) * 60);
-        const hh = Math.floor(minsLeft / 60), mm = Math.floor(minsLeft % 60);
-        subEl.innerHTML = '<b class="num">' + hh + 'h ' + mm + 'm</b> left in your day — you\'re ' +
-          Math.round(p * 100) + '% through.';
+        document.getElementById('spGreeting').innerHTML = dayHeading(viewDate) + '.';
       }
 
-      // logged chips
+      const subEl = document.getElementById('spDaySub');
+      if (isToday) {
+        if (arcP == null) {
+          subEl.innerHTML = 'Your day runs 5:00 — 23:00. See you at sunrise.';
+        } else {
+          const minsLeft = Math.max(0, (23 - hr) * 60);
+          const hh = Math.floor(minsLeft / 60), mm = Math.floor(minsLeft % 60);
+          subEl.innerHTML = '<b class="num">' + hh + 'h ' + mm + 'm</b> left in your day — you\'re ' +
+            Math.round(arcP * 100) + '% through.';
+        }
+      } else if (isPast) {
+        subEl.innerHTML = ev.length
+          ? '<b class="num">' + ev.length + '</b> thing' + (ev.length === 1 ? '' : 's') + ' logged that day.'
+          : 'Nothing logged that day.';
+      } else {
+        subEl.innerHTML = 'Nothing logged yet.';
+      }
+
       const chips = ev.map(e =>
         '<span class="log-chip glassy"><span class="t num">' + S.fmtClock(e.ts) + '</span><b>' +
         S.esc(e.label) + '</b>' + (e.detail ? ' ' + S.esc(e.detail) : '') + '</span>'
       );
+      const emptyChip = isToday
+        ? 'nothing logged yet — the day is young'
+        : (isPast ? 'nothing was logged this day' : 'nothing logged yet');
       document.getElementById('spLogged').innerHTML = chips.length
         ? chips.join('')
-        : '<span class="log-chip glassy" style="color:var(--faint)">nothing logged yet — the day is young</span>';
+        : '<span class="log-chip glassy" style="color:var(--faint)">' + emptyChip + '</span>';
     }
 
     // ---------- up next ----------
@@ -331,16 +398,36 @@
       document.getElementById('spGrid').innerHTML = g;
     }
 
+    let viewDate = new Date();
+
     function render() {
-      S.fillDaterow('');
-      renderSky();
-      renderFocus();
-      renderGrid();
+      const vk = S.calKey(viewDate);
+      const isToday = vk === S.todayKey();
+      document.getElementById('spDayToday').hidden = isToday;
+      S.fillDaterow('', viewDate);
+      renderSky(viewDate, isToday);
+      renderFocus(vk, isToday);
+      renderGrid(vk, isToday);
     }
+
+    document.getElementById('spDayPrev').addEventListener('click', () => {
+      viewDate.setDate(viewDate.getDate() - 1);
+      render();
+    });
+    document.getElementById('spDayNext').addEventListener('click', () => {
+      viewDate.setDate(viewDate.getDate() + 1);
+      render();
+    });
+    document.getElementById('spDayToday').addEventListener('click', () => {
+      viewDate = new Date();
+      render();
+    });
 
     S.injectDock('today');
     render();
-    setInterval(renderSky, 60 * 1000);
+    setInterval(() => {
+      if (S.calKey(viewDate) === S.todayKey()) renderSky(viewDate, true);
+    }, 60 * 1000);
     S.pull({
       'goals':    { prefixes: ['goals:'], keys: ['goal_streak_v1'] },
       'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
