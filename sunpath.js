@@ -61,6 +61,15 @@ window.Sunpath = (function () {
       '<span>' + DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate() + '</span>';
   }
 
+  function profile() {
+    const p = readJSON('sunpath_profile', null);
+    return {
+      name: (p && p.name) || 'Rame',
+      avatarDataUrl: (p && p.avatarDataUrl) || null,
+      avatarEmoji: (p && p.avatarEmoji) || '🙂'
+    };
+  }
+
   const DOCK = [
     { id: 'today', label: 'Today', href: 'today.html' },
     { id: 'body',  label: 'Body',  href: 'body.html' },
@@ -68,6 +77,7 @@ window.Sunpath = (function () {
     { id: 'money', label: 'Money', href: 'money.html' }
   ];
   function injectDock(activeId) {
+    injectAvatarBubble(activeId);
     if (document.getElementById('spDock')) return;
     const nav = document.createElement('nav');
     nav.className = 'dock glassy';
@@ -95,6 +105,21 @@ window.Sunpath = (function () {
         setTimeout(() => { window.location.href = t.getAttribute('href'); }, 230);
       });
     });
+  }
+  function injectAvatarBubble(activeId) {
+    // Skip on the profile page itself — a "go to profile" button while
+    // already on the profile page would just collide with its own edit button.
+    if (activeId === 'areas' || document.getElementById('spAvatarBubble')) return;
+    const p = profile();
+    const a = document.createElement('a');
+    a.id = 'spAvatarBubble';
+    a.className = 'avatar-bubble glassy';
+    a.href = 'areas.html';
+    a.setAttribute('aria-label', 'Profile & life areas');
+    a.innerHTML = p.avatarDataUrl
+      ? '<img src="' + p.avatarDataUrl + '" alt="">'
+      : '<span class="avatar-bubble-fallback">' + p.avatarEmoji + '</span>';
+    document.body.appendChild(a);
   }
 
   // ---------- read-only sync ----------
@@ -330,7 +355,7 @@ window.Sunpath = (function () {
   return {
     readJSON, pad2, calKey, todayKey, activeDateKey,
     fmtShort, fmtDateStr, fmtClock, esc,
-    fillDaterow, injectDock, pull,
+    fillDaterow, injectDock, pull, profile,
     waterProgress, stackToday, goalsToday,
     fitness, sessionTime, splitToday, weight,
     learning, subjectName, library, bookPct,

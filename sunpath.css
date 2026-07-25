@@ -238,3 +238,17 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) { .dock-lens { transition: none; } }
+.avatar-bubble {
+  position: fixed; z-index: 40;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease;
+}
+.avatar-bubble:active { transform: scale(0.92); }
+.avatar-bubble img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-bubble-fallback { font-size: 20px; line-height: 1; }
