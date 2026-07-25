@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="sunpath.css">
 <script src="sunpath.js" defer></script>
+<script src="sync.js" defer></script>
 <style>
 .profile-card { padding: 20px 18px; display: flex; align-items: center; gap: 16px; position: relative; }
 .profile-avatar {
@@ -398,6 +399,14 @@
     S.injectDock('areas');
     renderProfile();
     renderAreas();
+
+    if (typeof initCloudSync === 'function') {
+      initCloudSync({
+        appKey: 'areas',
+        syncedKeys: ['sunpath_profile', 'sunpath_life_areas'],
+        onApplied: () => { renderProfile(); renderAreas(); }
+      });
+    }
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });
