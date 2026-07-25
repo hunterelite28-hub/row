@@ -173,6 +173,7 @@
       const tk = S.todayKey();
       const isPast = vk < tk;
       const ev = dayEvents(vk);
+      const NON_TODAY_STOPS = ['#1C2C50', '#39456A', '#B57C4A'];
 
       let stops, arcP, showDisc, showEvents, emptyText, hr;
       if (isToday) {
@@ -188,10 +189,10 @@
           showDisc = true; showEvents = true; emptyText = null;
         }
       } else if (isPast) {
-        stops = ['#1C2C50', '#39456A', '#B57C4A'];
+        stops = NON_TODAY_STOPS;
         arcP = 1; showDisc = false; showEvents = true; emptyText = null;
       } else {
-        stops = ['#1C2C50', '#39456A', '#B57C4A'];
+        stops = NON_TODAY_STOPS;
         arcP = null; showDisc = false; showEvents = false;
         emptyText = "this day hasn't happened yet";
       }
@@ -291,9 +292,10 @@
 
     // ---------- up next ----------
     function renderFocus(vk, isToday) {
-      const G = S.goalsToday(vk);
+      const gk = isToday ? undefined : vk;
+      const G = S.goalsToday(gk);
       const W = S.waterProgress(vk);
-      const st = S.stackToday(vk);
+      const st = S.stackToday(gk);
       document.getElementById('spNextMore').textContent =
         G.total ? (G.total - G.done) + ' of ' + G.total + ' goals left' : '';
 
@@ -337,14 +339,15 @@
     function renderGrid(vk, isToday) {
       const tk = S.todayKey();
       const isFuture = vk > tk;
+      const gk = isToday ? undefined : vk;
       const F = S.fitness();
-      const st = S.stackToday(vk);
+      const st = S.stackToday(gk);
       const W = S.waterProgress(vk);
       const L = S.learning();
       const Lib = S.library();
       const H = S.habits();
       const Gr = S.growth();
-      const G = S.goalsToday(vk);
+      const G = S.goalsToday(gk);
       const streak = (S.readJSON('goal_streak_v1', {}) || {}).count || 0;
 
       const daySessions = F.sessions.filter(x => x && x.date === vk);
