@@ -117,7 +117,7 @@ window.Sunpath = (function () {
     a.href = 'areas.html';
     a.setAttribute('aria-label', 'Profile & life areas');
     a.innerHTML = p.avatarDataUrl
-      ? '<img src="' + p.avatarDataUrl + '" alt="">'
+      ? '<img src="' + esc(p.avatarDataUrl) + '" alt="">'
       : '<span class="avatar-bubble-fallback">' + p.avatarEmoji + '</span>';
     document.body.appendChild(a);
   }

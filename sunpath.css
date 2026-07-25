@@ -239,10 +239,15 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 }
 @media (prefers-reduced-motion: reduce) { .dock-lens { transition: none; } }
 .avatar-bubble {
+  /* Sits in the strip the shared `body` padding-bottom (96px) reserves
+     above the dock (dock is 46px tall, fixed 10px off the bottom, so its
+     top edge is 56px up) — a 32px bubble here with ~4px clearance on
+     each side stays clear of the dock below and of real page content
+     above, on every hub page, without needing per-page overrides. */
   position: fixed; z-index: 40;
-  top: max(14px, env(safe-area-inset-top));
-  left: max(14px, env(safe-area-inset-left));
-  width: 44px; height: 44px; border-radius: 50%;
+  bottom: calc(60px + env(safe-area-inset-bottom));
+  right: max(14px, env(safe-area-inset-right));
+  width: 32px; height: 32px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
   text-decoration: none;
@@ -251,4 +256,4 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 }
 .avatar-bubble:active { transform: scale(0.92); }
 .avatar-bubble img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.avatar-bubble-fallback { font-size: 20px; line-height: 1; }
+.avatar-bubble-fallback { font-size: 15px; line-height: 1; }

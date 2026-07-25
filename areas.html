@@ -189,12 +189,7 @@
       localStorage.setItem('sunpath_life_areas', JSON.stringify(areas));
     }
     function readProfile() {
-      const p = S.readJSON('sunpath_profile', null);
-      return {
-        name: (p && p.name) || 'Rame',
-        avatarDataUrl: (p && p.avatarDataUrl) || null,
-        avatarEmoji: (p && p.avatarEmoji) || '🙂'
-      };
+      return S.profile();
     }
     function writeProfile(p) {
       localStorage.setItem('sunpath_profile', JSON.stringify(p));
@@ -216,7 +211,7 @@
       const totalXp = areas.reduce((s, a) => s + (a.xp || 0), 0);
       const avatarLevel = Math.round(totalXp / 6000);
       const avatarHtml = profile.avatarDataUrl
-        ? '<img src="' + profile.avatarDataUrl + '" alt="">'
+        ? '<img src="' + S.esc(profile.avatarDataUrl) + '" alt="">'
         : profile.avatarEmoji;
       document.getElementById('spProfileCard').innerHTML =
         '<div class="profile-avatar">' + avatarHtml + '</div>' +
