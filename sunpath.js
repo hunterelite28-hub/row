@@ -113,13 +113,22 @@ window.Sunpath = (function () {
     const p = profile();
     const a = document.createElement('a');
     a.id = 'spAvatarBubble';
-    a.className = 'avatar-bubble glassy';
     a.href = 'areas.html';
     a.setAttribute('aria-label', 'Profile & life areas');
     a.innerHTML = p.avatarDataUrl
       ? '<img src="' + esc(p.avatarDataUrl) + '" alt="">'
       : '<span class="avatar-bubble-fallback">' + p.avatarEmoji + '</span>';
-    document.body.appendChild(a);
+    // Pages that render a slot next to their greeting (e.g. today.html's
+    // hero) get the avatar docked inline there instead of the floating
+    // corner bubble used everywhere else.
+    const slot = document.getElementById('spAvatarSlot');
+    if (slot) {
+      a.className = 'avatar-bubble avatar-bubble-inline glassy';
+      slot.appendChild(a);
+    } else {
+      a.className = 'avatar-bubble glassy';
+      document.body.appendChild(a);
+    }
   }
 
   // ---------- read-only sync ----------

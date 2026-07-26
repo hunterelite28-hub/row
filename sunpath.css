@@ -126,6 +126,22 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .meter i { flex: 1; height: 5px; border-radius: 3px; background: rgba(244,241,234,0.09); }
 .meter i.on { background: var(--sun); }
 
+.mentor-tile { display: flex; align-items: flex-end; gap: 10px; }
+.mentor-tile textarea {
+  flex: 1; resize: none; background: rgba(244,241,234,0.04);
+  border: 1px solid var(--line); border-radius: 12px;
+  color: var(--ink); font-family: inherit; font-size: 14px; line-height: 1.4;
+  padding: 11px 13px; outline: none;
+}
+.mentor-tile textarea::placeholder { color: var(--faint); }
+.mentor-tile textarea:focus { border-color: rgba(242,166,90,0.5); }
+.mentor-tile button {
+  flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 12px;
+  background: var(--sun); color: #241505; font-size: 18px; font-weight: 700;
+  cursor: pointer; transition: transform .15s ease;
+}
+.mentor-tile button:active { transform: scale(0.92); }
+
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .mod { padding: 14px 14px 12px; min-height: 104px; display: flex; flex-direction: column; }
 .mod .v { font-size: 21px; font-weight: 650; margin-top: 7px; letter-spacing: -0.01em; }
@@ -143,6 +159,7 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
 /* ---- today hero: the sun path ---- */
 .hero { position: relative; padding: 8px 20px 0; }
+.hero-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .hero h1 { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.05; margin-top: 6px; }
 .hero .sub { color: var(--muted); font-size: 13.5px; margin-top: 6px; font-weight: 400; }
 .hero .sub b { color: var(--sun); font-weight: 600; }
@@ -257,3 +274,10 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .avatar-bubble:active { transform: scale(0.92); }
 .avatar-bubble img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar-bubble-fallback { font-size: 15px; line-height: 1; }
+/* Docked beside a page's own greeting (today.html hero) instead of
+   floating fixed in the corner. */
+.avatar-bubble.avatar-bubble-inline {
+  position: static; z-index: auto; bottom: auto; right: auto;
+  width: 44px; height: 44px;
+}
+.avatar-bubble.avatar-bubble-inline .avatar-bubble-fallback { font-size: 19px; }

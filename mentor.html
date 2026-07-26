@@ -123,6 +123,23 @@ body::after {
   background: #A78BFA; font-size: 18px;
 }
 .chat-composer button:active { transform: scale(0.94); }
+.mentor-clear-btn {
+  flex: 0 0 auto; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.5); font-family: inherit; font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; border-radius: 999px;
+  padding: 7px 13px; cursor: pointer; margin-top: 2px;
+}
+.mentor-clear-btn:active { transform: scale(0.94); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-row:empty { display: none; }
+.chip {
+  background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.32);
+  color: #d9d3ff; font-family: inherit; font-size: 12.5px; line-height: 1.3;
+  border-radius: 999px; padding: 8px 13px; cursor: pointer; text-align: left;
+  transition: background .15s ease;
+}
+.chip:hover { background: rgba(167,139,250,0.18); }
+.chip:active { transform: scale(0.96); }
 .cz {
   --tone: #A78BFA; --tone-soft: rgba(167,139,250,0.28); --tone-ink: #1b1233;
   display: flex; gap: 14px; border: 1px solid var(--tone-soft);
@@ -160,6 +177,7 @@ body::after {
       <div class="dash-title-text">Mentor<span class="dash-title-dot">.</span></div>
       <div class="dash-title-sub">Nova &middot; your AI companion</div>
     </div>
+    <button type="button" id="mentorClearBtn" class="mentor-clear-btn" aria-label="Clear conversation">Clear</button>
   </div>
   <div class="nova-card glassy">
     <div class="nova-stage"><canvas id="novaScene"></canvas></div>
@@ -170,6 +188,7 @@ body::after {
   </div>
   <div class="chat-card glassy">
     <div class="chat-feed" id="chatFeed"></div>
+    <div class="chip-row" id="mentorChips"></div>
     <div class="chat-composer">
       <input id="chatInput" placeholder="ask Nova&hellip;" autocomplete="off" />
       <button id="chatSend" aria-label="Send">&rarr;</button>
@@ -516,7 +535,20 @@ window.Nova = buildNova(document.getElementById('novaScene'))
   }
 
   const MENTOR_MODEL = 'claude-sonnet-5';
-  let chatHistory = [];
+  const HISTORY_KEY = 'mentor_chat_history';
+  const MAX_HISTORY = 40;
+
+  function loadHistory() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function saveHistory() {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory.slice(-MAX_HISTORY))); } catch (e) {}
+  }
+
+  let chatHistory = loadHistory();
 
   function novaSystemPrompt() {
     return 'You are Nova, a warm, direct personal mentor inside the user\'s Sunpath life-tracking dashboard. ' +
@@ -526,10 +558,23 @@ window.Nova = buildNova(document.getElementById('novaScene'))
       'Current data:\n' + buildSunpathDigest();
   }
 
+  function parseSSEBlock(block) {
+    let event = null, dataLine = null;
+    block.split('\n').forEach(function (line) {
+      if (line.indexOf('event:') === 0) event = line.slice(6).trim();
+      else if (line.indexOf('data:') === 0) dataLine = line.slice(5).trim();
+    });
+    if (!dataLine) return null;
+    try { return { event: event, data: JSON.parse(dataLine) }; } catch (e) { return null; }
+  }
+
   async function runReply(text) {
     const think = addThinkingBubble();
     if (window.Nova) window.Nova.setExpression('thinking');
     chatHistory.push({ role: 'user', content: text });
+    saveHistory();
+
+    let novaEl = null, novaTextEl = null, fullText = '', streamErr = null;
     try {
       const res = await fetch('/api/mentor', {
         method: 'POST',
@@ -538,36 +583,76 @@ window.Nova = buildNova(document.getElementById('novaScene'))
           model: MENTOR_MODEL,
           max_tokens: 512,
           thinking: { type: 'disabled' },
+          stream: true,
           system: novaSystemPrompt(),
           messages: chatHistory
         })
       });
-      think.stop(); think.el.remove();
-      if (!res.ok) {
+
+      if (!res.ok || !res.body) {
+        think.stop(); think.el.remove();
         const errBody = await res.json().catch(function () { return {}; });
         const msg = (errBody && errBody.error && errBody.error.message) || ('Request failed (' + res.status + ')');
         addNovaBubble('Something went wrong: ' + escapeHtml(msg) + '. Check that the API key is set in .env and try again.');
         if (window.Nova) window.Nova.setExpression('sad', 4);
-        chatHistory.pop();
+        chatHistory.pop(); saveHistory();
         return;
       }
-      const data = await res.json();
-      const textBlock = data.content && data.content.find(function (b) { return b.type === 'text'; });
-      const reply = (textBlock && textBlock.text) || '(empty reply)';
-      chatHistory.push({ role: 'assistant', content: reply });
-      addNovaBubble(escapeHtml(reply).replace(/\n/g, '<br>'));
-      if (window.Nova) window.Nova.setExpression('happy', 4);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+          const parsed = parseSSEBlock(buf.slice(0, idx));
+          buf = buf.slice(idx + 2);
+          if (!parsed) continue;
+          if (parsed.event === 'content_block_delta' && parsed.data.delta && parsed.data.delta.type === 'text_delta') {
+            if (!novaEl) {
+              think.stop(); think.el.remove();
+              novaEl = addNovaBubble('');
+              novaTextEl = novaEl.querySelector('.bubble-text');
+              if (window.Nova) window.Nova.setExpression('happy', 4);
+            }
+            fullText += parsed.data.delta.text;
+            novaTextEl.innerHTML = escapeHtml(fullText).replace(/\n/g, '<br>');
+            scrollChat();
+          } else if (parsed.event === 'error') {
+            streamErr = (parsed.data.error && parsed.data.error.message) || 'stream error';
+          }
+        }
+      }
+
+      if (!fullText) {
+        think.stop(); think.el.remove();
+        addNovaBubble(streamErr ? ('Something went wrong: ' + escapeHtml(streamErr) + '.') : '(empty reply)');
+        if (window.Nova) window.Nova.setExpression('sad', 4);
+        chatHistory.pop(); saveHistory();
+        return;
+      }
+      chatHistory.push({ role: 'assistant', content: fullText });
+      saveHistory();
     } catch (e) {
-      think.stop(); think.el.remove();
-      addNovaBubble('Couldn\'t reach Nova — check your connection and try again.');
-      if (window.Nova) window.Nova.setExpression('sad', 4);
-      chatHistory.pop();
+      if (novaEl && fullText) {
+        chatHistory.push({ role: 'assistant', content: fullText });
+        saveHistory();
+      } else {
+        think.stop(); think.el.remove();
+        addNovaBubble('Couldn\'t reach Nova — check your connection and try again.');
+        if (window.Nova) window.Nova.setExpression('sad', 4);
+        chatHistory.pop(); saveHistory();
+      }
     }
   }
 
   function send(text) {
     text = text.trim();
     if (!text) return;
+    hideChips();
     addUserBubble(text);
     chatInput.value = '';
     if (window.Nova) window.Nova.setExpression('surprised');
@@ -576,7 +661,114 @@ window.Nova = buildNova(document.getElementById('novaScene'))
   chatSend.addEventListener('click', function () { send(chatInput.value); });
   chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(chatInput.value); });
 
-  addNovaBubble('Hey, I\'m Nova. Ask me anything about your day.');
+  // ---- proactive nudge: one data-driven observation, not a canned line ----
+  function buildNudge() {
+    const S = window.Sunpath;
+    if (!S) return null;
+    const hour = new Date().getHours();
+    try {
+      const G = S.goalsToday();
+      if (G.total > 0 && G.pending.length > 0 && hour >= 17) {
+        return 'You\'ve got ' + G.pending.length + ' goal' + (G.pending.length === 1 ? '' : 's') +
+          ' still open today. Want to pick one to close out?';
+      }
+    } catch (e) {}
+    try {
+      const H = S.habits();
+      if (H.list.length > 0 && H.doneToday < H.list.length && hour >= 20) {
+        return 'You\'re at ' + H.doneToday + '/' + H.list.length + ' habits today — still time to close the gap before the day resets.';
+      }
+    } catch (e) {}
+    try {
+      const W = S.waterProgress();
+      if (W.total > 0 && W.done < Math.ceil(W.total * 0.5) && hour >= 15) {
+        return 'You\'re behind on water today (' + W.done + '/' + W.total + '). Worth catching up.';
+      }
+    } catch (e) {}
+    try {
+      const st = S.stackToday();
+      if (st.total > 0 && st.taken < st.total && hour >= 12) {
+        return 'You haven\'t logged your full stack today (' + st.taken + '/' + st.total + ').';
+      }
+    } catch (e) {}
+    try {
+      const F = S.fitness();
+      const last = F.sessions[0];
+      if (last && last.date) {
+        const days = Math.floor((Date.now() - new Date(last.date + 'T00:00:00').getTime()) / 864e5);
+        if (days >= 3) return 'It\'s been ' + days + ' days since your last ' + (last.type || 'workout') + ' — anything planned soon?';
+      }
+    } catch (e) {}
+    try {
+      const G = S.goalsToday(), H = S.habits();
+      if (G.total > 0 && G.pending.length === 0 && H.list.length > 0 && H.doneToday === H.list.length) {
+        return 'Goals and habits are both clean today — nice work. Anything on your mind?';
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  // ---- suggested prompts, shown only at the start of a fresh conversation ----
+  const CHIP_POOL = [
+    'What should I focus on today?',
+    'How am I doing this week overall?',
+    'Any habit I\'m slipping on?',
+    'Summarize my goals',
+    'What\'s one thing I should fix?',
+    'How\'s my fitness trending?',
+    'Am I on track with money?',
+    'What should I read or learn next?'
+  ];
+  const mentorChips = document.getElementById('mentorChips');
+  function hideChips() { if (mentorChips) mentorChips.innerHTML = ''; }
+  function showChips() {
+    if (!mentorChips) return;
+    const pool = CHIP_POOL.slice();
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    mentorChips.innerHTML = '';
+    pool.slice(0, 4).forEach(function (prompt) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = prompt;
+      b.addEventListener('click', function () { send(prompt); });
+      mentorChips.appendChild(b);
+    });
+  }
+
+  function startFreshConversation() {
+    chatFeed.innerHTML = '';
+    const nudge = buildNudge();
+    addNovaBubble(escapeHtml(nudge || 'Hey, I\'m Nova. Ask me anything about your day.'));
+    showChips();
+  }
+
+  document.getElementById('mentorClearBtn').addEventListener('click', function () {
+    chatHistory = [];
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    startFreshConversation();
+  });
+
+  // ---- boot: replay a persisted conversation, or open with a fresh one ----
+  // Deferred to DOMContentLoaded so window.Sunpath (loaded via a `defer`
+  // script) is guaranteed to be ready before buildNudge()/digest read it.
+  function boot() {
+    if (chatHistory.length) {
+      chatHistory.forEach(function (m) {
+        if (m.role === 'user') addUserBubble(m.content);
+        else addNovaBubble(escapeHtml(m.content).replace(/\n/g, '<br>'));
+      });
+    } else {
+      startFreshConversation();
+    }
+
+    var pendingPrompt = null;
+    try { pendingPrompt = sessionStorage.getItem('mentor_pending_prompt'); sessionStorage.removeItem('mentor_pending_prompt'); } catch (e) {}
+    if (pendingPrompt) send(pendingPrompt);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 </script>
 </body>
 </html>
