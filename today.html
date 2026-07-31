@@ -111,11 +111,18 @@
   </div>
 
   <div class="section section-mentor">
-    <div class="sec-head">Ask Nova</div>
-    <form class="glassy card mentor-tile" id="spMentorForm">
-      <textarea id="spMentorInput" rows="2" placeholder="Ask Nova about today — goals, habits, what to focus on…"></textarea>
-      <button type="submit" id="spMentorSend" aria-label="Send to Nova">&rarr;</button>
-    </form>
+    <div class="ai-row2">
+      <div class="glassy card ai-tile ai-suggest" id="aiSuggest"></div>
+      <div class="glassy card ai-tile ai-ask">
+        <span class="k">AI Ask</span>
+        <div class="ask-chiprow" id="aiAskChips"></div>
+        <form class="ai-ask-form" id="aiAskForm">
+          <input id="aiAskInput" type="text" placeholder="Ask anything about your day…" autocomplete="off">
+          <button type="submit" aria-label="Ask Nova">&rarr;</button>
+        </form>
+      </div>
+    </div>
+    <div class="glassy card ai-tile ai-summary" id="aiSummary"></div>
   </div>
 
   <div class="section section-grid">
@@ -444,21 +451,182 @@
       render();
     });
 
-    const mentorForm = document.getElementById('spMentorForm');
-    const mentorInput = document.getElementById('spMentorInput');
-    mentorForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = mentorInput.value.trim();
+    // ---------- AI Ask: quick prompts + free text, both hand off to Nova ----------
+    function askNova(text) {
+      text = String(text || '').trim();
       if (!text) return;
       try { sessionStorage.setItem('mentor_pending_prompt', text); } catch (e) {}
       window.location.href = 'mentor.html';
-    });
-    mentorInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mentorForm.requestSubmit(); }
-    });
+    }
+    const ASK_CHIPS = ['What to focus on?', 'Am I behind?', 'Health check', 'Habits to build?'];
+    (function renderAiAskChips() {
+      const wrap = document.getElementById('aiAskChips');
+      ASK_CHIPS.forEach(prompt => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'prompt-chip'; b.textContent = prompt;
+        b.addEventListener('click', () => askNova(prompt));
+        wrap.appendChild(b);
+      });
+    })();
+    const aiAskForm = document.getElementById('aiAskForm');
+    const aiAskInput = document.getElementById('aiAskInput');
+    aiAskForm.addEventListener('submit', (e) => { e.preventDefault(); askNova(aiAskInput.value); aiAskInput.value = ''; });
+
+    // ---------- AI Suggest: one data-driven pick, tagged by life area ----------
+    function computeAiSuggest() {
+      const hour = new Date().getHours();
+      const G = S.goalsToday(), H = S.habits(), W = S.waterProgress(), st = S.stackToday(), F = S.fitness();
+
+      if (W.total > 0 && W.done < Math.ceil(W.total * 0.5) && hour >= 15) {
+        return {
+          area: 'Health',
+          html: 'You’re behind on <b>water</b> today (' + W.done + '/' + W.total + '). Catch up now.',
+          why: 'Based on what you’ve logged against today’s target of ' + W.total + ' servings.',
+          add: 'Drink water to catch up (' + (W.total - W.done) + ' left)'
+        };
+      }
+      if (st.total > 0 && st.taken < st.total && hour >= 12) {
+        return {
+          area: 'Health',
+          html: 'Finish today’s <b>supplement stack</b> — ' + st.taken + '/' + st.total + ' taken.',
+          why: (st.total - st.taken) + ' item(s) still left in your stack for today.',
+          add: 'Take remaining supplement stack items'
+        };
+      }
+      if (G.total > 0 && G.pending.length > 0 && hour >= 17) {
+        const t = String(G.pending[0].text || '');
+        return {
+          area: 'Goals',
+          html: 'Close out <b>' + S.esc(t.length > 40 ? t.slice(0, 40) + '…' : t) + '</b> before the day resets.',
+          why: G.pending.length + ' goal' + (G.pending.length === 1 ? '' : 's') + ' still open today.',
+          add: t
+        };
+      }
+      if (H.list.length > 0 && H.doneToday < H.list.length && hour >= 20) {
+        return {
+          area: 'Habits',
+          html: 'You’re at <b>' + H.doneToday + '/' + H.list.length + '</b> habits today — still time to close the gap.',
+          why: 'Habits reset at midnight — closing the gap keeps your streaks alive.',
+          add: 'Finish remaining habits for today'
+        };
+      }
+      const last = F.sessions[0];
+      if (last && last.date) {
+        const days = Math.floor((Date.now() - new Date(last.date + 'T00:00:00').getTime()) / 864e5);
+        if (days >= 3) {
+          return {
+            area: 'Fitness',
+            html: 'It’s been <b>' + days + ' days</b> since your last ' + S.esc(last.type || 'workout') + '.',
+            why: 'Consistency compounds — even a short session keeps momentum going.',
+            add: 'Get a workout in today'
+          };
+        }
+      }
+      return {
+        area: 'Goals',
+        html: G.total ? 'Goals and habits look steady today — nice work.' : 'No goals set for today yet.',
+        why: G.total ? 'Everything tracked so far today is on pace.' : 'Setting one small goal gives today direction.',
+        add: G.total ? 'Add a stretch goal for today' : 'Set a goal for today'
+      };
+    }
+    function renderAiSuggest() {
+      const sug = computeAiSuggest();
+      const el = document.getElementById('aiSuggest');
+      el.innerHTML =
+        '<span class="k">AI Suggest</span>' +
+        '<span class="ai-suggest-tag">' + S.esc(sug.area) + '</span>' +
+        '<div class="ai-suggest-text">' + sug.html + '</div>' +
+        '<div class="ai-suggest-why" id="aiSuggestWhy">' + S.esc(sug.why) + '</div>' +
+        '<div class="ai-suggest-actions">' +
+          '<button type="button" class="ai-btn primary" id="aiSuggestAdd">+ Add</button>' +
+          '<button type="button" class="ai-btn" id="aiSuggestWhyBtn">Why?</button>' +
+        '</div>';
+      document.getElementById('aiSuggestWhyBtn').addEventListener('click', () => {
+        document.getElementById('aiSuggestWhy').classList.toggle('on');
+      });
+      document.getElementById('aiSuggestAdd').addEventListener('click', () => {
+        // Goals own their own cloud sync (see sunpath.js header note) — hand the
+        // add off to goals.html rather than writing goals: keys from the hub.
+        try { sessionStorage.setItem('goals_pending_add', sug.add); } catch (e) {}
+        window.location.href = 'goals.html';
+      });
+    }
+
+    // ---------- AI Summary: day grade + per-area breakdown ----------
+    function computeAiSummary() {
+      const G = S.goalsToday(), H = S.habits(), W = S.waterProgress(), st = S.stackToday();
+      const parts = [];
+      if (G.total > 0) parts.push(G.done / G.total);
+      if (H.list.length > 0) parts.push(H.doneToday / H.list.length);
+      if (W.total > 0) parts.push(Math.min(1, W.done / W.total));
+      if (st.total > 0) parts.push(Math.min(1, st.taken / st.total));
+      const pct = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length * 100) : null;
+      const grade = pct == null ? null : pct >= 90 ? 'A' : pct >= 80 ? 'B' : pct >= 70 ? 'C' : pct >= 60 ? 'D' : 'F';
+
+      const hour = new Date().getHours();
+      const pod = hour < 5 ? 'Late night' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late night';
+      const FRAME = {
+        'Morning': 'set the tone for today',
+        'Afternoon': 'still time to make today count',
+        'Evening': 'wrap up strong',
+        'Late night': 'rest matters too — recharge for tomorrow'
+      };
+
+      const goalsStatus = G.total ? (G.done + '/' + G.total + ' done') : 'No goals or tasks set for today.';
+      const goalsTip = !G.total
+        ? 'Raise your baseline by setting one goal — small, consistent wins build long-term momentum.'
+        : G.pending.length
+          ? 'Close out “' + S.esc(String(G.pending[0].text || '').slice(0, 40)) + '” — your highest-leverage move right now.'
+          : 'All goals done — add a stretch goal to keep the streak building.';
+
+      const healthBits = [];
+      if (W.total) healthBits.push(W.done + '/' + W.total + ' water');
+      if (st.total) healthBits.push(st.taken + '/' + st.total + ' stack');
+      const healthStatus = healthBits.length ? healthBits.join(' · ') : 'No health data synced yet.';
+      const healthTip = (W.total > 0 && W.done < W.total)
+        ? 'Catch up on water — you’re at ' + W.done + '/' + W.total + ' for today.'
+        : (st.total > 0 && st.taken < st.total)
+          ? 'Log the rest of today’s supplement stack.'
+          : 'Maintain gains by periodizing training — alternate strength and endurance blocks for long-term health.';
+
+      const L = S.learning();
+      const todayHrs = L.sessions.filter(s => s && s.date === S.todayKey()).reduce((t, s) => t + (parseFloat(s.hours) || 0), 0);
+      const lastSession = L.sessions[0];
+      const learnStatus = !L.sessions.length ? 'No learning sessions yet.'
+        : (todayHrs > 0 ? todayHrs.toFixed(1) + ' h logged today' : 'Nothing logged today');
+      const learnTip = todayHrs > 0
+        ? 'Good pace — review today’s notes before they fade.'
+        : lastSession
+          ? 'Stay ahead by revisiting ' + S.esc(S.subjectName(L, lastSession.subjectId) || 'your last subject') + ' — spaced review beats cramming.'
+          : 'Log a session to start building your learning streak.';
+
+      return {
+        headline: pod + ' — ' + FRAME[pod] + (pct != null ? '. <b class="num">' + pct + '%</b> (' + grade + '-range)' : ''),
+        cats: [
+          { label: 'Goals & Tasks', status: goalsStatus, tip: goalsTip },
+          { label: 'Health', status: healthStatus, tip: healthTip },
+          { label: 'Learning', status: learnStatus, tip: learnTip }
+        ]
+      };
+    }
+    function renderAiSummary() {
+      const sum = computeAiSummary();
+      let html = '<span class="k">AI Summary</span>' +
+        '<div class="ai-summary-head">' + sum.headline + '</div>' +
+        '<div class="ai-summary-cats">';
+      sum.cats.forEach(c => {
+        html += '<div class="ai-summary-cat"><span class="k">' + S.esc(c.label) + '</span>' +
+          '<div class="status">' + S.esc(c.status) + '</div>' +
+          '<div class="tip">' + c.tip + '</div></div>';
+      });
+      html += '</div>';
+      document.getElementById('aiSummary').innerHTML = html;
+    }
+    function renderAiPanel() { renderAiSuggest(); renderAiSummary(); }
 
     S.injectDock('today');
     render();
+    renderAiPanel();
     setInterval(() => {
       if (S.calKey(viewDate) === S.todayKey()) renderSky(viewDate, true);
     }, 60 * 1000);
@@ -471,7 +639,7 @@
       'growth':   { keys: ['growth_notes', 'growth_lock_hash'] },
       'habits':   { keys: ['habits_list', 'habits_log'] },
       'finance':  { keys: ['nw:history', 'subs'] }
-    }, render);
+    }, () => { render(); renderAiPanel(); });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot, { once: true });

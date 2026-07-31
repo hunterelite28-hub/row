@@ -1306,6 +1306,23 @@ body::after {
   // ---------- Boot ----------
   rollover();
   processStreak();
+
+  // Pick up an "+Add" handed off from the Today hub's AI Suggest tile —
+  // the hub itself never writes goals: keys (see sunpath.js), so it stashes
+  // the text here and lets this page, which owns the goals sync, add it.
+  (function applyPendingAdd() {
+    let pending = null;
+    try {
+      pending = sessionStorage.getItem('goals_pending_add');
+      sessionStorage.removeItem('goals_pending_add');
+    } catch (e) {}
+    if (!pending) return;
+    const key = todayKey();
+    const list = getGoals(key);
+    list.push({ text: String(pending), done: false });
+    setGoals(key, list);
+  })();
+
   loadToday();
   loadTomorrow();
   loadPersonal();
