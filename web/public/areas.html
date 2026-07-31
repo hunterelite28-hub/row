@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0B0E">
+<meta name="color-scheme" content="dark">
+<title>Profile — Sunpath</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sunpath.css">
+<script src="sunpath.js" defer></script>
+<script src="sync.js" defer></script>
+<style>
+.profile-card { padding: 20px 18px; display: flex; align-items: center; gap: 16px; position: relative; }
+.profile-avatar {
+  width: 64px; height: 64px; border-radius: 50%; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,0.06); border: 1px solid var(--glass-border);
+  overflow: hidden; font-size: 28px;
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-body { flex: 1; min-width: 0; }
+.profile-name { font-size: 17px; font-weight: 700; color: var(--ink); }
+.profile-level { font-family: var(--mono); font-size: 11px; color: var(--sun); margin-top: 2px; letter-spacing: 0.04em; }
+.profile-edit-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(244,241,234,0.08); color: var(--ink); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.xp-bar { display: flex; gap: 3px; margin-top: 8px; }
+.xp-bar i { flex: 1; height: 6px; border-radius: 3px; background: rgba(244,241,234,0.08); display: block; }
+.xp-bar i.on { background: var(--seg-color, var(--sun)); }
+.xp-label { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 5px; }
+
+.area-card { padding: 14px 14px 12px; position: relative; display: flex; flex-direction: column; cursor: pointer; }
+.area-card-icon { font-size: 20px; }
+.area-card-name { font-size: 13.5px; font-weight: 700; display: block; margin-top: 4px; }
+.area-card-purpose { font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; display: block; min-height: 28px; }
+.area-card-level { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 8px; display: block; }
+.area-card-cat {
+  display: inline-block; margin-top: 6px; font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; align-self: flex-start;
+}
+.area-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.area-card-tags span { font-size: 9.5px; color: var(--muted); background: rgba(244,241,234,0.06); border-radius: 999px; padding: 2px 7px; }
+.area-card-res { margin-top: 6px; font-size: 10px; color: var(--faint); }
+.area-card-res a { color: var(--muted); text-decoration: underline; }
+.area-edit-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 24px; height: 24px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(244,241,234,0.08); color: var(--ink); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.show { display: flex; }
+.modal { width: 100%; max-width: 480px; background: #14151c; border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; max-height: 88vh; overflow-y: auto; font-family: var(--display); color: var(--muted); }
+.modal h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; color: var(--ink); }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 10.5px; color: var(--faint); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.field input[type="text"], .field input[type="number"], .field textarea {
+  background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink);
+  font-family: var(--display); font-size: 13px; padding: 9px 11px; border-radius: 10px; outline: none; width: 100%; resize: vertical;
+}
+.field input:focus, .field textarea:focus { border-color: rgba(158,217,160,0.4); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-primary { padding: 11px 16px; border: none; background: var(--sun); color: #0A0B0E; border-radius: 12px; font-family: var(--display); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.btn-secondary { padding: 10px 15px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--ink); border-radius: 10px; font-family: var(--display); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.modal-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; }
+.avatar-upload-row { display: flex; align-items: center; gap: 12px; }
+.avatar-upload-row .profile-avatar { width: 52px; height: 52px; font-size: 22px; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(244,241,234,0.07); border-radius: 999px; padding: 4px 6px 4px 10px; font-size: 11.5px; color: var(--ink); }
+.chip button { border: none; background: none; color: var(--faint); cursor: pointer; font-size: 12px; line-height: 1; padding: 2px; }
+.chip-add-row, .res-add-row { display: flex; gap: 6px; }
+.chip-add-row input, .res-add-row input { flex: 1; }
+.res-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.res-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(244,241,234,0.05); border-radius: 8px; padding: 6px 10px; font-size: 11.5px; color: var(--ink); }
+.res-row button { border: none; background: none; color: var(--faint); cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="shellwrap">
+  <div class="profile-card glassy" id="spProfileCard"></div>
+
+  <div class="section">
+    <div class="sec-head">Life Areas</div>
+    <div class="grid2" id="spAreasGrid"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="profileModalBg">
+  <div class="modal">
+    <h3>Edit profile</h3>
+    <div class="field">
+      <label>Avatar image</label>
+      <div class="avatar-upload-row">
+        <div class="profile-avatar" id="avatarPreviewWrap">
+          <img id="avatarPreview" alt="" style="display:none">
+          <span id="avatarPreviewFallback">🙂</span>
+        </div>
+        <input type="file" id="avatarFile" accept="image/*">
+      </div>
+    </div>
+    <div class="field"><label>Name</label><input type="text" id="profileName" maxlength="40"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="profileCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="profileSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="areaModalBg">
+  <div class="modal">
+    <h3 id="areaModalTitle">Edit area</h3>
+    <div class="field"><label>Purpose</label><textarea id="areaPurpose" rows="3" maxlength="240"></textarea></div>
+    <div class="field"><label>Category</label><input type="text" id="areaCategory" maxlength="30"></div>
+    <div class="field">
+      <label>Tags</label>
+      <div class="chip-list" id="areaTagsList"></div>
+      <div class="chip-add-row"><input type="text" id="areaTagInput" placeholder="Add a tag…"><button class="btn-secondary" id="areaTagAdd" type="button">+</button></div>
+    </div>
+    <div class="field">
+      <label>Linked resources</label>
+      <div class="res-list" id="areaResList"></div>
+      <div class="res-add-row">
+        <input type="text" id="areaResLabel" placeholder="Label">
+        <input type="text" id="areaResUrl" placeholder="URL (optional)">
+        <button class="btn-secondary" id="areaResAdd" type="button">+</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="areaCancel" type="button">Cancel</button>
+      <button class="btn-primary" id="areaSave" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  function boot() {
+    const S = window.Sunpath;
+    if (!S) return;
+
+    const AREA_META = [
+      { id: 'strength',   icon: '🔥', name: 'Strength',   accent: 'var(--ember)', href: 'gym.html' },
+      { id: 'intellect',  icon: '🧠', name: 'Intellect',  accent: '#6EA8E0',      href: 'learning.html' },
+      { id: 'vitality',   icon: '❤️', name: 'Vitality',   accent: '#E37B93',      href: 'mind.html' },
+      { id: 'perception', icon: '🌲', name: 'Perception', accent: 'var(--leaf)',  href: 'habits.html' },
+      { id: 'wealth',     icon: '💰', name: 'Wealth',     accent: '#B98CE0',      href: 'money.html' },
+      { id: 'education',  icon: '🏛️', name: 'Education',  accent: '#C08A5C',      href: 'library.html' }
+    ];
+
+    const DEFAULT_AREAS = [
+      { id: 'strength', purpose: 'Gain strength, foster excellence, and sculpt the vessel of your excellence in life.', category: 'health and fitness', tags: [], resources: [] },
+      { id: 'intellect', purpose: 'Nurture the engine of your existence with wisdom and knowledge.', category: 'knowledge', tags: ['Computer Science', 'Finance'], resources: [
+        { label: 'Introduction to Computer Science', url: null },
+        { label: 'Introduction to Python Programming', url: null },
+        { label: 'Foundations of Finance', url: null }
+      ] },
+      { id: 'vitality', purpose: 'To find inner peace, connect with your self and embark on a journey of spiritual growth.', category: 'mind', tags: [], resources: [] },
+      { id: 'perception', purpose: 'To foster discipline, find solitude and heed your responsibilities where you must.', category: 'lifestyle', tags: [], resources: [] },
+      { id: 'wealth', purpose: 'To buy back your time, scale your impact, and build unshakable freedom.', category: 'money', tags: ['Trading'], resources: [
+        { label: 'TJR Bootcamp', url: null }
+      ] },
+      { id: 'education', purpose: "To give you foundational tools, credentials, and access, but it's your job to outgrow it and think beyond the syllabus.", category: 'credentials', tags: [], resources: [
+        { label: 'A-Levels', url: null }
+      ] }
+    ];
+
+    // XP is computed live from each area's real logs (workouts, lessons,
+    // supplements, habits, net worth, reading) — never stored or hand-edited,
+    // so levels can't drift out of sync with what was actually logged.
+    function readAreas() {
+      const stored = S.readJSON('sunpath_life_areas', null);
+      const xp = S.computeAreaXp();
+      return AREA_META.map(meta => {
+        const def = DEFAULT_AREAS.find(a => a.id === meta.id);
+        const found = Array.isArray(stored) ? stored.find(a => a && a.id === meta.id) : null;
+        return Object.assign({}, def, found, { xp: xp[meta.id] || 0 });
+      });
+    }
+    function writeAreas(areas) {
+      localStorage.setItem('sunpath_life_areas', JSON.stringify(areas));
+    }
+    function readProfile() {
+      return S.profile();
+    }
+    function writeProfile(p) {
+      localStorage.setItem('sunpath_profile', JSON.stringify(p));
+    }
+    function levelFromXp(xp) { return Math.round((xp || 0) / 1000); }
+    function xpBarHtml(xp, cap, color) {
+      const segs = 10;
+      const per = cap / segs;
+      const lit = Math.max(0, Math.min(segs, Math.floor((xp || 0) / per)));
+      let html = '<div class="xp-bar" style="--seg-color:' + color + '">';
+      for (let i = 0; i < segs; i++) html += '<i class="' + (i < lit ? 'on' : '') + '"></i>';
+      html += '</div>';
+      return html;
+    }
+
+    function renderProfile() {
+      const profile = readProfile();
+      const areas = readAreas();
+      const totalXp = areas.reduce((s, a) => s + (a.xp || 0), 0);
+      const avatarLevel = Math.round(totalXp / 6000);
+      const avatarHtml = profile.avatarDataUrl
+        ? '<img src="' + S.esc(profile.avatarDataUrl) + '" alt="">'
+        : profile.avatarEmoji;
+      document.getElementById('spProfileCard').innerHTML =
+        '<div class="profile-avatar">' + avatarHtml + '</div>' +
+        '<div class="profile-body">' +
+          '<div class="profile-name">' + S.esc(profile.name) + '</div>' +
+          '<div class="profile-level num">Avatar Level ' + avatarLevel + '</div>' +
+          xpBarHtml(totalXp, 600000, 'var(--sun)') +
+          '<div class="xp-label num">' + totalXp.toLocaleString() + ' / 600,000 total EXP</div>' +
+        '</div>' +
+        '<button class="profile-edit-btn" id="spProfileEdit" type="button" aria-label="Edit profile">✎</button>';
+      document.getElementById('spProfileEdit').addEventListener('click', openProfileModal);
+    }
+
+    function renderAreas() {
+      const areas = readAreas();
+      const html = AREA_META.map(meta => {
+        const a = areas.find(x => x.id === meta.id);
+        const lvl = levelFromXp(a.xp);
+        const tagsHtml = a.tags && a.tags.length
+          ? '<div class="area-card-tags">' + a.tags.map(t => '<span>' + S.esc(t) + '</span>').join('') + '</div>'
+          : '';
+        const resHtml = a.resources && a.resources.length
+          ? '<div class="area-card-res">' + a.resources.map(r =>
+              r.url ? '<a href="' + S.esc(r.url) + '" target="_blank" rel="noopener">' + S.esc(r.label) + '</a>' : S.esc(r.label)
+            ).join(' · ') + '</div>'
+          : '';
+        return '<div class="area-card glassy" data-id="' + meta.id + '" data-href="' + meta.href + '">' +
+          '<span class="area-card-icon">' + meta.icon + '</span>' +
+          '<span class="area-card-name" style="color:' + meta.accent + '">' + meta.name + '</span>' +
+          '<span class="area-card-purpose">' + S.esc(a.purpose) + '</span>' +
+          xpBarHtml(a.xp, 100000, meta.accent) +
+          '<span class="area-card-level num">Lv ' + lvl + ' · ' + (a.xp || 0).toLocaleString() + ' / 100,000</span>' +
+          '<span class="area-card-cat">' + S.esc(a.category) + '</span>' +
+          tagsHtml + resHtml +
+          '<button class="area-edit-btn" data-id="' + meta.id + '" type="button" aria-label="Edit ' + meta.name + '">✎</button>' +
+        '</div>';
+      }).join('');
+      document.getElementById('spAreasGrid').innerHTML = html;
+    }
+
+    document.getElementById('spAreasGrid').addEventListener('click', (e) => {
+      const editBtn = e.target.closest('.area-edit-btn');
+      if (editBtn) { openAreaModal(editBtn.getAttribute('data-id')); return; }
+      const card = e.target.closest('.area-card');
+      if (card) { window.location.href = card.getAttribute('data-href'); }
+    });
+
+    // ---- Profile edit modal ----
+    let profileAvatarDraft = null;
+    function updateAvatarPreview() {
+      const img = document.getElementById('avatarPreview');
+      const fallback = document.getElementById('avatarPreviewFallback');
+      if (profileAvatarDraft) {
+        img.src = profileAvatarDraft;
+        img.style.display = 'block';
+        fallback.style.display = 'none';
+      } else {
+        img.style.display = 'none';
+        fallback.style.display = 'inline';
+      }
+    }
+    function openProfileModal() {
+      const p = readProfile();
+      profileAvatarDraft = p.avatarDataUrl;
+      document.getElementById('profileName').value = p.name;
+      updateAvatarPreview();
+      document.getElementById('profileModalBg').classList.add('show');
+    }
+    document.getElementById('avatarFile').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const size = 200;
+          const canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const scale = Math.max(size / img.width, size / img.height);
+          const dw = img.width * scale, dh = img.height * scale;
+          ctx.drawImage(img, (size - dw) / 2, (size - dh) / 2, dw, dh);
+          profileAvatarDraft = canvas.toDataURL('image/jpeg', 0.85);
+          updateAvatarPreview();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('profileCancel').addEventListener('click', () => {
+      document.getElementById('profileModalBg').classList.remove('show');
+    });
+    document.getElementById('profileSave').addEventListener('click', () => {
+      const name = document.getElementById('profileName').value.trim() || 'Rame';
+      writeProfile({ name, avatarDataUrl: profileAvatarDraft, avatarEmoji: '🙂' });
+      document.getElementById('profileModalBg').classList.remove('show');
+      renderProfile();
+    });
+
+    // ---- Area edit modal ----
+    let areaEditId = null;
+    let areaTagsDraft = [];
+    let areaResDraft = [];
+    function renderTagsDraft() {
+      document.getElementById('areaTagsList').innerHTML = areaTagsDraft.map((t, i) =>
+        '<span class="chip">' + S.esc(t) + '<button data-i="' + i + '" type="button">×</button></span>'
+      ).join('');
+    }
+    function renderResDraft() {
+      document.getElementById('areaResList').innerHTML = areaResDraft.map((r, i) =>
+        '<div class="res-row"><span>' + S.esc(r.label) + (r.url ? ' — ' + S.esc(r.url) : '') + '</span>' +
+        '<button data-i="' + i + '" type="button">Remove</button></div>'
+      ).join('');
+    }
+    function openAreaModal(id) {
+      areaEditId = id;
+      const a = readAreas().find(x => x.id === id);
+      const meta = AREA_META.find(m => m.id === id);
+      document.getElementById('areaModalTitle').textContent = 'Edit ' + meta.name;
+      document.getElementById('areaPurpose').value = a.purpose || '';
+      document.getElementById('areaCategory').value = a.category || '';
+      areaTagsDraft = (a.tags || []).slice();
+      areaResDraft = (a.resources || []).map(r => Object.assign({}, r));
+      renderTagsDraft();
+      renderResDraft();
+      document.getElementById('areaModalBg').classList.add('show');
+    }
+    document.getElementById('areaTagsList').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      areaTagsDraft.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
+      renderTagsDraft();
+    });
+    function addTagFromInput() {
+      const input = document.getElementById('areaTagInput');
+      const v = input.value.trim();
+      if (v) { areaTagsDraft.push(v); renderTagsDraft(); }
+      input.value = '';
+    }
+    document.getElementById('areaTagAdd').addEventListener('click', addTagFromInput);
+    document.getElementById('areaTagInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addTagFromInput(); }
+    });
+    document.getElementById('areaResList').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      areaResDraft.splice(parseInt(btn.getAttribute('data-i'), 10), 1);
+      renderResDraft();
+    });
+    document.getElementById('areaResAdd').addEventListener('click', () => {
+      const labelInput = document.getElementById('areaResLabel');
+      const urlInput = document.getElementById('areaResUrl');
+      const label = labelInput.value.trim();
+      const url = urlInput.value.trim();
+      if (label) { areaResDraft.push({ label, url: url || null }); renderResDraft(); }
+      labelInput.value = ''; urlInput.value = '';
+    });
+    document.getElementById('areaCancel').addEventListener('click', () => {
+      document.getElementById('areaModalBg').classList.remove('show');
+    });
+    document.getElementById('areaSave').addEventListener('click', () => {
+      const areas = readAreas();
+      const idx = areas.findIndex(x => x.id === areaEditId);
+      areas[idx] = {
+        id: areaEditId,
+        purpose: document.getElementById('areaPurpose').value.trim(),
+        category: document.getElementById('areaCategory').value.trim(),
+        tags: areaTagsDraft.slice(),
+        resources: areaResDraft.map(r => Object.assign({}, r))
+      };
+      writeAreas(areas);
+      document.getElementById('areaModalBg').classList.remove('show');
+      renderProfile();
+      renderAreas();
+    });
+
+    S.injectDock('areas');
+    renderProfile();
+    renderAreas();
+
+    if (typeof initCloudSync === 'function') {
+      initCloudSync({
+        appKey: 'areas',
+        syncedKeys: ['sunpath_profile', 'sunpath_life_areas'],
+        onApplied: () => { renderProfile(); renderAreas(); }
+      });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else { boot(); }
+})();
+</script>
+</body>
+</html>
