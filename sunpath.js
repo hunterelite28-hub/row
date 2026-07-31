@@ -449,7 +449,7 @@ window.Sunpath = (function () {
     });
 
     return {
-      strength: Math.round((strengthKg() + f.km * 1000) / 10),
+      strength: Math.round(strengthKg() / 4 + (f.km * 1000) / 5),
       intellect: Math.round(l.hours * 1000),
       vitality: Math.round(supplementsTaken() * 250 + gratitude().length * 1000),
       perception: Math.max(0, Math.round(perception)),
