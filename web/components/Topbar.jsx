@@ -80,7 +80,7 @@ async function pushWaterMergedToSupabase(localWater) {
 // by every "classic" (non-hub) page. `hub` is which of the 4 dock hubs
 // this page belongs to; `pageLabel` is the short page name shown in the
 // top bar (e.g. "GOALS").
-export default function Topbar({ hub, pageLabel }) {
+export default function Topbar({ hub, pageLabel, suppressWaterPush }) {
   const [water, setWater] = useState({ done: 0, total: 0 });
   const [clock, setClock] = useState('');
   const [syncClass, setSyncClass] = useState('idle');
@@ -159,7 +159,9 @@ export default function Topbar({ hub, pageLabel }) {
     refreshWater();
     setFlash(true);
     setTimeout(() => setFlash(false), 220);
-    pushWaterMergedToSupabase(state);
+    // health.html owns the full "health" app_state row via its own
+    // two-way sync — pushing a water-only merge from here too would race it.
+    if (!suppressWaterPush) pushWaterMergedToSupabase(state);
   }
 
   function handleTabClick(e, tab, index) {
