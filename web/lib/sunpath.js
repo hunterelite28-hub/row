@@ -28,6 +28,12 @@ export function activeDateKey() {
   if (now.getHours() < 5) d.setDate(d.getDate() - 1);
   return calKey(d);
 }
+export function fmtDateStr(ds) {
+  const p = String(ds || '').split('-').map(Number);
+  if (p.length !== 3) return ds || '';
+  const M = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  return p[2] + ' ' + M[p[1] - 1];
+}
 export function fmtClock(ts) {
   const d = new Date(ts);
   return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
