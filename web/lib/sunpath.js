@@ -196,3 +196,129 @@ export function habits() {
   const best = habitsArr.reduce((m, h) => Math.max(m, streakOf(h.id)), 0);
   return { list: habitsArr, log: logObj, doneToday, bestStreak: best };
 }
+
+// ---------- EXP engine ----------
+// Every area's XP is derived live from the same logs the classic pages
+// already write — there is no separately-stored XP counter, so nothing
+// can drift out of sync with what was actually logged.
+function strengthKg() {
+  const coach = readJSON('po_coach_v1', null);
+  let kg = 0;
+  if (coach && coach.logs && typeof coach.logs === 'object') {
+    Object.keys(coach.logs).forEach((exId) => {
+      (coach.logs[exId] || []).forEach((l) => {
+        kg += (parseFloat(l && l.weight) || 0) * (parseFloat(l && l.reps) || 0);
+      });
+    });
+  }
+  const hevy = readJSON('hevy_workouts_cache', []);
+  if (Array.isArray(hevy)) kg += hevy.reduce((t, w) => t + (parseFloat(w && w.volume) || 0), 0);
+  return kg;
+}
+
+export function gratitude() {
+  const notes = readJSON('gratitude_notes', []);
+  return Array.isArray(notes) ? notes : [];
+}
+
+function supplementsTaken() {
+  let n = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || k.indexOf('stack:taken:') !== 0) continue;
+    const obj = readJSON(k, null);
+    if (obj && typeof obj === 'object') n += Object.keys(obj).length;
+  }
+  return n;
+}
+
+// Habit "type" is expressed purely through the color the user picked
+// for it (habits.html has no separate good/bad field) — bucket by hue
+// so any purple-family shade reads as good, any yellow-family shade bad.
+function hueOf(hex) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length !== 6 || /[^0-9a-f]/i.test(h)) return null;
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d === 0) return 0;
+  let hue;
+  if (max === r) hue = ((g - b) / d) % 6;
+  else if (max === g) hue = (b - r) / d + 2;
+  else hue = (r - g) / d + 4;
+  hue *= 60;
+  if (hue < 0) hue += 360;
+  return hue;
+}
+function habitPolarity(color) {
+  const h = hueOf(color);
+  if (h == null) return 0;
+  if (h >= 240 && h < 300) return 1; // purple family → good habit
+  if (h >= 30 && h < 65) return -1; // yellow family → bad habit
+  return 0;
+}
+
+export function money() {
+  const hist = readJSON('nw:history', []);
+  const arr = (Array.isArray(hist) ? hist : [])
+    .filter((e) => e && typeof e.v === 'number' && typeof e.t === 'number')
+    .sort((a, b) => a.t - b.t);
+  if (!arr.length) return null;
+  const last = arr[arr.length - 1];
+  const cutoff = Date.now() - 30 * 864e5;
+  let ref = arr[0];
+  for (const e of arr) {
+    if (e.t >= cutoff) {
+      ref = e;
+      break;
+    }
+  }
+  return { hist: arr, last, delta30: last.v - ref.v };
+}
+function wealthTotal() {
+  const mny = money();
+  if (mny && mny.last && typeof mny.last.v === 'number') return Math.max(0, mny.last.v);
+  let total = 0;
+  ['bank', 'stocks', 'crypto', 'other'].forEach((cat) => {
+    const items = readJSON('nw:' + cat, []);
+    if (Array.isArray(items)) total += items.reduce((t, it) => t + (parseFloat(it && it.amount) || 0), 0);
+  });
+  return Math.max(0, total);
+}
+
+function pagesRead() {
+  const lib = library();
+  return lib.books.reduce((t, b) => {
+    const total = parseInt(b.totalPages) || 0;
+    const cur = parseInt(b.currentPage) || 0;
+    return t + (b.status === 'finished' ? Math.max(cur, total) : cur);
+  }, 0);
+}
+
+export function computeAreaXp() {
+  const f = fitness();
+  const l = learning();
+  const lib = library();
+  const hb = habits();
+
+  let perception = 0;
+  hb.list.forEach((h) => {
+    const pol = habitPolarity(h && h.color);
+    if (!pol) return;
+    let count = 0;
+    Object.keys(hb.log).forEach((dk) => {
+      if ((hb.log[dk] || []).indexOf(h.id) !== -1) count++;
+    });
+    perception += count * (pol > 0 ? 100 : -50);
+  });
+
+  return {
+    strength: Math.round(strengthKg() / 4 + (f.km * 1000) / 5),
+    intellect: Math.round(l.hours * 1000),
+    vitality: Math.round(supplementsTaken() * 250 + gratitude().length * 1000),
+    perception: Math.max(0, Math.round(perception)),
+    wealth: Math.round(wealthTotal()),
+    education: Math.round(pagesRead() * 10 + lib.notes.length * 500),
+  };
+}

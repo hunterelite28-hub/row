@@ -3028,3 +3028,73 @@ body.has-bottombar {
 .mind-page .gr-entry-date { font-size:10px; color:var(--faint); font-family:var(--mono); }
 .mind-page .gr-entry-del { background:none; border:none; color:var(--faint); font-size:16px; line-height:1; cursor:pointer; padding:2px 6px; flex-shrink:0; }
 .mind-page .gr-entry-del:hover { color:var(--ember); }
+
+/* ---- areas (profile) page — hub page, sunpath.css only, no glass.css
+   correction needed. ---- */
+.areas-page .profile-card { padding: 20px 18px; display: flex; align-items: center; gap: 16px; position: relative; }
+.areas-page .profile-avatar {
+  width: 64px; height: 64px; border-radius: 50%; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(244,241,234,0.06); border: 1px solid var(--glass-border);
+  overflow: hidden; font-size: 28px;
+}
+.areas-page .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.areas-page .profile-body { flex: 1; min-width: 0; }
+.areas-page .profile-name { font-size: 17px; font-weight: 700; color: var(--ink); }
+.areas-page .profile-level { font-family: var(--mono); font-size: 11px; color: var(--sun); margin-top: 2px; letter-spacing: 0.04em; }
+.areas-page .profile-edit-btn {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(244,241,234,0.08); color: var(--ink); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.areas-page .xp-bar { display: flex; gap: 3px; margin-top: 8px; }
+.areas-page .xp-bar i { flex: 1; height: 6px; border-radius: 3px; background: rgba(244,241,234,0.08); display: block; }
+.areas-page .xp-bar i.on { background: var(--seg-color, var(--sun)); }
+.areas-page .xp-label { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 5px; }
+
+.areas-page .area-card { padding: 14px 14px 12px; position: relative; display: flex; flex-direction: column; cursor: pointer; }
+.areas-page .area-card-icon { font-size: 20px; }
+.areas-page .area-card-name { font-size: 13.5px; font-weight: 700; display: block; margin-top: 4px; }
+.areas-page .area-card-purpose { font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; display: block; min-height: 28px; }
+.areas-page .area-card-level { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 8px; display: block; }
+.areas-page .area-card-cat {
+  display: inline-block; margin-top: 6px; font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--faint); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; align-self: flex-start;
+}
+.areas-page .area-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.areas-page .area-card-tags span { font-size: 9.5px; color: var(--muted); background: rgba(244,241,234,0.06); border-radius: 999px; padding: 2px 7px; }
+.areas-page .area-card-res { margin-top: 6px; font-size: 10px; color: var(--faint); }
+.areas-page .area-card-res a { color: var(--muted); text-decoration: underline; }
+.areas-page .area-edit-btn {
+  position: absolute; top: 10px; right: 10px;
+  width: 24px; height: 24px; border-radius: 50%; border: none; cursor: pointer;
+  background: rgba(244,241,234,0.08); color: var(--ink); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.areas-page .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.areas-page .modal-bg.show { display: flex; }
+.areas-page .modal { width: 100%; max-width: 480px; background: #14151c; border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; max-height: 88vh; overflow-y: auto; font-family: var(--display); color: var(--muted); }
+.areas-page .modal h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; color: var(--ink); }
+.areas-page .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.areas-page .field label { font-size: 10.5px; color: var(--faint); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.areas-page .field input[type="text"], .areas-page .field input[type="number"], .areas-page .field textarea {
+  background: rgba(255,255,255,0.05); border: 1px solid var(--line); color: var(--ink);
+  font-family: var(--display); font-size: 13px; padding: 9px 11px; border-radius: 10px; outline: none; width: 100%; resize: vertical;
+}
+.areas-page .field input:focus, .areas-page .field textarea:focus { border-color: rgba(158,217,160,0.4); }
+.areas-page .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.areas-page .btn-primary { padding: 11px 16px; border: none; background: var(--sun); color: #0A0B0E; border-radius: 12px; font-family: var(--display); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.areas-page .btn-secondary { padding: 10px 15px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--ink); border-radius: 10px; font-family: var(--display); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.areas-page .modal-actions { display: flex; gap: 8px; margin-top: 6px; justify-content: flex-end; }
+.areas-page .avatar-upload-row { display: flex; align-items: center; gap: 12px; }
+.areas-page .avatar-upload-row .profile-avatar { width: 52px; height: 52px; font-size: 22px; }
+.areas-page .chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.areas-page .chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(244,241,234,0.07); border-radius: 999px; padding: 4px 6px 4px 10px; font-size: 11.5px; color: var(--ink); }
+.areas-page .chip button { border: none; background: none; color: var(--faint); cursor: pointer; font-size: 12px; line-height: 1; padding: 2px; }
+.areas-page .chip-add-row, .areas-page .res-add-row { display: flex; gap: 6px; }
+.areas-page .chip-add-row input, .areas-page .res-add-row input { flex: 1; }
+.areas-page .res-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.areas-page .res-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(244,241,234,0.05); border-radius: 8px; padding: 6px 10px; font-size: 11.5px; color: var(--ink); }
+.areas-page .res-row button { border: none; background: none; color: var(--faint); cursor: pointer; font-size: 12px; }
