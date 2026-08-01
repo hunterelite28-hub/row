@@ -38,6 +38,11 @@ export function fmtClock(ts) {
   const d = new Date(ts);
   return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 }
+export function fmtShort(ts) {
+  const d = new Date(ts);
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return d.getDate() + ' ' + M[d.getMonth()];
+}
 export function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
