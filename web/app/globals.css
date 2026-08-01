@@ -2540,3 +2540,305 @@ body.has-bottombar {
   .learning-page .stat-val { font-size: 22px; }
   .learning-page .shell { padding: 16px 12px 110px; }
 }
+
+/* ---- library page (ported from library.html, scoped under
+   .library-page). glass.css correction: .book-card, .note-compose,
+   .note-item get glass-fill (book-card keeps its own 14px radius per
+   glass.css's explicit "keep cover corner fit" override, unlike other
+   glass cards' 18px); .book-title/.detail-title get the headline font;
+   .page-title-dot gets forced to sunpath amber even though this page's
+   own --accent (#FBBF24, gold) is untouched and still used everywhere
+   else (status pills, stars, progress bars). ---- */
+.library-page {
+  --bg-card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-1: #FAFAFA;
+  --text-2: rgba(255,255,255,0.55);
+  --text-3: rgba(255,255,255,0.35);
+  --text-4: rgba(255,255,255,0.2);
+  --accent: #FBBF24;
+  --os-accent: #F2A65A;
+  --font: 'Bricolage Grotesque', sans-serif;
+  --font-mono: 'Spline Sans Mono', monospace;
+  --radius: 14px;
+
+  background: linear-gradient(180deg, #202228 0%, #101114 30%, #000 68%);
+  color: var(--text-1);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+}
+.library-page::before {
+  content: ''; position: fixed; inset: -10%;
+  background:
+    radial-gradient(circle at 75% 8%,  rgba(242,166,90,0.08), transparent 42%),
+    radial-gradient(circle at 15% 50%, rgba(255,255,255,0.04), transparent 38%);
+  filter: blur(46px);
+  pointer-events: none; z-index: -1;
+}
+.library-page .shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 120px; position: relative; }
+
+.library-page .page-header { margin-bottom: 18px; }
+.library-page .page-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+  text-shadow: 0 0 20px rgba(242,166,90,0.18);
+  font-family: var(--font);
+}
+.library-page .page-title-dot { color: var(--os-accent); text-shadow: 0 0 12px rgba(242,166,90,0.6); }
+.library-page .page-sub { font-size: 10px; color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+.library-page .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.library-page .filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+.library-page .filter-row::-webkit-scrollbar { display: none; }
+.library-page .filter-chip {
+  flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 13px; color: var(--text-2);
+  font-family: var(--font); font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.library-page .filter-chip.active { background: rgba(251,191,36,0.16); border-color: rgba(251,191,36,0.45); color: var(--accent); }
+.library-page .add-book-btn {
+  flex-shrink: 0; background: var(--accent); color: #000; border: none; border-radius: 10px;
+  padding: 9px 14px; font-family: var(--font); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer;
+  box-shadow: 0 4px 16px -4px rgba(251,191,36,0.6); transition: filter 0.15s, transform 0.1s;
+}
+.library-page .add-book-btn:active { transform: scale(0.96); }
+
+.library-page .book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); align-items: start; gap: 16px 12px; }
+.library-page .book-card {
+  position: relative;
+  background: var(--glass-fill); border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  overflow: hidden; cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.13),
+    inset 0 -1px 0 rgba(255,255,255,0.04),
+    0 16px 40px rgba(0,0,0,0.55);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.library-page .book-card::before {
+  content: '';
+  position: absolute; top: 0; left: 18%; right: 42%;
+  height: 1px; border-radius: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  pointer-events: none;
+}
+.library-page .book-card:active { transform: scale(0.99); }
+.library-page .book-card:hover { border-color: var(--border-strong); }
+.library-page .book-cover-wrap { width: 100%; line-height: 0; }
+.library-page .book-cover { width: 100%; height: auto; display: block; border-radius: var(--radius) var(--radius) 0 0; }
+.library-page .book-cover-ph {
+  width: 100%; aspect-ratio: 2 / 3;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; opacity: 0.7;
+}
+.library-page .book-body { padding: 10px 11px 12px; }
+.library-page .book-title {
+  font-size: 12.5px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-family: var(--font);
+}
+.library-page .book-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0; }
+.library-page .book-tag {
+  font-size: 10px; letter-spacing: 0.05em; color: var(--text-2);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 9px;
+}
+.library-page .book-author { font-size: 10px; color: var(--text-2); margin-top: 4px; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.library-page .status-pill {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 999px; padding: 5px 11px;
+}
+.library-page .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+.library-page .status-pill.reading  { background: rgba(251,191,36,0.14); color: #FBBF24; }
+.library-page .status-pill.reading .dot { background: #FBBF24; }
+.library-page .status-pill.finished { background: rgba(110,231,183,0.14); color: #6EE7B7; }
+.library-page .status-pill.finished .dot { background: #6EE7B7; }
+.library-page .status-pill.toread   { background: rgba(255,255,255,0.07); color: var(--text-2); }
+.library-page .status-pill.toread .dot { background: var(--text-3); }
+.library-page .progress-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.library-page .progress-pct { font-size: 13px; font-weight: 700; color: var(--text-1); font-variant-numeric: tabular-nums; min-width: 40px; }
+.library-page .progress-track { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.library-page .progress-fill { height: 100%; background: linear-gradient(90deg, #FBBF24, #f59e0b); border-radius: 4px; transition: width 0.35s ease; }
+.library-page .book-card .status-pill { font-size: 9px; padding: 3px 8px; margin-top: 8px; gap: 5px; }
+.library-page .book-card .status-pill .dot { width: 6px; height: 6px; }
+.library-page .book-card .progress-row { gap: 7px; margin-top: 8px; }
+.library-page .book-card .progress-pct { font-size: 10px; min-width: 30px; }
+.library-page .book-card .progress-track { height: 4px; }
+.library-page .book-note-count { font-size: 9px; color: var(--text-3); letter-spacing: 0.06em; margin-top: 6px; }
+
+.library-page .empty { text-align: center; padding: 56px 0; color: var(--text-3); font-size: 12px; letter-spacing: 0.08em; line-height: 1.9; }
+.library-page .empty .ico { font-size: 38px; opacity: 0.25; display: block; margin-bottom: 12px; }
+
+.library-page .detail-back {
+  display: inline-flex; align-items: center; gap: 7px; background: none; border: none;
+  color: var(--text-2); font-family: var(--font); font-size: 12px; letter-spacing: 0.06em;
+  cursor: pointer; padding: 4px 0; margin-bottom: 16px;
+}
+.library-page .detail-back:hover { color: var(--text-1); }
+.library-page .detail-top { display: flex; gap: 16px; margin-bottom: 18px; }
+.library-page .detail-cover { width: 110px; flex-shrink: 0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.55); align-self: flex-start; }
+.library-page .detail-cover-ph {
+  width: 110px; height: 158px; flex-shrink: 0; border-radius: 8px;
+  background: linear-gradient(160deg, rgba(251,191,36,0.16), rgba(255,255,255,0.04));
+  border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 32px; opacity: 0.7;
+}
+.library-page .detail-info { flex: 1; min-width: 0; }
+.library-page .detail-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; font-family: var(--font); }
+.library-page .detail-author { font-size: 13px; color: var(--text-2); margin-top: 5px; }
+.library-page .detail-stars { margin-top: 10px; font-size: 18px; letter-spacing: 2px; cursor: pointer; user-select: none; }
+.library-page .detail-star { color: var(--text-4); }
+.library-page .detail-star.on { color: var(--accent); }
+.library-page .detail-edit {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-2); font-family: var(--font); font-size: 11px; letter-spacing: 0.06em;
+  padding: 6px 12px; cursor: pointer; margin-top: 12px;
+}
+.library-page .detail-edit:hover { color: var(--text-1); }
+.library-page .detail-progress { margin-bottom: 22px; }
+.library-page .page-update { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--text-2); }
+.library-page .page-update input {
+  width: 70px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-1); font-family: var(--font); font-size: 13px; padding: 7px 9px; outline: none;
+}
+.library-page .page-update input:focus { border-color: rgba(251,191,36,0.5); }
+
+.library-page .notes-head { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 12px; }
+.library-page .note-compose {
+  position: relative;
+  background: var(--glass-fill); border: 1px solid var(--glass-border); border-radius: 18px;
+  padding: 12px 14px; margin-bottom: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.13),
+    inset 0 -1px 0 rgba(255,255,255,0.04),
+    0 16px 40px rgba(0,0,0,0.55);
+}
+.library-page .note-item {
+  position: relative;
+  background: var(--glass-fill); border: 1px solid var(--glass-border); border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.13),
+    inset 0 -1px 0 rgba(255,255,255,0.04),
+    0 16px 40px rgba(0,0,0,0.55);
+}
+.library-page .note-compose::before,
+.library-page .note-item::before {
+  content: '';
+  position: absolute; top: 0; left: 18%; right: 42%;
+  height: 1px; border-radius: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  pointer-events: none;
+}
+.library-page .note-compose textarea {
+  width: 100%; background: transparent; border: none; outline: none; resize: none;
+  color: var(--text-1); font-family: var(--font); font-size: 14px; line-height: 1.6; min-height: 64px;
+}
+.library-page .note-compose textarea::placeholder { color: var(--text-3); }
+.library-page .note-compose-footer { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.library-page .note-page-input {
+  width: 80px; background: rgba(0,0,0,0.35); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-1); font-family: var(--font); font-size: 12px; padding: 8px 10px; outline: none;
+}
+.library-page .note-page-input:focus { border-color: rgba(251,191,36,0.5); }
+.library-page .note-add-btn {
+  margin-left: auto; background: var(--accent); color: #000; border: none; border-radius: 8px;
+  padding: 8px 16px; font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.library-page .note-add-btn:disabled { opacity: 0.35; cursor: default; }
+.library-page .note-list { display: flex; flex-direction: column; gap: 10px; }
+.library-page .note-item-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.library-page .note-item-page { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.85; }
+.library-page .note-item-date { font-size: 10px; color: var(--text-3); letter-spacing: 0.06em; }
+.library-page .note-item-actions { display: flex; gap: 6px; }
+.library-page .note-del, .library-page .note-edit {
+  background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 6px;
+  font-family: var(--font); font-size: 11px;
+}
+.library-page .note-edit { color: var(--text-3); }
+.library-page .note-edit:hover { color: var(--text-1); }
+.library-page .note-del { color: var(--text-3); }
+.library-page .note-del:hover { color: #ff8a8a; }
+.library-page .note-item-text { font-size: 14px; line-height: 1.6; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+.library-page .note-item-text strong { font-weight: 700; color: #fff; }
+.library-page .note-item-text em { font-style: italic; }
+.library-page .note-item-text code { background: rgba(255,255,255,0.09); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+.library-page .note-item-text del { opacity: 0.55; }
+
+.library-page .note-fmt-bar { display: flex; gap: 6px; margin-bottom: 10px; }
+.library-page .fmt-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text-2); font-family: var(--font); font-size: 12px; font-weight: 700;
+  min-width: 30px; height: 28px; padding: 0 7px; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.library-page .fmt-btn:hover { color: var(--text-1); border-color: var(--border-strong); }
+.library-page .fmt-btn:active { background: rgba(255,255,255,0.12); }
+.library-page .fmt-btn.i { font-style: italic; }
+.library-page .fmt-btn.c { font-size: 11px; }
+.library-page .note-empty { text-align: center; padding: 30px 0; color: var(--text-3); font-size: 11px; letter-spacing: 0.08em; }
+
+.library-page .modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.78); backdrop-filter: blur(6px);
+  align-items: flex-end; justify-content: center;
+}
+.library-page .modal-bg.show { display: flex; }
+.library-page .modal {
+  width: 100%; max-width: 480px; background: #111113; border: 1px solid var(--border-strong);
+  border-radius: 20px 20px 0 0; padding: 22px 18px calc(28px + env(safe-area-inset-bottom));
+  max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
+}
+.library-page .modal-title { font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; }
+.library-page .field { margin-bottom: 14px; }
+.library-page .field label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+.library-page .field input, .library-page .field select, .library-page .field textarea {
+  width: 100%; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong);
+  border-radius: 9px; color: var(--text-1); font-family: var(--font); font-size: 14px;
+  padding: 11px 13px; outline: none; transition: border-color 0.15s;
+}
+.library-page .field input:focus, .library-page .field select:focus, .library-page .field textarea:focus { border-color: rgba(251,191,36,0.5); }
+.library-page .field select { appearance: none; cursor: pointer; }
+.library-page .field select option { background: #111113; }
+.library-page .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.library-page .cover-pick {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 150px; border: 1px dashed var(--border-strong); border-radius: 10px;
+  cursor: pointer; color: var(--text-3); font-size: 12px; letter-spacing: 0.06em;
+  background: rgba(255,255,255,0.02); overflow: hidden;
+}
+.library-page .cover-pick img { height: 100%; border-radius: 6px; }
+.library-page .cover-pick:hover { border-color: rgba(251,191,36,0.5); color: var(--text-1); }
+.library-page .cover-clear {
+  margin-top: 8px; background: none; border: none; color: var(--text-3);
+  font-family: var(--font); font-size: 11px; cursor: pointer; text-decoration: underline;
+}
+.library-page .modal-stars { font-size: 24px; letter-spacing: 4px; cursor: pointer; user-select: none; }
+.library-page .modal-star { color: var(--text-4); }
+.library-page .modal-star.on { color: var(--accent); }
+.library-page .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.library-page .btn-cancel {
+  flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border-strong);
+  border-radius: 10px; color: var(--text-2); font-family: var(--font); font-size: 13px;
+  font-weight: 700; padding: 12px; cursor: pointer; letter-spacing: 0.06em;
+}
+.library-page .btn-save {
+  flex: 2; background: var(--accent); border: none; border-radius: 10px; color: #000;
+  font-family: var(--font); font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 12px; cursor: pointer;
+}
+.library-page .btn-save:active { transform: scale(0.98); }
+.library-page .btn-danger {
+  width: 100%; margin-top: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px; color: #ff8a8a; font-family: var(--font); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 12px; cursor: pointer;
+}
+
+@media (max-width: 480px) { .library-page .shell { padding: 16px 12px 110px; } }
