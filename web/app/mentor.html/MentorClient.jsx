@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import NovaAvatar from './NovaAvatar';
+import NovaAvatar from '@/components/NovaAvatar';
 import { goalsToday, habits, fitness, waterProgress, stackToday, learning, library, growth, fmtShort, money } from '@/lib/sunpath';
 
 const HISTORY_KEY = 'mentor_chat_history';

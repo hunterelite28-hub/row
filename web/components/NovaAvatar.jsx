@@ -212,6 +212,22 @@ function buildNova(canvas, THREE) {
   scene.add(fill);
   scene.add(new THREE.AmbientLight(0x223066, 0.6));
 
+  // Live palette swap: recolor every part of Nova at once. a = key
+  // light / halo (the "cyan" role), b = glow / attenuation ("violet"),
+  // c = fill light ("pink"). Pass 3 hex strings.
+  function setPalette(a, b, c) {
+    CYAN.set(a);
+    VIOLET.set(b);
+    PINK.set(c);
+    key.color.set(a);
+    rim.color.set(b);
+    fill.color.set(c);
+    halo.material.color.set(a);
+    glow.material.color.set(b);
+    core.material.attenuationColor.set(b);
+    core.material.needsUpdate = true;
+  }
+
   const target = { x: 0, y: 0 }, cur = { x: 0, y: 0 };
   function onPointerMove(e) {
     target.x = (e.clientX / innerWidth - 0.5) * 2;
@@ -319,10 +335,15 @@ function buildNova(canvas, THREE) {
     renderer.dispose();
   }
 
-  return { setExpression, dispose };
+  return { setExpression, setPalette, dispose };
 }
 
-export default function NovaAvatar({ onReady }) {
+// `wrapClassName`/`canvasId`/`canvasClassName` default to mentor.html's
+// original markup so existing call sites don't need to change. Pass
+// wrapClassName={null} to render a bare canvas (e.g. when the page
+// mounts Nova more than once and supplies its own wrapper, as
+// ai-avatar.html does for its hero + compact chat-lab instances).
+export default function NovaAvatar({ onReady, wrapClassName = 'nova-stage', canvasId = 'novaScene', canvasClassName }) {
   const canvasRef = useRef(null);
   const apiRef = useRef(null);
 
@@ -341,9 +362,7 @@ export default function NovaAvatar({ onReady }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <div className="nova-stage">
-      <canvas id="novaScene" ref={canvasRef} />
-    </div>
-  );
+  const canvasEl = <canvas id={canvasId} className={canvasClassName} ref={canvasRef} />;
+  if (!wrapClassName) return canvasEl;
+  return <div className={wrapClassName}>{canvasEl}</div>;
 }
