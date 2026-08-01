@@ -3098,3 +3098,194 @@ body.has-bottombar {
 .areas-page .res-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .areas-page .res-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(244,241,234,0.05); border-radius: 8px; padding: 6px 10px; font-size: 11.5px; color: var(--ink); }
 .areas-page .res-row button { border: none; background: none; color: var(--faint); cursor: pointer; font-size: 12px; }
+
+/* ---- po-water page (ported from po-water.html, scoped under
+   .po-water-page). Fully self-contained design (no rameos.css/
+   glass.css), and since it's embedded via <iframe> from health.html
+   it renders in its own isolated document anyway — no cross-page CSS
+   collision risk regardless of scoping. Reuses the shared
+   WaterTracker component (built for body.html's Water tile) inside a
+   single card, a minor layout simplification vs. the original
+   standalone page's two-card split (main card + separate "LAST 14
+   DAYS" card) — cosmetic only, same as body.html's usage. ---- */
+.po-water-page {
+  --pw-bg-card: #111113;
+  --pw-text-1: #ffffff;
+  --pw-text-2: rgba(255,255,255,0.6);
+  --pw-text-3: rgba(255,255,255,0.4);
+  --pw-text-4: rgba(255,255,255,0.25);
+  --pw-border: rgba(255,255,255,0.06);
+  --pw-border-strong: rgba(255,255,255,0.14);
+  --pw-good: #6ee7b7;
+  --pw-warn: #fbbf24;
+  --pw-bad: #ff8a8a;
+  --pw-info: #7DD3FC;
+  --pw-font: var(--font-share-tech-mono), monospace;
+  --pw-font-mono: var(--font-share-tech-mono), monospace;
+
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, #14141a 0%, #0a0a0b 60%);
+  color: var(--pw-text-1);
+  font-family: var(--pw-font);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.po-water-page .shell { max-width: 720px; margin: 0 auto; padding: 24px 16px calc(80px + env(safe-area-inset-bottom)); }
+
+.po-water-page .day-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--pw-border);
+  border-radius: 999px;
+  color: var(--pw-text-2);
+  font-family: var(--pw-font-mono);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.10em;
+  text-transform: uppercase; margin-bottom: 10px;
+  cursor: default;
+}
+.po-water-page .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.po-water-page .title { font-size: 22px; font-weight: 700; letter-spacing: -0.015em; margin: 0; text-shadow: 0 0 18px rgba(125,211,252,0.2); }
+.po-water-page .divider { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.po-water-page .divider::before, .po-water-page .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.10); }
+.po-water-page .divider span { font-size: 11px; letter-spacing: 0.22em; font-weight: 600; color: rgba(255,255,255,0.85); }
+
+.po-water-page .card {
+  background: var(--pw-bg-card);
+  border: 1px solid var(--pw-border);
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  margin-bottom: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.42);
+}
+
+.po-water-page .water-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.po-water-page .water-num { font-size: 56px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 0 24px rgba(125,211,252,0.3); }
+.po-water-page .water-target { font-size: 18px; color: var(--pw-text-3); font-weight: 500; }
+.po-water-page .water-settings-btn {
+  margin-left: auto; width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--pw-border); border-radius: 10px;
+  color: var(--pw-text-2); cursor: pointer; font-size: 16px;
+  transition: background 0.18s, color 0.18s;
+}
+.po-water-page .water-settings-btn:hover { background: rgba(255,255,255,0.08); color: var(--pw-text-1); }
+
+.po-water-page .water-bar-wrap { position: relative; margin: 14px 0 22px; }
+.po-water-page .water-bar-track { position: relative; height: 28px; border-radius: 14px; background: rgba(255,255,255,0.04); overflow: hidden; }
+.po-water-page .water-bar-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 14px; background: linear-gradient(90deg, var(--pw-info), var(--pw-good)); transition: width 0.4s ease; box-shadow: 0 0 18px rgba(110,231,183,0.18); }
+.po-water-page .water-bar-fill.over { background: linear-gradient(90deg, var(--pw-good), var(--pw-warn)); }
+.po-water-page .water-bar-zone { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.18); }
+.po-water-page .water-bar-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--pw-text-3); font-family: var(--pw-font-mono); }
+.po-water-page .water-bar-labels .water-zone-name { color: var(--pw-good); font-weight: 700; letter-spacing: 0.10em; text-transform: lowercase; }
+
+.po-water-page .water-actions { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: stretch; }
+.po-water-page .water-minus-btn { background: rgba(255,255,255,0.06); border: none; border-radius: 16px; color: var(--pw-text-1); font-size: 22px; font-weight: 700; cursor: pointer; }
+.po-water-page .water-minus-btn:hover { background: rgba(255,255,255,0.10); }
+.po-water-page .water-minus-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.po-water-page .water-plus-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%);
+  color: #0a0a0b; border: none; border-radius: 16px;
+  font-family: inherit; font-size: 16px; font-weight: 700;
+  cursor: pointer; padding: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 4px 14px rgba(0,0,0,0.40);
+}
+.po-water-page .water-plus-btn:hover { transform: translateY(-1px); }
+.po-water-page .water-plus-btn:active { transform: scale(0.98); }
+
+.po-water-page .water-helper { text-align: center; font-size: 12px; color: var(--pw-text-3); margin-top: 12px; font-style: italic; }
+.po-water-page .water-helper.good { color: var(--pw-good); font-style: normal; }
+
+.po-water-page .why-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: transparent; border: 1px solid var(--pw-border);
+  color: var(--pw-text-2); border-radius: 10px;
+  padding: 11px 14px; cursor: pointer; margin-top: 14px;
+  font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+}
+.po-water-page .why-toggle:hover { background: rgba(255,255,255,0.04); color: var(--pw-text-1); }
+.po-water-page .why-arrow { transition: transform 0.2s; font-size: 14px; }
+.po-water-page .why-toggle[aria-expanded="true"] .why-arrow { transform: rotate(180deg); }
+.po-water-page .why-body { margin-top: 8px; padding: 14px 16px; background: rgba(255,255,255,0.025); border: 1px solid var(--pw-border); border-radius: 10px; display: none; }
+.po-water-page .why-body.show { display: block; }
+.po-water-page .why-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; padding: 4px 0; font-variant-numeric: tabular-nums; }
+.po-water-page .why-row .why-label { color: var(--pw-text-2); }
+.po-water-page .why-row .why-val { color: var(--pw-text-1); font-weight: 600; font-family: var(--pw-font-mono); }
+.po-water-page .why-row.total { border-top: 1px solid var(--pw-border); margin-top: 8px; padding-top: 10px; }
+.po-water-page .why-row.total .why-label { color: var(--pw-good); font-weight: 700; }
+.po-water-page .why-row.total .why-val { color: var(--pw-good); }
+
+.po-water-page .water-divider,
+.po-water-page div[class="water-divider"] { display: flex; align-items: center; gap: 14px; margin: 18px 0 12px; }
+
+.po-water-page .hist-row { display: grid; grid-template-columns: 70px 1fr auto; gap: 10px; padding: 10px 0; align-items: center; border-bottom: 1px solid var(--pw-border); font-size: 13px; }
+.po-water-page .hist-row:last-child { border-bottom: none; }
+.po-water-page .hist-date { font-size: 11px; color: var(--pw-text-3); font-family: var(--pw-font-mono); }
+.po-water-page .hist-bar-wrap { height: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; overflow: hidden; }
+.po-water-page .hist-bar-fill { height: 100%; background: linear-gradient(90deg, var(--pw-info), var(--pw-good)); border-radius: 4px; }
+.po-water-page .hist-bar-fill.miss { background: rgba(255,138,138,0.4); }
+.po-water-page .hist-count { font-family: var(--pw-font-mono); font-size: 12px; color: var(--pw-text-2); font-variant-numeric: tabular-nums; }
+
+.po-water-page .spark-wrap { padding: 6px 0; }
+.po-water-page .spark-svg { width: 100%; height: 70px; display: block; }
+.po-water-page .spark-bar { fill: var(--pw-good); }
+.po-water-page .spark-bar.miss { fill: rgba(255,138,138,0.5); }
+.po-water-page .spark-target { stroke: rgba(255,255,255,0.20); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+.po-water-page .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); }
+.po-water-page .modal-bg.show { display: flex; }
+.po-water-page .modal { width: 100%; max-width: 480px; background: var(--pw-bg-card); border: 1px solid var(--pw-border-strong); border-radius: 16px; padding: 22px; max-height: calc(88vh - env(safe-area-inset-bottom)); overflow-y: auto; }
+.po-water-page .modal h3 { margin: 0 0 14px; font-size: 17px; font-weight: 700; }
+.po-water-page .set-section { margin-bottom: 22px; }
+.po-water-page .set-section h4 { margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pw-text-3); }
+
+.po-water-page .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.po-water-page .field label { font-size: 11px; color: var(--pw-text-3); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.po-water-page .field input[type="number"], .po-water-page .field input[type="text"], .po-water-page .field select {
+  background: rgba(0,0,0,0.28); border: 1px solid var(--pw-border); color: var(--pw-text-1);
+  font-family: inherit; font-size: 14px; padding: 10px 12px; border-radius: 10px; outline: none;
+}
+.po-water-page .field input:focus, .po-water-page .field select:focus { border-color: rgba(110,231,183,0.40); box-shadow: 0 0 0 2px rgba(110,231,183,0.10); }
+.po-water-page .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.po-water-page .seg { display: flex; gap: 4px; background: rgba(255,255,255,0.04); border: 1px solid var(--pw-border); border-radius: 10px; padding: 3px; }
+.po-water-page .seg button { flex: 1; padding: 9px; border: none; background: transparent; color: var(--pw-text-3); border-radius: 7px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.po-water-page .seg button.active { background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%); color: #0a0a0b; }
+
+.po-water-page .search-wrap { position: relative; }
+.po-water-page .search-input { width: 100%; background: rgba(0,0,0,0.28); border: 1px solid var(--pw-border); color: var(--pw-text-1); font-family: inherit; font-size: 14px; padding: 11px 14px; border-radius: 10px; outline: none; }
+.po-water-page .search-input:focus { border-color: rgba(110,231,183,0.40); }
+.po-water-page .search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--pw-bg-card); border: 1px solid var(--pw-border-strong); border-radius: 10px; padding: 4px; max-height: 240px; overflow-y: auto; z-index: 5; display: none; }
+.po-water-page .search-results.show { display: block; }
+.po-water-page .search-result { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; }
+.po-water-page .search-result:hover { background: rgba(255,255,255,0.05); }
+.po-water-page .search-result-name { color: var(--pw-text-1); font-weight: 600; }
+.po-water-page .search-result-meta { font-size: 10.5px; color: var(--pw-text-3); font-family: var(--pw-font-mono); }
+.po-water-page .search-result-add { color: var(--pw-good); }
+
+.po-water-page .subs-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.po-water-page .sub-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.025); border: 1px solid var(--pw-border); border-radius: 10px; flex-wrap: wrap; }
+.po-water-page .sub-row-info { flex: 1; min-width: 140px; }
+.po-water-page .sub-row-name { font-size: 13px; font-weight: 600; color: var(--pw-text-1); }
+.po-water-page .sub-row-meta { font-size: 11px; color: var(--pw-text-3); font-variant-numeric: tabular-nums; font-family: var(--pw-font-mono); margin-top: 2px; }
+.po-water-page .sub-row-dose { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.30); border: 1px solid var(--pw-border); border-radius: 8px; padding: 4px 8px; }
+.po-water-page .sub-row-dose .sub-dose-input { width: 56px; background: transparent; border: none; outline: none; color: var(--pw-text-1); font-family: inherit; font-size: 13px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.po-water-page .sub-row-dose .sub-dose-unit { font-size: 11px; color: var(--pw-text-3); font-family: var(--pw-font-mono); white-space: nowrap; }
+.po-water-page .sub-row-del { background: transparent; border: none; color: var(--pw-text-4); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+.po-water-page .sub-row-del:hover { color: var(--pw-bad); }
+
+.po-water-page .btn-primary {
+  width: 100%; padding: 13px; border: none;
+  background: linear-gradient(180deg, #ffffff 0%, #e8e5dd 100%);
+  color: #0a0a0b; border-radius: 12px;
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 4px 14px rgba(0,0,0,0.40), 0 4px 16px -4px rgba(125,211,252,0.5);
+}
+.po-water-page .btn-secondary { padding: 11px 16px; border: 1px solid var(--pw-border); background: rgba(255,255,255,0.04); color: var(--pw-text-1); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; }
+.po-water-page .btn-secondary:hover { background: rgba(255,255,255,0.10); }
+.po-water-page .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+.po-water-page .modal-actions .btn-primary { flex: 1; }
+
+@media (max-width: 480px) {
+  .po-water-page .shell { padding-left: 12px; padding-right: 12px; }
+  .po-water-page .water-num { font-size: 48px; }
+}
