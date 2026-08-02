@@ -475,24 +475,28 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
   .today-page .shellwrap {
     max-width: 1200px;
     display: grid;
-    grid-template-columns: 240px minmax(400px, 620px) 280px;
+    grid-template-columns: 240px minmax(190px, 300px) minmax(190px, 300px) 280px;
     gap: 20px;
     align-items: start;
     grid-template-areas:
-      "status   status  status"
-      "operator header  vitals"
-      "tiles    tiles   tiles"
-      "map      log     inbox"
-      "map      nova    action"
-      "growth   growth  growth"
-      "summary  summary summary";
+      "status   status  status  status"
+      "operator header  header  vitals"
+      "fitness  learn   lib     habit"
+      "log      daymap  daymap  inbox"
+      "log      nova    nova    action"
+      "growth   growth  growth  growth"
+      "summary  summary summary summary";
   }
   .today-page .statusbar { grid-area: status; }
   .today-page .hero { grid-area: header; align-self: center; }
   .today-page .cell-operator { grid-area: operator; }
-  .today-page .cell-tiles { grid-area: tiles; margin-top: 0; }
-  .today-page .cell-map { grid-area: map; margin-top: 0; align-self: stretch; justify-content: center; }
-  .today-page .cell-log { grid-area: log; margin-top: 0; }
+  .today-page .cell-tiles { display: contents; }
+  .today-page .cell-tiles a[href="/gym.html"] { grid-area: fitness; }
+  .today-page .cell-tiles a[href="/learning.html"] { grid-area: learn; }
+  .today-page .cell-tiles a[href="/library.html"] { grid-area: lib; }
+  .today-page .cell-tiles a[href="/habits.html"] { grid-area: habit; }
+  .today-page .cell-map { grid-area: daymap; margin-top: 0; }
+  .today-page .cell-log { grid-area: log; margin-top: 0; align-self: stretch; }
   .today-page .cell-vitals { grid-area: vitals; margin-top: 0; }
   .today-page .cell-action { grid-area: action; margin-top: 0; }
   .today-page .cell-growth { grid-area: growth; margin-top: 0; }

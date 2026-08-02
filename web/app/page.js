@@ -930,9 +930,9 @@ export default function TodayPage() {
 
         {vm && <TilesRow grid={vm.grid} />}
 
-        {vm && <DayMapCard sky={vm.sky} />}
-
         {vm && <TodayLogCard ev={vm.ev} first={vm.focus.first} emptyChipText={vm.emptyChipText} />}
+
+        {vm && <DayMapCard sky={vm.sky} />}
 
         {vm && <VitalsCard focus={vm.focus} />}
 
