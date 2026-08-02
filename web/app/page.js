@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Dock from '@/components/Dock';
-import AvatarBubble from '@/components/AvatarBubble';
 import { usePull } from '@/hooks/usePull';
 import {
   calKey,
@@ -21,7 +20,16 @@ import {
   library,
   growth,
   habits,
+  profile,
 } from '@/lib/sunpath';
+
+function dayOfYear(d) {
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d - start) / 864e5);
+}
+function daysInYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
+}
 
 // ---------- sun arc geometry ----------
 const CX = 195,
@@ -453,23 +461,6 @@ function renderSub(sub) {
   return sub.text;
 }
 
-function LoggedChips({ ev, emptyChipText }) {
-  if (!ev.length) {
-    return (
-      <span className="log-chip glassy" style={{ color: 'var(--faint)' }}>
-        {emptyChipText}
-      </span>
-    );
-  }
-  return ev.map((e, i) => (
-    <span className="log-chip glassy" key={i}>
-      <span className="t num">{fmtClock(e.ts)}</span>
-      <b>{e.label}</b>
-      {e.detail ? ` ${e.detail}` : ''}
-    </span>
-  ));
-}
-
 function FocusCard({ focus }) {
   const { G, W, st, pct, first, split, loggedThatDay, isToday } = focus;
   return (
@@ -546,59 +537,12 @@ function FocusCard({ focus }) {
   );
 }
 
-function ModuleGrid({ grid }) {
-  const { vk, isToday, G, H, F, st, W, streak, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc, Gr, dayReflection } = grid;
+function TilesRow({ grid }) {
+  const { F, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc } = grid;
   const kmDisplay = F.km % 1 === 0 ? F.km : F.km.toFixed(1);
   const dayHoursDisplay = dayHours % 1 === 0 ? dayHours : dayHours.toFixed(1);
-
-  let quote;
-  if (Gr.locked) {
-    quote = dayReflection ? 'Locked · written that day — tap to unlock.' : 'Reflections are locked.';
-  } else if (dayReflection) {
-    const t = String(dayReflection.text || '');
-    quote = `“${t.length > 110 ? t.slice(0, 110) + '…' : t}”`;
-  } else {
-    quote = 'No reflection this day.';
-  }
-
   return (
-    <>
-      <a className="mod glassy" href="/goals.html">
-        <span className="k">{isToday ? 'Today' : 'Goals'} — Goals</span>
-        <span className="v num">
-          {G.total ? `${G.done}/${G.total}` : '—'} <small>done</small>
-        </span>
-        <span className="d">
-          {isToday ? (
-            streak > 0 ? (
-              <>
-                <b>🔥 {streak}</b> day streak
-              </>
-            ) : (
-              'start a streak today'
-            )
-          ) : G.total ? (
-            'goals for that day'
-          ) : (
-            'no goals set that day'
-          )}
-        </span>
-      </a>
-      <a className="mod glassy" href="/habits.html">
-        <span className="k">{isToday ? 'Today' : 'Habits'} — Habits</span>
-        <span className="v num">
-          {H.bestStreak} <small>day streak</small>
-        </span>
-        {H.list.length ? (
-          <span className="dots">
-            {H.list.slice(0, 7).map((h) => (
-              <i key={h.id} className={(H.log[vk] || []).indexOf(h.id) !== -1 ? 'on' : ''} />
-            ))}
-          </span>
-        ) : (
-          <span className="d">no habits yet</span>
-        )}
-      </a>
+    <div className="cell-tiles">
       <a className="mod glassy" href="/gym.html">
         <span className="k">Body — Fitness</span>
         <span className="v num">
@@ -606,18 +550,6 @@ function ModuleGrid({ grid }) {
         </span>
         <span className="d">
           {sessDesc} · {kmDisplay}km all-time
-        </span>
-      </a>
-      <a className="mod glassy" href="/health.html">
-        <span className="k">Body — Health</span>
-        <span className="v num">
-          {st.total ? `${st.taken}/${st.total}` : '—'} <small>stack</small>
-        </span>
-        <span className="d">
-          water{' '}
-          <b className={W.done >= W.total ? '' : 'warm'}>
-            {W.done}/{W.total}
-          </b>
         </span>
       </a>
       <a className="mod glassy" href="/learning.html">
@@ -634,13 +566,163 @@ function ModuleGrid({ grid }) {
         </span>
         <span className="d">{libDesc}</span>
       </a>
-      <a className="glassy card" style={{ gridColumn: '1/-1' }} href="/growth.html">
-        <span className="k">Growth{dayReflection ? ' — that day' : ''}</span>
-        <div style={{ marginTop: '8px' }}>
-          <span className="quote-q">{quote}</span>
+    </div>
+  );
+}
+
+function GrowthCard({ Gr, dayReflection }) {
+  let quote;
+  if (Gr.locked) {
+    quote = dayReflection ? 'Locked · written that day — tap to unlock.' : 'Reflections are locked.';
+  } else if (dayReflection) {
+    const t = String(dayReflection.text || '');
+    quote = `“${t.length > 110 ? t.slice(0, 110) + '…' : t}”`;
+  } else {
+    quote = 'No reflection this day.';
+  }
+  return (
+    <a className="glassy card cell-growth" href="/growth.html">
+      <span className="k">Growth{dayReflection ? ' — that day' : ''}</span>
+      <div style={{ marginTop: '8px' }}>
+        <span className="quote-q">{quote}</span>
+      </div>
+    </a>
+  );
+}
+
+function StatusStrip({ viewDate, isToday, clock, syncOn, onPrev, onNext, onJump }) {
+  return (
+    <div className="statusbar glassy">
+      <span className="brand">
+        <b>SUNPATH</b>
+        <span>/ today</span>
+      </span>
+      <span className="status-nav">
+        <button className="day-arrow" type="button" aria-label="Previous day" onClick={onPrev}>
+          ‹
+        </button>
+        <span className="daterow-label">{dateRowLabel(viewDate)}</span>
+        <button className="day-arrow" type="button" aria-label="Next day" onClick={onNext}>
+          ›
+        </button>
+        <button className="day-today-jump num" type="button" hidden={isToday} onClick={onJump}>
+          Today
+        </button>
+      </span>
+      <span className="status-chip">
+        DAY {dayOfYear(viewDate)} OF {daysInYear(viewDate.getFullYear())}
+      </span>
+      <span className="status-chip">05:00–23:00 WINDOW</span>
+      <span className="clock num">{clock}</span>
+      <span className="sync">
+        <i className={'dot' + (syncOn ? '' : ' off')} />
+        {syncOn ? 'SYNCED' : 'OFFLINE'}
+      </span>
+    </div>
+  );
+}
+
+function OperatorCard({ prof, goalStreak, goalsTotal }) {
+  return (
+    <a className="cell-operator glassy card" href="/areas.html">
+      <div className="op-top">
+        <span className="op-avatar">
+          {prof && prof.avatarDataUrl ? <img src={prof.avatarDataUrl} alt="" /> : <span>{prof ? prof.avatarEmoji : '🙂'}</span>}
+        </span>
+        <span>
+          <span className="op-name">{prof ? prof.name : 'Rame'}</span>
+          <span className="op-role">Operator · Sunpath OS</span>
+        </span>
+      </div>
+      <div className="op-tags">
+        <span className={'op-tag' + (goalStreak > 0 ? ' warm' : '')}>
+          🔥 <b>{goalStreak}</b> day streak
+        </span>
+        <span className="op-tag">
+          🎯 <b>{goalsTotal}</b> goal{goalsTotal === 1 ? '' : 's'} today
+        </span>
+      </div>
+    </a>
+  );
+}
+
+function DayMapCard({ sky }) {
+  return (
+    <div className="cell-map glassy card">
+      <span className="k">Day map</span>
+      <SkySvg sky={sky} />
+      <div className="map-caps">
+        <span>05:00</span>
+        <span>23:00</span>
+      </div>
+    </div>
+  );
+}
+
+function TodayLogCard({ ev, first, emptyChipText }) {
+  if (!ev.length && !first) {
+    return (
+      <div className="cell-log glassy card">
+        <span className="k">Today's log</span>
+        <div className="log-empty">{emptyChipText}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="cell-log glassy card">
+      <span className="k">Today's log</span>
+      {ev.map((e, i) => (
+        <div className="log-row" key={i}>
+          <span className="log-icon">{e.icon}</span>
+          <span className="log-time num">{fmtClock(e.ts)}</span>
+          <span className="log-body">
+            <span className="log-title">{e.label}</span>
+            {e.detail ? <span className="log-note">{e.detail}</span> : null}
+          </span>
         </div>
-      </a>
-    </>
+      ))}
+      {first && (
+        <div className="log-row pending">
+          <span className="log-icon">○</span>
+          <span className="log-time num">— —</span>
+          <span className="log-body">
+            <span className="log-title">{first.text}</span>
+            <span className="log-note">top of the list · pending</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionCard({ H, vk }) {
+  const pct = H.list.length ? Math.round((H.doneToday / H.list.length) * 100) : 0;
+  const doneIds = H.log[vk] || [];
+  return (
+    <a className="cell-action glassy card" href="/habits.html">
+      <div className="action-head">
+        <span className="k">Habits</span>
+        {H.list.length > 0 && <span className="action-pct num">{pct}%</span>}
+      </div>
+      {H.list.length === 0 ? (
+        <div className="log-empty">no habits yet</div>
+      ) : (
+        <>
+          <div className="action-bar">
+            <i style={{ width: pct + '%' }} />
+          </div>
+          {H.list.slice(0, 5).map((h) => {
+            const on = doneIds.indexOf(h.id) !== -1;
+            return (
+              <div className={'action-item' + (on ? ' on' : '')} key={h.id}>
+                <span className="action-check">{on ? '✓' : ''}</span>
+                <span className="action-label">{h.name}</span>
+              </div>
+            );
+          })}
+        </>
+      )}
+    </a>
   );
 }
 
@@ -707,9 +789,13 @@ export default function TodayPage() {
   const [mounted, setMounted] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [askInput, setAskInput] = useState('');
+  const [prof, setProf] = useState(null);
+  const [clock, setClock] = useState('');
+  const [syncOn, setSyncOn] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    setProf(profile());
   }, []);
 
   // Re-render the sky every minute, but only when today is the viewed day
@@ -721,6 +807,40 @@ export default function TodayPage() {
     }, 60 * 1000);
     return () => clearInterval(id);
   }, [mounted]);
+
+  // Status-strip clock ticks independently of which day is being viewed.
+  useEffect(() => {
+    function tick() {
+      setClock(fmtClock(Date.now()));
+    }
+    tick();
+    const id = setInterval(tick, 30 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Mirrors Topbar's sync-dot logic (os_last_sync freshness).
+  useEffect(() => {
+    function refresh() {
+      let on = false;
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        let t = 0;
+        try {
+          t = parseInt(localStorage.getItem('os_last_sync') || '0', 10) || 0;
+        } catch (e) {}
+        on = Date.now() - t < 10 * 60 * 1000;
+      }
+      setSyncOn(on);
+    }
+    refresh();
+    const id = setInterval(refresh, 15 * 1000);
+    window.addEventListener('online', refresh);
+    window.addEventListener('offline', refresh);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('offline', refresh);
+    };
+  }, []);
 
   usePull(
     {
@@ -767,58 +887,50 @@ export default function TodayPage() {
         ✨
       </a>
       <div className="shellwrap">
-        <div className="daterow">
-          <button className="day-arrow" type="button" aria-label="Previous day" onClick={prevDay}>
-            ‹
-          </button>
-          <span className="daterow-label">{mounted ? dateRowLabel(viewDate) : ''}</span>
-          <button className="day-arrow" type="button" aria-label="Next day" onClick={nextDay}>
-            ›
-          </button>
-          <button className="day-today-jump num" type="button" hidden={!vm || vm.isToday} onClick={jumpToday}>
-            Today
-          </button>
-        </div>
+        <StatusStrip
+          viewDate={viewDate}
+          isToday={!vm || vm.isToday}
+          clock={clock}
+          syncOn={syncOn}
+          onPrev={prevDay}
+          onNext={nextDay}
+          onJump={jumpToday}
+        />
 
         <div className="hero">
-          <div className="hero-head">
-            <h1>
-              {vm ? (
-                vm.greeting.mode === 'today' ? (
-                  <>
-                    {vm.greeting.text}
-                    <br />
-                    Rame.
-                  </>
-                ) : (
-                  vm.greeting.text
-                )
-              ) : (
+          <h1>
+            {vm ? (
+              vm.greeting.mode === 'today' ? (
                 <>
-                  Hello,
+                  {vm.greeting.text}
                   <br />
                   Rame.
                 </>
-              )}
-            </h1>
-            <span>
-              <AvatarBubble inline />
-            </span>
-          </div>
+              ) : (
+                vm.greeting.text
+              )
+            ) : (
+              <>
+                Hello,
+                <br />
+                Rame.
+              </>
+            )}
+          </h1>
           <div className="sub">{vm && renderSub(vm.sub)}</div>
-          <div className="skywrap">
-            <div>{vm && <SkySvg sky={vm.sky} />}</div>
-            <div className="sky-caps">
-              <span>05:00</span>
-              <span>23:00</span>
-            </div>
-          </div>
-          <div className="logged">{vm && <LoggedChips ev={vm.ev} emptyChipText={vm.emptyChipText} />}</div>
         </div>
+
+        {vm && <OperatorCard prof={prof} goalStreak={vm.grid.streak} goalsTotal={vm.focus.G.total} />}
+
+        {vm && <TilesRow grid={vm.grid} />}
+
+        {vm && <DayMapCard sky={vm.sky} />}
+
+        {vm && <TodayLogCard ev={vm.ev} first={vm.focus.first} emptyChipText={vm.emptyChipText} />}
 
         <div className="section section-focus">
           <div className="sec-head">
-            Up next
+            Vitals
             <span className="more num">{vm && vm.focus.G.total ? `${vm.focus.G.total - vm.focus.G.done} of ${vm.focus.G.total} goals left` : ''}</span>
           </div>
           <div className="glassy card">{vm && <FocusCard focus={vm.focus} />}</div>
@@ -828,7 +940,7 @@ export default function TodayPage() {
           <div className="ai-row2">
             <div className="glassy card ai-tile ai-suggest">{vm && <AiSuggest />}</div>
             <div className="glassy card ai-tile ai-ask">
-              <span className="k">AI Ask</span>
+              <span className="k">Ask Nova</span>
               <div className="ask-chiprow">
                 {ASK_CHIPS.map((c) => (
                   <button key={c} type="button" className="prompt-chip" onClick={() => askNova(c)}>
@@ -853,9 +965,9 @@ export default function TodayPage() {
           <div className="glassy card ai-tile ai-summary">{vm && <AiSummary />}</div>
         </div>
 
-        <div className="section section-grid">
-          <div className="grid2">{vm && <ModuleGrid grid={vm.grid} />}</div>
-        </div>
+        {vm && <ActionCard H={vm.grid.H} vk={vm.grid.vk} />}
+
+        {vm && <GrowthCard Gr={vm.grid.Gr} dayReflection={vm.grid.dayReflection} />}
       </div>
       <Dock activeId="today" />
     </div>

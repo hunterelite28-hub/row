@@ -318,36 +318,142 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
   text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
 }
 .day-today-jump:hover { background: rgba(242,166,90,0.22); }
+
+/* ---- status strip (replaces the plain .daterow on today) ---- */
+.statusbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: calc(16px + env(safe-area-inset-top)) 20px 0;
+  padding: 9px 16px; border-radius: 999px;
+}
+.statusbar .brand {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+}
+.statusbar .brand b { color: var(--sun); text-shadow: 0 0 10px rgba(242,166,90,0.35); }
+.statusbar .brand span { color: rgba(255,255,255,0.5); }
+.status-nav { display: inline-flex; align-items: center; gap: 8px; }
+.status-chip {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  letter-spacing: 0.04em; white-space: nowrap; display: none;
+}
+.statusbar .clock {
+  font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600;
+  margin-left: auto; display: none;
+}
+.statusbar .sync {
+  display: none; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--leaf); letter-spacing: 0.06em;
+}
+.statusbar .sync .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--leaf); box-shadow: 0 0 8px rgba(158,217,160,.8);
+}
+.statusbar .sync .dot.off { background: rgba(244,241,234,0.3); box-shadow: none; }
+@media (min-width: 560px) {
+  .statusbar .clock, .statusbar .sync { display: inline-flex; }
+}
+@media (min-width: 900px) {
+  .status-chip { display: inline; }
+}
+
+/* ---- operator card (profile) ---- */
+.cell-operator { margin: 14px 20px 0; display: flex; flex-direction: column; gap: 12px; }
+.op-top { display: flex; align-items: center; gap: 11px; }
+.op-avatar {
+  width: 42px; height: 42px; border-radius: 50%; flex: 0 0 auto; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, rgba(242,166,90,0.35), rgba(228,87,46,0.25));
+  border: 1px solid rgba(242,166,90,0.4);
+  font-weight: 700; font-size: 16px; color: var(--sun);
+}
+.op-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.op-name { font-size: 14.5px; font-weight: 650; display: block; }
+.op-role { font-size: 11px; color: var(--muted); margin-top: 1px; display: block; }
+.op-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.op-tag {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; color: var(--muted);
+  border: 1px solid var(--line); background: rgba(244,241,234,0.03);
+  padding: 4px 8px; border-radius: 999px; white-space: nowrap;
+}
+.op-tag b { color: var(--muted); font-weight: 600; }
+.op-tag.warm b { color: var(--sun); }
+
+/* ---- tiles row (Fitness / Learning / Library — reuses .mod) ---- */
+.cell-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 20px 0; }
+@media (max-width: 640px) { .cell-tiles { grid-template-columns: 1fr 1fr; } }
+
+/* ---- day map card (enlarged sun arc) ---- */
+.cell-map { margin: 14px 20px 0; display: flex; flex-direction: column; }
+.cell-map .k { display: block; margin-bottom: 6px; }
+.map-caps {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 9.5px; color: var(--faint);
+  margin-top: -6px; padding: 0 6px;
+}
+
+/* ---- today's log card ---- */
+.cell-log { margin: 14px 20px 0; }
+.cell-log .k { display: block; margin-bottom: 4px; }
+.log-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 2px; border-top: 1px solid var(--line); }
+.log-row:first-of-type { border-top: none; }
+.log-icon { width: 18px; flex: 0 0 auto; text-align: center; font-size: 13px; line-height: 1.4; }
+.log-time { font-family: var(--mono); font-size: 10.5px; color: var(--sun); width: 38px; flex: 0 0 auto; padding-top: 2px; }
+.log-row.pending .log-time { color: var(--faint); }
+.log-body { flex: 1; min-width: 0; }
+.log-title { font-size: 12.5px; font-weight: 600; }
+.log-note { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.log-empty { font-size: 12px; color: var(--faint); padding: 6px 2px; }
+
+/* ---- action / habits checklist card ---- */
+.cell-action { margin: 14px 20px 0; display: flex; flex-direction: column; }
+.cell-action .k { display: block; }
+.action-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.action-pct { font-family: var(--mono); font-size: 13px; color: var(--sun); font-weight: 600; }
+.action-bar { height: 5px; border-radius: 999px; background: rgba(244,241,234,0.08); overflow: hidden; margin-bottom: 10px; }
+.action-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--ember), var(--sun)); border-radius: 999px; }
+.action-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.action-check {
+  width: 16px; height: 16px; border-radius: 5px; flex: 0 0 auto; border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--bg);
+}
+.action-item.on .action-check { background: var(--leaf); border-color: var(--leaf); }
+.action-item.on .action-label { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.action-label { font-size: 12.5px; }
+
+/* ---- growth quote card ---- */
+.cell-growth { margin: 14px 20px 0; display: block; }
+
 @media (min-width: 1024px) {
   .today-page .shellwrap {
-    max-width: 1100px;
+    max-width: 1200px;
     display: grid;
-    grid-template-columns: 240px minmax(380px, 560px) 240px;
-    gap: 32px;
+    grid-template-columns: 240px minmax(400px, 620px) 280px;
+    gap: 20px;
     align-items: start;
     grid-template-areas:
-      "date    date    date"
-      "goals   hero    fitness"
-      "habits  hero    learning"
-      "health  hero    library"
-      "focus   focus   focus"
-      "mentor  mentor  mentor"
-      "growth  growth  growth";
+      "status   status  status"
+      "operator header  vitals"
+      "tiles    tiles   tiles"
+      "map      log     inbox"
+      "map      nova    action"
+      "growth   growth  growth"
+      "summary  summary summary";
   }
-  .today-page .daterow { grid-area: date; }
-  .today-page .hero { grid-area: hero; }
-  .today-page .section-focus { grid-area: focus; padding: 0; }
-  .today-page .section-mentor { grid-area: mentor; padding: 0; }
-  .today-page .section-grid,
-  .today-page .grid2 { display: contents; }
-
-  .today-page a.mod[href="/goals.html"]    { grid-area: goals; }
-  .today-page a.mod[href="/habits.html"]   { grid-area: habits; }
-  .today-page a.mod[href="/health.html"]   { grid-area: health; }
-  .today-page a.mod[href="/gym.html"]      { grid-area: fitness; }
-  .today-page a.mod[href="/learning.html"] { grid-area: learning; }
-  .today-page a.mod[href="/library.html"]  { grid-area: library; }
-  .today-page a.card[href="/growth.html"]  { grid-area: growth; }
+  .today-page .statusbar { grid-area: status; }
+  .today-page .hero { grid-area: header; align-self: center; }
+  .today-page .cell-operator { grid-area: operator; }
+  .today-page .cell-tiles { grid-area: tiles; margin-top: 0; }
+  .today-page .cell-map { grid-area: map; margin-top: 0; align-self: stretch; justify-content: center; }
+  .today-page .cell-log { grid-area: log; margin-top: 0; }
+  .today-page .section-focus { grid-area: vitals; padding: 0; margin-top: 0; }
+  .today-page .cell-action { grid-area: action; margin-top: 0; }
+  .today-page .cell-growth { grid-area: growth; margin-top: 0; }
+  .today-page .section-mentor { padding: 0; margin-top: 0; }
+  .today-page .section-mentor,
+  .today-page .ai-row2 { display: contents; }
+  .today-page .ai-tile.ai-suggest { grid-area: inbox; }
+  .today-page .ai-tile.ai-ask { grid-area: nova; }
+  .today-page .ai-tile.ai-summary { grid-area: summary; margin-top: 0; }
 
   .mentor-fab {
     display: flex; align-items: center; justify-content: center;
@@ -584,7 +690,7 @@ body.has-bottombar {
   z-index: -1;
 }
 
-.goals-page .page { max-width: 1100px; margin: 0 auto; }
+.goals-page .page { max-width: 1200px; margin: 0 auto; }
 
 .goals-page .dash-header {
   display: flex; align-items: flex-start; justify-content: space-between;
@@ -1153,7 +1259,7 @@ body.has-bottombar {
   pointer-events: none;
   z-index: -1;
 }
-.habits-page .shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 110px; position: relative; }
+.habits-page .shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 110px; position: relative; }
 
 .habits-page .page-header { margin-bottom: 20px; }
 .habits-page .page-title {
@@ -1451,7 +1557,7 @@ body.has-bottombar {
 
 .health-page main {
   position: relative; z-index: 2;
-  max-width: 720px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto;
   padding: 56px 20px 80px;
 }
 
@@ -1805,7 +1911,7 @@ body.has-bottombar {
    directly — no glass.css cascade correction needed here. ---- */
 @media (min-width: 1024px) {
   .body-page .shellwrap {
-    max-width: 1100px;
+    max-width: 1200px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
@@ -2130,7 +2236,7 @@ body.has-bottombar {
   filter: blur(46px);
   pointer-events: none; z-index: -1;
 }
-.growth-page .shell { max-width: 680px; margin: 0 auto; padding: 28px 16px 120px; position: relative; }
+.growth-page .shell { max-width: 1200px; margin: 0 auto; padding: 28px 16px 120px; position: relative; }
 
 .growth-page .page-title {
   font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase;
@@ -2323,7 +2429,7 @@ body.has-bottombar {
   filter: blur(46px);
   pointer-events: none; z-index: -1;
 }
-.learning-page .shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 110px; position: relative; }
+.learning-page .shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 110px; position: relative; }
 
 .learning-page .subject-tabs-wrap {
   display: flex; align-items: center; gap: 8px;
@@ -2578,7 +2684,7 @@ body.has-bottombar {
   filter: blur(46px);
   pointer-events: none; z-index: -1;
 }
-.library-page .shell { max-width: 680px; margin: 0 auto; padding: 20px 16px 120px; position: relative; }
+.library-page .shell { max-width: 1200px; margin: 0 auto; padding: 20px 16px 120px; position: relative; }
 
 .library-page .page-header { margin-bottom: 18px; }
 .library-page .page-title {
@@ -2849,7 +2955,7 @@ body.has-bottombar {
    correction needed, same as body.html. ---- */
 @media (min-width: 1024px) {
   .mind-page .shellwrap {
-    max-width: 1100px;
+    max-width: 1200px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
@@ -3129,7 +3235,7 @@ body.has-bottombar {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
-.po-water-page .shell { max-width: 720px; margin: 0 auto; padding: 24px 16px calc(80px + env(safe-area-inset-bottom)); }
+.po-water-page .shell { max-width: 1200px; margin: 0 auto; padding: 24px 16px calc(80px + env(safe-area-inset-bottom)); }
 
 .po-water-page .day-pill {
   display: inline-flex; align-items: center; gap: 8px;
@@ -3325,7 +3431,7 @@ body.has-bottombar {
 }
 @keyframes mentorDrift { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-22px, 14px, 0); } }
 
-.mentor-page .page { max-width: 1100px; margin: 0 auto; }
+.mentor-page .page { max-width: 1200px; margin: 0 auto; }
 .mentor-page .dash-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 18px; padding-bottom: 14px;
@@ -3458,7 +3564,7 @@ body.has-bottombar {
 }
 
 @media (min-width: 1024px) {
-  .money-page .shellwrap { max-width: 1100px; }
+  .money-page .shellwrap { max-width: 1200px; }
 }
 
 
