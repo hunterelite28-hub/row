@@ -30,6 +30,17 @@ function dayOfYear(d) {
 function daysInYear(y) {
   return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
 }
+function waterSpark(vk) {
+  const [y, m, d] = vk.split('-').map(Number);
+  const out = [];
+  for (let i = 6; i >= 0; i--) {
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() - i);
+    const w = waterProgress(calKey(dt));
+    out.push(w.total ? Math.min(1, w.done / w.total) : 0);
+  }
+  return out;
+}
 
 // ---------- sun arc geometry ----------
 const CX = 195,
@@ -159,7 +170,8 @@ function computeFocus(vk, isToday) {
   const first = G.pending[0];
   const split = splitToday(vk);
   const loggedThatDay = fitness().sessions.some((x) => x && x.date === vk && x.type === 'gym');
-  return { G, W, st, pct, first, split, loggedThatDay, isToday };
+  const spark = waterSpark(vk);
+  return { G, W, st, pct, first, split, loggedThatDay, isToday, spark };
 }
 
 function computeGrid(vk, isToday, tk) {
@@ -461,84 +473,52 @@ function renderSub(sub) {
   return sub.text;
 }
 
-function FocusCard({ focus }) {
-  const { G, W, st, pct, first, split, loggedThatDay, isToday } = focus;
+function VitalsCard({ focus }) {
+  const { G, W, st, spark } = focus;
   return (
-    <>
-      <a className="focus-top" href="/goals.html">
-        <span
-          className="ring"
-          style={{ background: `conic-gradient(var(--leaf) 0 ${pct}%, rgba(244,241,234,0.1) ${pct}% 100%)` }}
-        >
-          <i className="num">{G.total ? `${G.done}/${G.total}` : '—'}</i>
-        </span>
-        <span>
-          <span className="what">{first ? first.text : G.total ? 'All goals done — solid day.' : 'No goals set that day'}</span>
-          <span className="whatsub" style={{ display: 'block' }}>
-            {first
-              ? 'top of the list · tap to manage'
-              : G.total
-                ? isToday
-                  ? 'plan tomorrow tonight'
-                  : 'nothing left that day'
-                : isToday
-                  ? "tap to add today's goals"
-                  : 'no goals that day'}
+    <div className="cell-vitals glassy card">
+      <span className="k">Vitals</span>
+      <div className="rings">
+        <div className="ring-item">
+          <span
+            className="ring"
+            style={{ background: `conic-gradient(var(--sun) 0 ${G.total ? Math.round((G.done / G.total) * 100) : 0}%, rgba(244,241,234,0.1) ${G.total ? Math.round((G.done / G.total) * 100) : 0}% 100%)` }}
+          >
+            <i className="num">{G.total ? `${G.done}/${G.total}` : '—'}</i>
           </span>
-        </span>
-      </a>
-      <div className="rows" style={{ marginTop: '10px' }}>
-        {W.total > 0 && (
-          <a className="rowi" href="/health.html#water">
-            <span className="ic">💧</span>
-            <span className="tx">
-              <span className="t1">Water</span>
-              <span className="meter">
-                {Array.from({ length: Math.min(W.total, 10) }, (_, i) => (
-                  <i key={i} className={i < W.done ? 'on' : ''} />
-                ))}
-              </span>
-            </span>
-            <span className="end num">
-              {W.done}/{W.total}
-            </span>
-          </a>
-        )}
-        {st.total > 0 && (
-          <a className="rowi" href="/health.html">
-            <span className="ic">💊</span>
-            <span className="tx">
-              <span className="t1">Supplement stack</span>
-              <span className="t2">{st.taken >= st.total ? 'all taken' : `${st.total - st.taken} still to take`}</span>
-            </span>
-            <span className={'end' + (st.taken >= st.total ? '' : ' act')}>
-              {st.taken >= st.total ? (
-                <b>
-                  {st.taken}/{st.total}
-                </b>
-              ) : (
-                `${st.taken}/${st.total}`
-              )}
-            </span>
-          </a>
-        )}
-        {split && split.toLowerCase() !== 'rest' && (
-          <a className="rowi" href="/gym.html">
-            <span className="ic">🏋️</span>
-            <span className="tx">
-              <span className="t1">{split.charAt(0).toUpperCase() + split.slice(1)} session</span>
-              <span className="t2">{loggedThatDay ? 'logged — nice' : isToday ? "today's split day" : "that day's split"}</span>
-            </span>
-            <span className={'end' + (loggedThatDay ? '' : ' act')}>{loggedThatDay ? <b>✓</b> : isToday ? '+ LOG' : '—'}</span>
-          </a>
-        )}
+          <span className="ring-label">Goals</span>
+        </div>
+        <div className="ring-item">
+          <span
+            className="ring"
+            style={{ background: `conic-gradient(var(--leaf) 0 ${W.total ? Math.round((W.done / W.total) * 100) : 0}%, rgba(244,241,234,0.1) ${W.total ? Math.round((W.done / W.total) * 100) : 0}% 100%)` }}
+          >
+            <i className="num">{W.total ? `${W.done}/${W.total}` : '—'}</i>
+          </span>
+          <span className="ring-label">Water</span>
+        </div>
+        <div className="ring-item">
+          <span
+            className="ring"
+            style={{ background: `conic-gradient(var(--ember) 0 ${st.total ? Math.round((st.taken / st.total) * 100) : 0}%, rgba(244,241,234,0.1) ${st.total ? Math.round((st.taken / st.total) * 100) : 0}% 100%)` }}
+          >
+            <i className="num">{st.total ? `${st.taken}/${st.total}` : '—'}</i>
+          </span>
+          <span className="ring-label">Stack</span>
+        </div>
       </div>
-    </>
+      <div className="vitals-spark" aria-hidden="true">
+        {spark.map((v, i) => (
+          <i key={i} className={v > 0 ? 'on' : ''} style={{ height: Math.max(12, Math.round(v * 100)) + '%' }} />
+        ))}
+      </div>
+      <div className="vitals-foot">7-day water consistency</div>
+    </div>
   );
 }
 
 function TilesRow({ grid }) {
-  const { F, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc } = grid;
+  const { F, H, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc } = grid;
   const kmDisplay = F.km % 1 === 0 ? F.km : F.km.toFixed(1);
   const dayHoursDisplay = dayHours % 1 === 0 ? dayHours : dayHours.toFixed(1);
   return (
@@ -565,6 +545,13 @@ function TilesRow({ grid }) {
           {dayNotes.length} <small>note{dayNotes.length === 1 ? '' : 's'}</small>
         </span>
         <span className="d">{libDesc}</span>
+      </a>
+      <a className="mod glassy" href="/habits.html">
+        <span className="k">Habits — Streak</span>
+        <span className="v num">
+          🔥 {H.bestStreak} <small>day streak</small>
+        </span>
+        <span className="d">longest active streak</span>
       </a>
     </div>
   );
@@ -749,8 +736,14 @@ function AiSuggest() {
   return (
     <>
       <span className="k">AI Suggest</span>
-      <span className="ai-suggest-tag">{sug.area}</span>
-      <div className="ai-suggest-text" dangerouslySetInnerHTML={{ __html: sug.html }} />
+      <div className="inbox-item">
+        <span className="inbox-ic">💡</span>
+        <span>
+          <span className="inbox-tag">{sug.area}</span>
+          <div className="inbox-msg" dangerouslySetInnerHTML={{ __html: sug.html }} />
+          <div className="inbox-time">now</div>
+        </span>
+      </div>
       <div className={'ai-suggest-why' + (whyOpen ? ' on' : '')}>{sug.why}</div>
       <div className="ai-suggest-actions">
         <button type="button" className="ai-btn primary" onClick={handleAdd}>
@@ -761,6 +754,19 @@ function AiSuggest() {
         </button>
       </div>
     </>
+  );
+}
+
+function DaySummaryTeaser() {
+  const sum = computeAiSummary();
+  return (
+    <div className="inbox-item quiet">
+      <span className="inbox-ic">📊</span>
+      <span>
+        <span className="inbox-tag muted">Day summary</span>
+        <div className="inbox-msg" dangerouslySetInnerHTML={{ __html: sum.headline }} />
+      </span>
+    </div>
   );
 }
 
@@ -928,19 +934,33 @@ export default function TodayPage() {
 
         {vm && <TodayLogCard ev={vm.ev} first={vm.focus.first} emptyChipText={vm.emptyChipText} />}
 
-        <div className="section section-focus">
-          <div className="sec-head">
-            Vitals
-            <span className="more num">{vm && vm.focus.G.total ? `${vm.focus.G.total - vm.focus.G.done} of ${vm.focus.G.total} goals left` : ''}</span>
-          </div>
-          <div className="glassy card">{vm && <FocusCard focus={vm.focus} />}</div>
-        </div>
+        {vm && <VitalsCard focus={vm.focus} />}
 
         <div className="section section-mentor">
           <div className="ai-row2">
-            <div className="glassy card ai-tile ai-suggest">{vm && <AiSuggest />}</div>
+            <div className="glassy card ai-tile ai-suggest">
+              {vm && (
+                <>
+                  <AiSuggest />
+                  <DaySummaryTeaser />
+                </>
+              )}
+            </div>
             <div className="glassy card ai-tile ai-ask">
-              <span className="k">Ask Nova</span>
+              <div className="nova-row">
+                <span className="nova-art">✨</span>
+                <span>
+                  <span className="nova-title">Ask Nova</span>
+                  <span className="nova-sub">your AI mentor, on call</span>
+                </span>
+                <span className="nova-wave" aria-hidden="true">
+                  <i style={{ height: '6px' }} />
+                  <i style={{ height: '14px' }} />
+                  <i style={{ height: '9px' }} />
+                  <i style={{ height: '16px' }} />
+                  <i style={{ height: '7px' }} />
+                </span>
+              </div>
               <div className="ask-chiprow">
                 {ASK_CHIPS.map((c) => (
                   <button key={c} type="button" className="prompt-chip" onClick={() => askNova(c)}>
