@@ -382,6 +382,21 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .cell-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 20px 0; }
 @media (max-width: 640px) { .cell-tiles { grid-template-columns: 1fr 1fr; } }
 
+/* ---- calendar card (external link to Google Calendar) ---- */
+.cell-calendar {
+  margin: 14px 20px 0; display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; transition: border-color 0.15s ease;
+}
+.cell-calendar:hover { border-color: var(--glass-border-hover, var(--line)); }
+.cal-ic {
+  width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  background: rgba(242,166,90,0.12); border: 1px solid rgba(242,166,90,0.3);
+}
+.cal-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cal-sub { font-size: 11.5px; color: var(--muted); }
+.cal-arrow { font-size: 14px; color: var(--faint); flex: 0 0 auto; }
+
 /* ---- day map card (enlarged sun arc) ---- */
 .cell-map { margin: 14px 20px 0; display: flex; flex-direction: column; }
 .cell-map .k { display: block; margin-bottom: 6px; }
@@ -399,6 +414,11 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .log-icon { width: 18px; flex: 0 0 auto; text-align: center; font-size: 13px; line-height: 1.4; }
 .log-time { font-family: var(--mono); font-size: 10.5px; color: var(--sun); width: 38px; flex: 0 0 auto; padding-top: 2px; }
 .log-row.pending .log-time { color: var(--faint); }
+.log-row-btn {
+  width: 100%; border: none; background: none; font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.log-row-btn:hover .log-title { color: var(--sun); }
 .log-body { flex: 1; min-width: 0; }
 .log-title { font-size: 12.5px; font-weight: 600; }
 .log-note { font-size: 11px; color: var(--muted); margin-top: 1px; }
@@ -411,7 +431,12 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 .action-pct { font-family: var(--mono); font-size: 13px; color: var(--sun); font-weight: 600; }
 .action-bar { height: 5px; border-radius: 999px; background: rgba(244,241,234,0.08); overflow: hidden; margin-bottom: 10px; }
 .action-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--ember), var(--sun)); border-radius: 999px; }
-.action-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.action-item {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  width: 100%; border: none; background: none; font: inherit; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.action-head a.k { cursor: pointer; }
 .action-check {
   width: 16px; height: 16px; border-radius: 5px; flex: 0 0 auto; border: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--bg);
@@ -482,6 +507,7 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
       "status   status  status  status"
       "operator header  header  vitals"
       "fitness  learn   lib     habit"
+      "cal      cal     cal     cal"
       "log      daymap  daymap  inbox"
       "log      nova    nova    action"
       "growth   growth  growth  growth"
@@ -495,6 +521,7 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
   .today-page .cell-tiles a[href="/learning.html"] { grid-area: learn; }
   .today-page .cell-tiles a[href="/library.html"] { grid-area: lib; }
   .today-page .cell-tiles a[href="/habits.html"] { grid-area: habit; }
+  .today-page .cell-calendar { grid-area: cal; margin-top: 0; }
   .today-page .cell-map { grid-area: daymap; margin-top: 0; }
   .today-page .cell-log { grid-area: log; margin-top: 0; align-self: stretch; }
   .today-page .cell-vitals { grid-area: vitals; margin-top: 0; }

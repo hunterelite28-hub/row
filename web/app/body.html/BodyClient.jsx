@@ -6,6 +6,7 @@ import AvatarBubble from '@/components/AvatarBubble';
 import StackTracker from '@/components/StackTracker';
 import WaterTracker from '@/components/WaterTracker';
 import { usePull } from '@/hooks/usePull';
+import { useCloudSync } from '@/hooks/useCloudSync';
 import { readJSON, calKey, todayKey, esc, fmtClock, fmtDateStr, fitness, stackToday, waterProgress, splitToday } from '@/lib/sunpath';
 import { getItems as stackGetItems, getTaken as stackGetTaken } from '@/lib/stack';
 
@@ -1035,11 +1036,19 @@ export default function BodyClient() {
     {
       goals: { keys: ['goal_streak_v1'] },
       'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
-      health: { keys: ['stack:items', 'stack:low', 'po_water_v1'], prefixes: ['stack:taken:'] },
       'fitness-sync': { keys: ['hevy_api_key', 'hevy_workouts_cache', 'strava_client_id', 'strava_client_secret', 'strava_tokens', 'strava_cache'] },
     },
     () => setPullTick((t) => t + 1)
   );
+  // Two-way (not read-only pull): the Supplements tile below edits these keys
+  // directly, so local changes need to push to Supabase too, or they get
+  // clobbered by the next pull/remount. Same key set as health.html's sync.
+  useCloudSync({
+    appKey: 'health',
+    syncedKeys: ['stack:items', 'stack:version', 'stack:low', 'po_water_v1'],
+    syncedPrefixes: ['stack:taken:'],
+    onApplied: () => setPullTick((t) => t + 1),
+  });
 
   return (
     <div className="body-page">

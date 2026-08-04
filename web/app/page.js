@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Dock from '@/components/Dock';
 import { usePull } from '@/hooks/usePull';
+import { useCloudSync } from '@/hooks/useCloudSync';
 import {
   calKey,
   todayKey,
+  activeDateKey,
   fmtClock,
   esc,
   readJSON,
@@ -30,6 +32,37 @@ function dayOfYear(d) {
 function daysInYear(y) {
   return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0 ? 366 : 365;
 }
+// ---------- quick-log writes (mirrors the write logic on habits.html / goals.html) ----------
+function toggleHabitLog(dateKey, habitId) {
+  let log;
+  try {
+    log = JSON.parse(localStorage.getItem('habits_log')) || {};
+  } catch (e) {
+    log = {};
+  }
+  const ids = log[dateKey] || [];
+  const idx = ids.indexOf(habitId);
+  log[dateKey] = idx === -1 ? ids.concat(habitId) : ids.slice(0, idx).concat(ids.slice(idx + 1));
+  localStorage.setItem('habits_log', JSON.stringify(log));
+}
+function completeFirstPendingGoal(dateKey) {
+  let list;
+  try {
+    list = JSON.parse(localStorage.getItem('goals:' + dateKey)) || [];
+  } catch (e) {
+    list = [];
+  }
+  if (!Array.isArray(list)) return;
+  const idx = list.findIndex((g) => g && !g.done);
+  if (idx === -1) return;
+  list[idx] = { ...list[idx], done: true, doneAt: Date.now() };
+  localStorage.setItem('goals:' + dateKey, JSON.stringify(list));
+}
+
+// ---------- AI tile -> corresponding feature page ----------
+const AREA_HREF = { Health: '/health.html', Goals: '/goals.html', Habits: '/habits.html', Fitness: '/gym.html' };
+const SUMMARY_CAT_HREF = { 'Goals & Tasks': '/goals.html', Health: '/health.html', Learning: '/learning.html' };
+
 function waterSpark(vk) {
   const [y, m, d] = vk.split('-').map(Number);
   const out = [];
@@ -209,7 +242,19 @@ function computeGrid(vk, isToday, tk) {
 
   const dayReflection = Gr.notes.find((n) => n && n.ts && calKey(new Date(n.ts)) === vk);
 
-  return { vk, isToday, G, H, F, st, W, streak, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc, Gr, dayReflection };
+  // trailing 7-day window ending on the viewed day, for "this week" at-a-glance stats
+  const weekStart = new Date(vk + 'T00:00:00');
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekStartKey = calKey(weekStart);
+  const inWeek = (dk) => dk >= weekStartKey && dk <= vk;
+  const weekSessions = F.sessions.filter((x) => x && inWeek(x.date)).length;
+  const weekHours = L.sessions.filter((x) => x && inWeek(x.date)).reduce((t, x) => t + (parseFloat(x.hours) || 0), 0);
+  const weekNotes = Lib.notes.filter((n) => n && n.ts && inWeek(calKey(new Date(n.ts)))).length;
+
+  return {
+    vk, isToday, G, H, F, st, W, streak, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc, Gr, dayReflection,
+    weekSessions, weekHours, weekNotes,
+  };
 }
 
 function computeAiSuggest() {
@@ -476,7 +521,7 @@ function renderSub(sub) {
 function VitalsCard({ focus }) {
   const { G, W, st, spark } = focus;
   return (
-    <div className="cell-vitals glassy card">
+    <a className="cell-vitals glassy card" href="/body.html#secToday">
       <span className="k">Vitals</span>
       <div className="rings">
         <div className="ring-item">
@@ -513,14 +558,15 @@ function VitalsCard({ focus }) {
         ))}
       </div>
       <div className="vitals-foot">7-day water consistency</div>
-    </div>
+    </a>
   );
 }
 
 function TilesRow({ grid }) {
-  const { F, H, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc } = grid;
+  const { F, H, daySessions, sessDesc, dayHours, learnDesc, dayNotes, libDesc, weekSessions, weekHours, weekNotes } = grid;
   const kmDisplay = F.km % 1 === 0 ? F.km : F.km.toFixed(1);
   const dayHoursDisplay = dayHours % 1 === 0 ? dayHours : dayHours.toFixed(1);
+  const weekHoursDisplay = weekHours % 1 === 0 ? weekHours : weekHours.toFixed(1);
   return (
     <div className="cell-tiles">
       <a className="mod glassy" href="/gym.html">
@@ -529,7 +575,7 @@ function TilesRow({ grid }) {
           {daySessions.length || '—'} <small>session{daySessions.length === 1 ? '' : 's'}</small>
         </span>
         <span className="d">
-          {sessDesc} · {kmDisplay}km all-time
+          {sessDesc} · {kmDisplay}km all-time · {weekSessions} this wk
         </span>
       </a>
       <a className="mod glassy" href="/learning.html">
@@ -537,23 +583,42 @@ function TilesRow({ grid }) {
         <span className="v num">
           {dayHoursDisplay} <small>hours</small>
         </span>
-        <span className="d">{learnDesc}</span>
+        <span className="d">
+          {learnDesc} · {weekHoursDisplay}h this wk
+        </span>
       </a>
       <a className="mod glassy" href="/library.html">
         <span className="k">Mind — Library</span>
         <span className="v num">
           {dayNotes.length} <small>note{dayNotes.length === 1 ? '' : 's'}</small>
         </span>
-        <span className="d">{libDesc}</span>
+        <span className="d">
+          {libDesc} · {weekNotes} this wk
+        </span>
       </a>
       <a className="mod glassy" href="/habits.html">
         <span className="k">Habits — Streak</span>
         <span className="v num">
           🔥 {H.bestStreak} <small>day streak</small>
         </span>
-        <span className="d">longest active streak</span>
+        <span className="d">
+          {H.list.length ? `${H.doneToday}/${H.list.length} done today` : 'longest active streak'}
+        </span>
       </a>
     </div>
+  );
+}
+
+function CalendarCard() {
+  return (
+    <a className="cell-calendar glassy card" href="https://calendar.google.com/calendar/r" target="_blank" rel="noopener noreferrer">
+      <span className="cal-ic">📅</span>
+      <span className="cal-tx">
+        <span className="k">Calendar</span>
+        <span className="cal-sub">Open Google Calendar</span>
+      </span>
+      <span className="cal-arrow">↗</span>
+    </a>
   );
 }
 
@@ -646,7 +711,7 @@ function DayMapCard({ sky }) {
   );
 }
 
-function TodayLogCard({ ev, first, emptyChipText }) {
+function TodayLogCard({ ev, first, emptyChipText, onCompleteFirst }) {
   if (!ev.length && !first) {
     return (
       <div className="cell-log glassy card">
@@ -668,27 +733,37 @@ function TodayLogCard({ ev, first, emptyChipText }) {
           </span>
         </div>
       ))}
-      {first && (
-        <div className="log-row pending">
-          <span className="log-icon">○</span>
-          <span className="log-time num">— —</span>
-          <span className="log-body">
-            <span className="log-title">{first.text}</span>
-            <span className="log-note">top of the list · pending</span>
-          </span>
-        </div>
-      )}
+      {first &&
+        (onCompleteFirst ? (
+          <button type="button" className="log-row pending log-row-btn" onClick={onCompleteFirst}>
+            <span className="log-icon">○</span>
+            <span className="log-time num">— —</span>
+            <span className="log-body">
+              <span className="log-title">{first.text}</span>
+              <span className="log-note">top of the list · tap to mark done</span>
+            </span>
+          </button>
+        ) : (
+          <div className="log-row pending">
+            <span className="log-icon">○</span>
+            <span className="log-time num">— —</span>
+            <span className="log-body">
+              <span className="log-title">{first.text}</span>
+              <span className="log-note">top of the list · pending</span>
+            </span>
+          </div>
+        ))}
     </div>
   );
 }
 
-function ActionCard({ H, vk }) {
+function ActionCard({ H, vk, onToggle }) {
   const pct = H.list.length ? Math.round((H.doneToday / H.list.length) * 100) : 0;
   const doneIds = H.log[vk] || [];
   return (
-    <a className="cell-action glassy card" href="/habits.html">
+    <div className="cell-action glassy card">
       <div className="action-head">
-        <span className="k">Habits</span>
+        <a className="k" href="/habits.html">Habits</a>
         {H.list.length > 0 && <span className="action-pct num">{pct}%</span>}
       </div>
       {H.list.length === 0 ? (
@@ -701,15 +776,20 @@ function ActionCard({ H, vk }) {
           {H.list.slice(0, 5).map((h) => {
             const on = doneIds.indexOf(h.id) !== -1;
             return (
-              <div className={'action-item' + (on ? ' on' : '')} key={h.id}>
+              <button
+                type="button"
+                className={'action-item' + (on ? ' on' : '')}
+                key={h.id}
+                onClick={() => onToggle(h.id)}
+              >
                 <span className="action-check">{on ? '✓' : ''}</span>
                 <span className="action-label">{h.name}</span>
-              </div>
+              </button>
             );
           })}
         </>
       )}
-    </a>
+    </div>
   );
 }
 
@@ -736,14 +816,14 @@ function AiSuggest() {
   return (
     <>
       <span className="k">AI Suggest</span>
-      <div className="inbox-item">
+      <a className="inbox-item" href={AREA_HREF[sug.area] || '/areas.html'}>
         <span className="inbox-ic">💡</span>
         <span>
           <span className="inbox-tag">{sug.area}</span>
           <div className="inbox-msg" dangerouslySetInnerHTML={{ __html: sug.html }} />
           <div className="inbox-time">now</div>
         </span>
-      </div>
+      </a>
       <div className={'ai-suggest-why' + (whyOpen ? ' on' : '')}>{sug.why}</div>
       <div className="ai-suggest-actions">
         <button type="button" className="ai-btn primary" onClick={handleAdd}>
@@ -760,13 +840,13 @@ function AiSuggest() {
 function DaySummaryTeaser() {
   const sum = computeAiSummary();
   return (
-    <div className="inbox-item quiet">
+    <a className="inbox-item quiet" href="#aiSummaryCard">
       <span className="inbox-ic">📊</span>
       <span>
         <span className="inbox-tag muted">Day summary</span>
         <div className="inbox-msg" dangerouslySetInnerHTML={{ __html: sum.headline }} />
       </span>
-    </div>
+    </a>
   );
 }
 
@@ -778,11 +858,11 @@ function AiSummary() {
       <div className="ai-summary-head" dangerouslySetInnerHTML={{ __html: sum.headline }} />
       <div className="ai-summary-cats">
         {sum.cats.map((c) => (
-          <div className="ai-summary-cat" key={c.label}>
+          <a className="ai-summary-cat" href={SUMMARY_CAT_HREF[c.label] || '/areas.html'} key={c.label}>
             <span className="k">{c.label}</span>
             <div className="status">{c.status}</div>
             <div className="tip">{c.tip}</div>
-          </div>
+          </a>
         ))}
       </div>
     </>
@@ -848,19 +928,26 @@ export default function TodayPage() {
     };
   }, []);
 
+  // 'goals' and 'habits' are handled by useCloudSync below (two-way, since
+  // this page now writes to them via quick-log actions) — everything else
+  // stays read-only, pulled in from whichever page owns the write side.
   usePull(
     {
-      goals: { prefixes: ['goals:'], keys: ['goal_streak_v1'] },
       'po-coach': { keys: ['fitness_sessions', 'po_coach_v1', 'po_coach_weights'] },
       health: { keys: ['stack:items', 'po_water_v1'], prefixes: ['stack:taken:'] },
       learning: { keys: ['learning_subjects', 'learning_sessions'] },
       library: { keys: ['library_books', 'library_notes'] },
       growth: { keys: ['growth_notes', 'growth_lock_hash'] },
-      habits: { keys: ['habits_list', 'habits_log'] },
       finance: { keys: ['nw:history', 'subs'] },
     },
     () => setRefreshTick((t) => t + 1)
   );
+
+  const bump = () => setRefreshTick((t) => t + 1);
+  // Same appKey + synced key/prefix sets as habits.html / goals.html, so a
+  // push from this page never clobbers the rest of that row's data.
+  useCloudSync({ appKey: 'habits', syncedKeys: ['habits_list', 'habits_log'], onApplied: bump });
+  useCloudSync({ appKey: 'goals', syncedPrefixes: ['goals:', 'personal_goals_v1'], onApplied: bump });
 
   const vm = useMemo(() => (mounted ? buildViewModel(viewDate) : null), [mounted, viewDate, refreshTick]);
 
@@ -885,6 +972,16 @@ export default function TodayPage() {
     e.preventDefault();
     askNova(askInput);
     setAskInput('');
+  }
+  function handleToggleHabit(habitId) {
+    if (!vm) return;
+    toggleHabitLog(vm.grid.vk, habitId);
+    bump();
+  }
+  function handleCompleteFirstGoal() {
+    if (!vm || !vm.isToday) return;
+    completeFirstPendingGoal(activeDateKey());
+    bump();
   }
 
   return (
@@ -930,7 +1027,16 @@ export default function TodayPage() {
 
         {vm && <TilesRow grid={vm.grid} />}
 
-        {vm && <TodayLogCard ev={vm.ev} first={vm.focus.first} emptyChipText={vm.emptyChipText} />}
+        <CalendarCard />
+
+        {vm && (
+          <TodayLogCard
+            ev={vm.ev}
+            first={vm.focus.first}
+            emptyChipText={vm.emptyChipText}
+            onCompleteFirst={vm.isToday ? handleCompleteFirstGoal : null}
+          />
+        )}
 
         {vm && <DayMapCard sky={vm.sky} />}
 
@@ -982,10 +1088,10 @@ export default function TodayPage() {
               </form>
             </div>
           </div>
-          <div className="glassy card ai-tile ai-summary">{vm && <AiSummary />}</div>
+          <div className="glassy card ai-tile ai-summary" id="aiSummaryCard">{vm && <AiSummary />}</div>
         </div>
 
-        {vm && <ActionCard H={vm.grid.H} vk={vm.grid.vk} />}
+        {vm && <ActionCard H={vm.grid.H} vk={vm.grid.vk} onToggle={handleToggleHabit} />}
 
         {vm && <GrowthCard Gr={vm.grid.Gr} dayReflection={vm.grid.dayReflection} />}
       </div>
